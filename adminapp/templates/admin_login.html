@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+
+        body {
+            background-color: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 420px;
+            background-color: #0d1f16;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            color: white;
+        }
+
+        .login-container h2 {
+            margin-bottom: 10px;
+            font-size: 26px;
+        }
+
+        .login-container p {
+            font-size: 14px;
+            margin-bottom: 20px;
+            color: #cccccc;
+        }
+
+        input[type="text"],
+        input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 16px;
+            border: none;
+            border-radius: 8px;
+            background-color: #ffffff;
+            font-size: 14px;
+        }
+
+        input::placeholder {
+            color: #6e6e6e;
+        }
+
+        input:focus {
+            outline: 2px solid #1f521c;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 14px;
+            background-color: #556b2f;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .submit-btn:hover {
+            background-color: #455a1c;
+        }
+
+        .message {
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            color: #ffffff;
+        }
+
+        .message.success {
+            background-color: #28a745;
+        }
+
+        .message.error {
+            background-color: #5c7a5b;
+        }
+
+        .signup-link {
+            margin-top: 15px;
+            font-size: 14px;
+            color: #cccccc;
+        }
+
+        .signup-link a {
+            color: #d8e7d6;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .signup-link a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="login-container">
+        <h2>Welcome Back</h2>
+        <p>Enter your credentials to login</p>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="message {{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="POST">
+            {% csrf_token %}
+            <input type="text" name="username" placeholder="Email or Username" required>
+            <input type="password" name="password" placeholder="Password" required>
+
+            <button type="submit" class="submit-btn">Login</button>
+        </form>
+
+        {% comment %} <div class="signup-link">
+            Don't have an account? <a href= {% url 'signup_view' %}>Sign Up</a>
+        </div> {% endcomment %}
+    </div>
+
+</body>
+</html>
+
+
+        

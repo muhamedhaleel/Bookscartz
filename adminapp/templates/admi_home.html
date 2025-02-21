@@ -1,0 +1,194 @@
+<script src="https://cdn.tailwindcss.com"></script>
+<!-- Navbar -->
+<nav class="bg-gray-800 text-white p-4">
+    <div class="flex justify-between items-center">
+      <h1 class="text-xl font-bold">Admin Panel</h1>
+      <div class="flex space-x-4">
+        <a href="/admin/home" class="hover:text-gray-300">Home</a>
+        <a href="/admin/logout" class="hover:text-gray-300">Logout</a>
+      </div>
+    </div>
+  </nav>
+  
+  <!-- Layout Container -->
+  <div class="flex min-h-screen">
+    <!-- Sidebar -->
+    <aside class="bg-gradient-to-r from-[#E5E7EB] to-[#d2b69b] text-black w-64 py-6 px-4 hidden lg:block">
+      <nav class="space-y-6">
+        <a href="/admin-home" class="flex items-center py-2 px-3 bg-white rounded-lg shadow-md">Dashboard</a>
+        <a href="/admin-products" class="flex items-center py-2 px-3 hover:bg-white rounded-lg">Products</a>
+        <a href="/admin-category" class="flex items-center py-2 px-3 hover:bg-white rounded-lg">Category</a>
+        <a href="/admin-brand" class="flex items-center py-2 px-3 hover:bg-white rounded-lg">Publisher</a>
+        <a href="/admin-caustomers" class="flex items-center py-2 px-3 hover:bg-white rounded-lg">Customers</a>
+        <a href="/admin/orders" class="flex items-center py-2 px-3 hover:bg-white rounded-lg">Orders</a>
+        <a href="/admin/coupons" class="flex items-center py-2 px-3 hover:bg-white rounded-lg">Coupons</a>
+        <a href="/admin/offer" class="flex items-center py-2 px-3 hover:bg-white rounded-lg">Offers</a>
+      </nav>
+    </aside>
+  
+    {% comment %} <!-- Main Content -->
+    <main class="flex-1 p-6">
+      <!-- Header -->
+      <header class="flex justify-between items-center">
+        <h1 class="text-xl font-bold text-brown-800">Sales Summary</h1>
+        <button class="bg-green-500 hover:bg-green-600 text-white rounded-lg px-4 py-2" onclick="window.location.href='/admin/salesReport'">
+          Sales Report
+        </button>
+      </header>
+   {% endcomment %}
+      {% comment %} <!-- Summary Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
+        <div class="bg-white p-4 shadow rounded-lg">
+          <h2 class="text-gray-700 font-bold">Revenue</h2>
+          <p class="text-2xl font-semibold">₹ 0.00</p>
+        </div>
+        <div class="bg-white p-4 shadow rounded-lg">
+          <h2 class="text-gray-700 font-bold">Orders</h2>
+          <p class="text-2xl font-semibold">0</p>
+        </div>
+        <div class="bg-white p-4 shadow rounded-lg">
+          <h2 class="text-gray-700 font-bold">Products Sold</h2>
+          <p class="text-2xl font-semibold">0</p>
+        </div>
+        <div class="bg-white p-4 shadow rounded-lg">
+          <h2 class="text-gray-700 font-bold">Total Customers</h2>
+          <p class="text-2xl font-semibold">0</p>
+        </div>
+      </div>
+   {% endcomment %}
+      {% comment %} <!-- Sales Overview -->
+      <div class="bg-white mt-8 rounded-xl shadow-lg overflow-hidden">
+        <div class="p-6 border-b border-gray-200 flex justify-between items-center">
+          <div>
+            <h2 class="text-2xl font-bold text-gray-800">Sales Overview</h2>
+            <p class="text-gray-600 mt-1">Track your revenue performance</p>
+          </div>
+          <select class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg p-2.5">
+            <option value="yearly">Yearly</option>
+            <option value="monthly">Monthly</option>
+            <option value="weekly">Weekly</option>
+            <option value="daily">Daily</option>
+          </select>
+        </div>
+   {% endcomment %}
+        <!-- Chart Container -->
+        {% comment %} <div class="p-6">
+          <div class="min-h-[300px] md:min-h-[400px]">
+            <canvas id="salesChart" class="w-full h-full"></canvas>
+          </div>
+        </div>
+  
+        <!-- Chart Legend -->
+        <div class="px-6 pb-6 flex justify-center gap-4 text-sm text-gray-600">
+          <div class="flex items-center">
+            <span class="w-3 h-3 rounded-full bg-blue-500 mr-2"></span>
+            <span>Revenue</span>
+          </div>
+          <div class="flex items-center">
+            <span class="w-3 h-3 rounded-full bg-green-500 mr-2"></span>
+            <span>Orders</span>
+          </div>
+        </div>
+      </div>
+   {% endcomment %}
+      {% comment %} <!-- Top Products, Categories, and Brands -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+        <!-- Top Products -->
+        <div class="bg-white p-6 rounded-lg shadow">
+          <h2 class="text-gray-700 font-bold mb-4">Top Products</h2>
+          <div class="space-y-3">
+            <div class="flex justify-between items-center">
+              <span class="text-sm truncate">Product A</span>
+              <div class="text-right">
+                <span class="text-sm font-semibold">100 units</span>
+                <div class="text-xs text-gray-500">₹10,000</div>
+              </div>
+            </div>
+          </div>
+        </div> {% endcomment %}
+  
+        {% comment %} <!-- Top Categories -->
+        <div class="bg-white p-6 rounded-lg shadow">
+          <h2 class="text-gray-700 font-bold mb-4">Top Categories</h2>
+          <div class="space-y-3">
+            <div class="flex justify-between items-center">
+              <span class="text-sm truncate">Category A</span>
+              <div class="text-right">
+                <span class="text-sm font-semibold">150 units</span>
+                <div class="text-xs text-gray-500">₹15,000</div>
+              </div>
+            </div>
+          </div>
+        </div> {% endcomment %}
+  
+        {% comment %} <!-- Top Brands -->
+        <div class="bg-white p-6 rounded-lg shadow">
+          <h2 class="text-gray-700 font-bold mb-4">Top Brands</h2>
+          <div class="space-y-3">
+            <div class="flex justify-between items-center">
+              <span class="text-sm truncate">Brand A</span>
+              <div class="text-right">
+                <span class="text-sm font-semibold">200 units</span>
+                <div class="text-xs text-gray-500">₹20,000</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main> {% endcomment %}
+  </div>
+  
+  <!-- Footer -->
+  <footer class="bg-gray-800 text-white text-center py-4 mt-8">
+    © 2025 Bookscartz. All rights reserved.
+  </footer>
+  
+  <!-- Chart.js Script -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    const ctx = document.getElementById('salesChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+        datasets: [{
+          label: 'Sales (₹)',
+          data: [5000, 7000, 8000, 6000, 9000, 10000],
+          borderColor: 'rgb(59, 130, 246)',
+          backgroundColor: 'rgba(59, 130, 246, 0.1)',
+          tension: 0.4,
+          fill: true,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          pointBackgroundColor: 'white',
+          pointBorderColor: 'rgb(59, 130, 246)',
+          pointBorderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            padding: 12,
+            titleFont: { size: 14, weight: 'bold' },
+            bodyFont: { size: 13 },
+            displayColors: false
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: value => '₹' + value.toLocaleString()
+            },
+            grid: { color: 'rgba(0, 0, 0, 0.05)' }
+          },
+          x: { grid: { display: false } }
+        }
+      }
+    });
+  </script>
+  
