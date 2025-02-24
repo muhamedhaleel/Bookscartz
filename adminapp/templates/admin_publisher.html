@@ -30,9 +30,18 @@
                 <h2 class="text-2xl font-bold w-full sm:w-auto">Brands</h2>
                 <div class="w-full sm:w-auto flex flex-wrap gap-4 items-center">
                     <button class="bg-[#A79277] text-white px-4 py-2 rounded-lg shadow-md hover:bg-[#E5E7EB] hover:text-black" onclick="toggleModal(true)">Add Brand</button>
-                    <form class="flex items-center gap-2 w-full sm:w-auto">
-                        <input type="text" placeholder="Search by Brand Name" class="border border-gray-300 rounded-lg px-4 py-2" />
-                        <input type="submit" value="Search" class="bg-[#A79277] text-white px-4 py-2 rounded-lg cursor-pointer w-full sm:w-auto">
+                    <form method="GET" action="{% url 'brand_list' %}" class="flex items-center gap-2 w-full sm:w-auto">
+                        <input type="text" 
+                               name="search" 
+                               placeholder="Search by Brand Name" 
+                               value="{{ search_query }}"
+                               class="border border-gray-300 rounded-lg px-4 py-2" />
+                        <button type="submit" class="bg-[#A79277] text-white px-4 py-2 rounded-lg cursor-pointer w-full sm:w-auto">
+                            Search
+                        </button>
+                        {% if search_query %}
+                            <a href="{% url 'brand_list' %}" class="bg-gray-500 text-white px-4 py-2 rounded-lg">Clear</a>
+                        {% endif %}
                     </form>
                 </div>
             </div>
@@ -99,9 +108,28 @@
             <!-- Pagination -->
             <div class="pagination-controls flex justify-center mt-10 mb-6">
                 <ul class="flex space-x-2">
-                    <li><a href="#" class="px-4 py-2 bg-[#D2691E] text-white rounded hover:bg-[#A0522D]">Previous</a></li>
-                    <li><a href="#" class="px-4 py-2 rounded bg-[#4E2C0A] text-white">1</a></li>
-                    <li><a href="#" class="px-4 py-2 bg-[#D2691E] text-white rounded hover:bg-[#A0522D]">Next</a></li>
+                    {% if page_obj.has_previous %}
+                        <li>
+                            <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}" 
+                               class="px-4 py-2 bg-[#D2691E] text-white rounded hover:bg-[#A0522D]">Previous</a>
+                        </li>
+                    {% endif %}
+
+                    {% for num in page_obj.paginator.page_range %}
+                        <li>
+                            <a href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}" 
+                               class="px-4 py-2 {% if page_obj.number == num %}bg-[#4E2C0A]{% else %}bg-[#D2691E]{% endif %} text-white rounded hover:bg-[#A0522D]">
+                                {{ num }}
+                            </a>
+                        </li>
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                        <li>
+                            <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}" 
+                               class="px-4 py-2 bg-[#D2691E] text-white rounded hover:bg-[#A0522D]">Next</a>
+                        </li>
+                    {% endif %}
                 </ul>
             </div>
         </main>
@@ -126,13 +154,22 @@
     <!-- Edit Brand Modal -->
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden" id="editBrandModal">
         <div class="bg-white rounded-lg w-96 p-6 shadow-lg">
-            <h2 class="text-xl font-bold mb-4">Edit Brand</h2>
-            <form>
-                <input type="text" placeholder="Brand Name" class="w-full px-4 py-2 border rounded mb-4" required />
-                <input type="file" accept="image/*" class="w-full px-4 py-2 border rounded mb-4" />
+            <h2 class="text-xl font-bold mb-4">Edit Publisher</h2>
+            <form method="POST" id="editBrandForm" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" id="edit_brand_id" name="brand_id">
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Publisher Name</label>
+                    <input type="text" id="edit_brand_name" name="name" class="w-full px-4 py-2 border rounded" required>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Publisher Image</label>
+                    <input type="file" name="image" accept="image/*" class="w-full px-4 py-2 border rounded">
+                    <p class="text-sm text-gray-500 mt-1">Leave empty to keep current image</p>
+                </div>
                 <div class="flex justify-end space-x-3">
-                    <button type="button" class="px-4 py-2 bg-gray-300 rounded" onclick="toggleModal(false)">Cancel</button>
-                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Save Changes</button>
+                    <button type="button" class="px-4 py-2 bg-gray-300 rounded" onclick="toggleModal(false, 'editBrandModal')">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Update</button>
                 </div>
             </form>
         </div>
@@ -142,11 +179,24 @@
             const modal = document.getElementById(modalId);
             if (modal) {
                 if (show) {
-                    modal.classList.remove('hidden'); // Show modal
+                    modal.classList.remove('hidden');
                 } else {
-                    modal.classList.add('hidden');    // Hide modal
+                    modal.classList.add('hidden');
                 }
             }
+        }
+
+        function editBrand(brandId, brandName) {
+            // Set the form action
+            const form = document.getElementById('editBrandForm');
+            form.action = `/edit-brand/${brandId}/`;
+            
+            // Set the input values
+            document.getElementById('edit_brand_id').value = brandId;
+            document.getElementById('edit_brand_name').value = brandName;
+            
+            // Show the modal
+            toggleModal(true, 'editBrandModal');
         }
     </script>
 
