@@ -2,13 +2,12 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .models import Category
+from .models import Category, Brand
 from .forms import CategoryForm
 from django.views import View
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.core.paginator import Paginator
-from .models import Brand
 import os
 from django.db.models import Q
 
@@ -238,70 +237,16 @@ def admin_dashboard(request):
 def admin_publisher(request):
      return render(request,'admin_publisher.html')
 
-@login_required(login_url='admin_login')
-def admin_products(request):
-    search_query = request.GET.get('search', '')
+
     
     # Filter products based on search query
-    if search_query:
-        products = Product.objects.filter(
-            Q(name__icontains=search_query) |
-            Q(category__name__icontains=search_query) |
-            Q(brand__name__icontains=search_query)
-        ).order_by('-added_on')
-    else:
-        products = Product.objects.all().order_by('-added_on')
-
-    # Pagination
-    paginator = Paginator(products, 10)  # 10 products per page
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-
-    # Get categories and brands for the add product form
-    categories = Category.objects.filter(is_active=True)
-    brands = Brand.objects.filter(is_active=True)
-
-    context = {
-        'page_obj': page_obj,
-        'search_query': search_query,
-        'categories': categories,
-        'brands': brands
-    }
     
-    return render(request, 'admin_products.html', context)
-
-@login_required(login_url='admin_login')
-def add_product(request):
-    if request.method == 'POST':
-        name = request.POST.get('name')
-        description = request.POST.get('description')
-        price = request.POST.get('price')
-        stock = request.POST.get('stock')
-        category_id = request.POST.get('category')
-        brand_id = request.POST.get('brand')
-        image = request.FILES.get('image')
-
-        try:
-            category = Category.objects.get(id=category_id)
-            brand = Brand.objects.get(id=brand_id)
-            
-            product = Product.objects.create(
-                name=name,
-                description=description,
-                price=price,
-                stock=stock,
-                category=category,
-                brand=brand,
-                image=image
-            )
-            messages.success(request, "Product added successfully.")
-        except Exception as e:
-            messages.error(request, f"Error adding product: {str(e)}")
-        
-        return redirect('admin_products')
 
 
 @login_required(login_url='admin_login')
 def admin_customers(request):
     return render(request,'admin_caustomer.html')  # Corrected typo in filename
+login_required(login_url='admin_login')
+def admin_products(request):
+    return render(request,'admin_products.html')  # Corrected typo in filename
 
