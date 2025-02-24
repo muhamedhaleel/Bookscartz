@@ -38,7 +38,7 @@
             </div>
 
             <!-- Brands Table -->
-            <div class="bg-[#A79277] rounded-lg shadow-lg overflow-hidden">
+            {% comment %} <div class="bg-[#A79277] rounded-lg shadow-lg overflow-hidden">
                 <table class="w-full text-left text-base border-collapse">
                     <thead class="bg-[#A79277] text-white">
                         <tr>
@@ -64,8 +64,37 @@
                         </tr>
                     </tbody>
                 </table>
-            </div>
-
+            </div> {% endcomment %}
+<div class="bg-white rounded-lg shadow">
+        <table class="w-full table-auto">
+            <thead class="bg-gray-200">
+                <tr>
+                    <th class="p-3 text-left">Image</th>
+                    <th class="p-3 text-left">Brand Name</th>
+                    <th class="p-3 text-left">Added On</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for brand in page_obj %}
+                    <tr class="border-t">
+                        <td class="p-3">
+                            {% if brand.image %}
+                                <img src="{{ brand.image.url }}" alt="{{ brand.name }}" class="w-16 h-16 object-cover rounded-md" />
+                            {% else %}
+                                <span>No Image</span>
+                            {% endif %}
+                        </td>
+                        <td class="p-3">{{ brand.name }}</td>
+                        <td class="p-3">{{ brand.added_on|date:"Y-m-d H:i" }}</td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="3" class="p-3 text-center">No brands found.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
             <!-- Pagination -->
             <div class="pagination-controls flex justify-center mt-10 mb-6">
                 <ul class="flex space-x-2">
@@ -80,12 +109,13 @@
     <!-- Add Brand Modal -->
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden" id="addBrandModal">
         <div class="bg-white rounded-lg w-96 p-6 shadow-lg">
-            <h2 class="text-xl font-bold mb-4">Add New Brand</h2>
-            <form>
-                <input type="text" placeholder="Brand Name" class="w-full px-4 py-2 border rounded mb-4" required />
-                <input type="file" accept="image/*" class="w-full px-4 py-2 border rounded mb-4" required />
+            <h2 class="text-xl font-bold mb-4">Add New Publisher</h2>
+            <form method="POST" action="{% url 'add_brand' %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="text" name="name" placeholder="Brand Name" class="w-full px-4 py-2 border rounded mb-4" required />
+                <input type="file" name="image" accept="image/*" class="w-full px-4 py-2 border rounded mb-4" required />
                 <div class="flex justify-end space-x-3">
-                    <button type="button" class="px-4 py-2 bg-gray-300 rounded" onclick="toggleModal(false)">Cancel</button>
+                    <button type="button" class="px-4 py-2 bg-gray-300 rounded" onclick="toggleModal(false, 'addBrandModal')">Cancel</button>
                     <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Add Brand</button>
                 </div>
             </form>
@@ -106,10 +136,23 @@
             </form>
         </div>
     </div>
+    <script>
+        function toggleModal(show, modalId = 'addBrandModal') {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                if (show) {
+                    modal.classList.remove('hidden'); // Show modal
+                } else {
+                    modal.classList.add('hidden');    // Hide modal
+                }
+            }
+        }
+    </script>
 
     <!-- Footer -->
     <footer class="bg-gray-800 text-white text-center py-4">
         &copy; 2024 Brand Management System
     </footer>
+
 
 </body>

@@ -56,7 +56,29 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200 bg-white">
-                        <tr class="hover:bg-gray-50">
+                        {%for category in categories%}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap">{{ forloop.counter }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">{{ category.name }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">{{ category.added_on }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                {% if category.is_active %}
+                                    Active
+                                {%else%}
+                                    Inactive
+                                {%endif%}
+                            </td>
+                            <td>
+                                <a href="{% url 'edit_category' %}" class="bg-blue-500 hover:bg-blue-600 text-white text-sm py-1 px-3 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400">edit</a>
+                                {% if category.is_active %}
+                                    <a href="{% url 'delete_category' category.id %}" class="bg-red-500 hover:bg-blue-600 text-white text-sm py-1 px-3 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400">Block</a>
+                                {%else%}
+                                <a href="{% url 'delete_category' category.id %}" class="bg-green-500 hover:bg-blue-600 text-white text-sm py-1 px-3 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400">Unblock</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% comment %} <tr class="hover:bg-gray-50">
                             <td class="px-4 py-2 text-center">1</td>
                             <td class="px-4 py-2 text-center">Electronics</td>
                             <td class="px-4 py-2 text-center">2024-02-20</td>
@@ -79,7 +101,7 @@
                                 <button class="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700">Edit</button>
                                 <button class="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700">Unblock</button>
                             </td>
-                        </tr>
+                        </tr> {% endcomment %}
                     </tbody>
                 </table>
             </div>
@@ -103,7 +125,6 @@
         document.getElementById(modalId).classList.toggle('hidden');
     }
 </script>
-
             <!-- Pagination -->
             <div class="pagination-controls flex justify-center mt-10">
                 <ul class="flex space-x-2">
