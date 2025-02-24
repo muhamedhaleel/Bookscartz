@@ -133,17 +133,29 @@ def toggle_category_status(request, pk):
 
 
 # Brand List View
+@login_required(login_url='admin_login')
 def brand_list(request):
-    search_query = request.GET.get('q', '')
-    brand_list = Brand.objects.filter(name__icontains=search_query).order_by('-added_on')
+    search_query = request.GET.get('search', '')
+    
+    # Filter brands based on search query
+    if search_query:
+        brand_list = Brand.objects.filter(name__icontains=search_query).order_by('-added_on')
+    else:
+        brand_list = Brand.objects.all().order_by('-added_on')
 
+    # Pagination
     paginator = Paginator(brand_list, 10)  # 10 brands per page
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
-    return render(request, 'admin_publisher.html', {'page_obj': page_obj, 'search_query': search_query})
+    context = {
+        'page_obj': page_obj,
+        'search_query': search_query
+    }
+    
+    return render(request, 'admin_publisher.html', context)
 
-# Add Brand View
+@login_required(login_url='admin_login')
 def add_brand(request):
     if request.method == 'POST':
         name = request.POST.get('name')
@@ -157,11 +169,15 @@ def add_brand(request):
             messages.error(request, "Brand already exists.")
             return redirect('brand_list')
 
-        Brand.objects.create(name=name, image=image)
-        messages.success(request, "Brand added successfully.")
+        try:
+            brand = Brand.objects.create(name=name, image=image)
+            messages.success(request, "Brand added successfully.")
+        except Exception as e:
+            messages.error(request, f"Error adding brand: {str(e)}")
+        
         return redirect('brand_list')
 
-    return redirect('brand_list')  
+    return redirect('brand_list')
 
 # Edit Brand View
 def edit_brand(request, pk):

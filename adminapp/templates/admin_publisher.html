@@ -38,63 +38,64 @@
             </div>
 
             <!-- Brands Table -->
-            {% comment %} <div class="bg-[#A79277] rounded-lg shadow-lg overflow-hidden">
-                <table class="w-full text-left text-base border-collapse">
-                    <thead class="bg-[#A79277] text-white">
+            <div class="bg-white rounded-lg shadow">
+                <table class="w-full table-auto">
+                    <thead class="bg-gray-200">
                         <tr>
-                            <th class="py-4 px-5 text-center">SL.No</th>
-                            <th class="py-4 px-5 text-center">Name</th>
-                            <th class="py-4 px-5 text-center">Image</th>
-                            <th class="py-4 px-5 text-center">Added On</th>
-                            <th class="py-4 px-5 text-center">Status</th>
-                            <th class="py-4 px-5 text-center">Action</th>
+                            <th class="p-3 text-left">SL.No</th>
+                            <th class="p-3 text-left">Image</th>
+                            <th class="p-3 text-left">Brand Name</th>
+                            <th class="p-3 text-left">Added On</th>
+                            <th class="p-3 text-left">Status</th>
+                            <th class="p-3 text-left">Actions</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-200 bg-white">
-                        <tr>
-                            <td class="px-4 py-2 text-center">1</td>
-                            <td class="px-4 py-2 text-center">Brand A</td>
-                            <td class="px-4 py-2 text-center"><img src="brand-a.jpg" alt="Brand A" width="100"></td>
-                            <td class="px-4 py-2 text-center">2024-02-21</td>
-                            <td class="px-4 py-2 text-center"><span class="inline-block px-4 py-2 text-sm font-medium text-green-700 bg-green-100 rounded">Active</span></td>
-                            <td class="px-4 py-2 text-center">
-                                <button class="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700">Edit</button>
-                                <button class="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700">Block</button>
-                            </td>
-                        </tr>
+                    <tbody>
+                        {% for brand in page_obj %}
+                            <tr class="border-t">
+                                <td class="p-3">{{ forloop.counter }}</td>
+                                <td class="p-3">
+                                    {% if brand.image %}
+                                        <img src="{{ brand.image.url }}" alt="{{ brand.name }}" class="w-16 h-16 object-cover rounded-md">
+                                    {% else %}
+                                        <div class="w-16 h-16 bg-gray-200 rounded-md flex items-center justify-center">
+                                            <span class="text-gray-500">No Image</span>
+                                        </div>
+                                    {% endif %}
+                                </td>
+                                <td class="p-3">{{ brand.name }}</td>
+                                <td class="p-3">{{ brand.added_on|date:"Y-m-d H:i" }}</td>
+                                <td class="p-3">
+                                    {% if brand.is_active %}
+                                        <span class="px-2 py-1 bg-green-100 text-green-700 rounded-full text-sm">Active</span>
+                                    {% else %}
+                                        <span class="px-2 py-1 bg-red-100 text-red-700 rounded-full text-sm">Inactive</span>
+                                    {% endif %}
+                                </td>
+                                <td class="p-3">
+                                    <button onclick="editBrand('{{ brand.id }}', '{{ brand.name }}')" 
+                                            class="bg-blue-500 text-white px-3 py-1 rounded-md text-sm mr-2">
+                                        Edit
+                                    </button>
+                                    <form method="POST" action="{% url 'toggle_brand_status' brand.id %}" class="inline">
+                                        {% csrf_token %}
+                                        {% if brand.is_active %}
+                                            <button type="submit" class="bg-red-500 text-white px-3 py-1 rounded-md text-sm">Block</button>
+                                        {% else %}
+                                            <button type="submit" class="bg-green-500 text-white px-3 py-1 rounded-md text-sm">Unblock</button>
+                                        {% endif %}
+                                    </form>
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="6" class="p-3 text-center text-gray-500">No publishers found.</td>
+                            </tr>
+                        {% endfor %}
                     </tbody>
                 </table>
-            </div> {% endcomment %}
-<div class="bg-white rounded-lg shadow">
-        <table class="w-full table-auto">
-            <thead class="bg-gray-200">
-                <tr>
-                    <th class="p-3 text-left">Image</th>
-                    <th class="p-3 text-left">Brand Name</th>
-                    <th class="p-3 text-left">Added On</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for brand in page_obj %}
-                    <tr class="border-t">
-                        <td class="p-3">
-                            {% if brand.image %}
-                                <img src="{{ brand.image.url }}" alt="{{ brand.name }}" class="w-16 h-16 object-cover rounded-md" />
-                            {% else %}
-                                <span>No Image</span>
-                            {% endif %}
-                        </td>
-                        <td class="p-3">{{ brand.name }}</td>
-                        <td class="p-3">{{ brand.added_on|date:"Y-m-d H:i" }}</td>
-                    </tr>
-                {% empty %}
-                    <tr>
-                        <td colspan="3" class="p-3 text-center">No brands found.</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+            </div>
+
             <!-- Pagination -->
             <div class="pagination-controls flex justify-center mt-10 mb-6">
                 <ul class="flex space-x-2">
