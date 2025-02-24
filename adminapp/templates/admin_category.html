@@ -38,8 +38,15 @@
                     <button onclick="toggleModal('addCategoryModal')" class="bg-[#A79277] text-white px-4 py-2 rounded-lg shadow-md hover:bg-[#E5E7EB] hover:text-black">
                         Add Category
                     </button>
-                    <input type="text" placeholder="Search by Category Name" class="border border-gray-300 rounded-lg px-4 py-2">
-                    <button class="bg-[#A79277] text-white px-4 py-2 rounded-lg">Search</button>
+                    <form method="GET" class="flex gap-4">
+                        <input type="text" name="search" placeholder="Search by Category Name" 
+                               value="{{ search_query }}" 
+                               class="border border-gray-300 rounded-lg px-4 py-2">
+                        <button type="submit" class="bg-[#A79277] text-white px-4 py-2 rounded-lg">Search</button>
+                        {% if search_query %}
+                            <a href="{% url 'category_list' %}" class="bg-gray-500 text-white px-4 py-2 rounded-lg">Clear</a>
+                        {% endif %}
+                    </form>
                 </div>
             </div>
 
@@ -69,11 +76,11 @@
                                 {%endif%}
                             </td>
                             <td>
-                                <a href="{% url 'edit_category' %}" class="bg-blue-500 hover:bg-blue-600 text-white text-sm py-1 px-3 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400">edit</a>
+                                <button onclick="editCategory('{{ category.id }}', '{{ category.name }}')" class="bg-blue-500 hover:bg-blue-600 text-white text-sm py-1 px-3 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400">Edit</button>
                                 {% if category.is_active %}
                                     <a href="{% url 'delete_category' category.id %}" class="bg-red-500 hover:bg-blue-600 text-white text-sm py-1 px-3 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400">Block</a>
                                 {%else%}
-                                <a href="{% url 'delete_category' category.id %}" class="bg-green-500 hover:bg-blue-600 text-white text-sm py-1 px-3 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400">Unblock</a>
+                                    <a href="{% url 'delete_category' category.id %}" class="bg-green-500 hover:bg-blue-600 text-white text-sm py-1 px-3 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400">Unblock</a>
                                 {% endif %}
                             </td>
                         </tr>
@@ -120,9 +127,35 @@
     </div>
 </div>
 
+<!-- Add Edit Category Modal -->
+<div id="editCategoryModal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden">
+    <div class="bg-white rounded-lg p-6 w-96 shadow-lg">
+        <h3 class="text-xl font-bold mb-4">Edit Category</h3>
+        <form method="POST" action="" id="editCategoryForm">
+            {% csrf_token %}
+            <input type="hidden" name="category_id" id="edit_category_id">
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="edit_category_name">Category Name</label>
+                <input type="text" name="name" id="edit_category_name" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+            </div>
+            <div class="flex justify-end space-x-4">
+                <button type="button" onclick="toggleModal('editCategoryModal')" class="px-4 py-2 bg-gray-300 rounded">Cancel</button>
+                <button type="submit" class="px-4 py-2 bg-[#A79277] text-white rounded hover:bg-[#8B7355]">Update</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
     function toggleModal(modalId) {
         document.getElementById(modalId).classList.toggle('hidden');
+    }
+
+    function editCategory(categoryId, categoryName) {
+        document.getElementById('edit_category_id').value = categoryId;
+        document.getElementById('edit_category_name').value = categoryName;
+        document.getElementById('editCategoryForm').action = `/edit-category/${categoryId}/`;
+        toggleModal('editCategoryModal');
     }
 </script>
             <!-- Pagination -->

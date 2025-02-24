@@ -1,5 +1,3 @@
-
-
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
@@ -64,7 +62,14 @@ def admin_dashboard(request):
 # ----------------------------
 @login_required(login_url='admin_login')
 def category_list(request):
-    categories = Category.objects.all().order_by('-added_on')
+    search_query = request.GET.get('search', '')
+    
+    # Filter categories based on search query
+    if search_query:
+        categories = Category.objects.filter(name__icontains=search_query).order_by('-added_on')
+    else:
+        categories = Category.objects.all().order_by('-added_on')
+    
     form = CategoryForm()
 
     if request.method == 'POST':
@@ -76,23 +81,32 @@ def category_list(request):
         else:
             messages.error(request, 'Error adding category. Please try again.')
 
-    return render(request, 'admin_category.html', {'categories': categories, 'form': form})
+    context = {
+        'categories': categories,
+        'form': form,
+        'search_query': search_query
+    }
+    
+    return render(request, 'admin_category.html', context)
 
 
 @login_required(login_url='admin_login')
 def edit_category(request, pk):
     category = get_object_or_404(Category, pk=pk)
-    form = CategoryForm(request.POST or None, instance=category)
-
+    
     if request.method == 'POST':
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Category updated successfully!')
-            return redirect('category_list')
-        else:
-            messages.error(request, 'Error updating category.')
+        name = request.POST.get('name')
+        if name:
+            # Check if the new name already exists for other categories
+            if Category.objects.filter(name=name).exclude(pk=pk).exists():
+                messages.error(request, 'A category with this name already exists.')
+            else:
+                category.name = name
+                category.save()
+                messages.success(request, 'Category updated successfully!')
+        return redirect('category_list')
 
-    return render(request, 'admin_edit_category.html', {'form': form, 'category': category})
+    return redirect('category_list')
 
 
 @login_required(login_url='admin_login')

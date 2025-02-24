@@ -5,7 +5,7 @@ urlpatterns = [
     path('admin-login/', views.admin_login, name='admin_login'),
     path('admin-dashboard/', views.admin_dashboard, name='admin_dashboard'),
     path('admin-category/', views.category_list, name='category_list'),
-    path('edit_category/', views.edit_category, name='edit_category'),
+    path('edit-category/<int:pk>/', views.edit_category, name='edit_category'),
     path('delete_category/<int:pk>/', views.delete_category, name='delete_category'),
     
     path('admin-brand/', views.brand_list, name='brand_list'),
