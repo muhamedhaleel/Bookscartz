@@ -77,13 +77,13 @@ WSGI_APPLICATION = 'bookscartz.wsgi.application'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 DATABASES = {
-  'default': {
+    'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'bookcart',
         'USER': 'root',
         'PASSWORD': '1234',
         'HOST': 'localhost',
-        'PORT': '3306', 
+        'PORT': '3306',
     }
 }
 
@@ -129,5 +129,6 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# Media files configuration
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

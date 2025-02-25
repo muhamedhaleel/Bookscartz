@@ -15,14 +15,14 @@
     <!-- Sidebar -->
     <aside class="bg-gradient-to-r from-[#E5E7EB] to-[#d2b69b] text-black w-64 py-6 px-4 hidden lg:block">
       <nav class="space-y-6">
-        <a href="/admin-home" class="flex items-center py-2 px-3 bg-white rounded-lg shadow-md">Dashboard</a>
-        <a href="/admin-products" class="flex items-center py-2 px-3 hover:bg-white rounded-lg">Products</a>
-        <a href="/admin-category" class="flex items-center py-2 px-3 hover:bg-white rounded-lg">Category</a>
-        <a href="/admin-publisher" class="flex items-center py-2 px-3 hover:bg-white rounded-lg">Publisher</a>
-        <a href="/admin-caustomers" class="flex items-center py-2 px-3 hover:bg-white rounded-lg">Customers</a>
-        <a href="/admin/orders" class="flex items-center py-2 px-3 hover:bg-white rounded-lg">Orders</a>
-        <a href="/admin/coupons" class="flex items-center py-2 px-3 hover:bg-white rounded-lg">Coupons</a>
-        <a href="/admin/offer" class="flex items-center py-2 px-3 hover:bg-white rounded-lg">Offers</a>
+        <a href="{% url 'admin_dashboard' %}" class="flex items-center py-2 px-3 hover:bg-white rounded-lg">Dashboard</a>
+        <a href="{% url 'admin_product' %}" class="flex items-center py-2 px-3 hover:bg-white rounded-lg">Products</a>
+        <a href="{% url 'category_list' %}" class="flex items-center py-2 px-3 hover:bg-white rounded-lg">Category</a>
+        <a href="{% url 'brand_list' %}" class="flex items-center py-2 px-3 hover:bg-white rounded-lg">Publisher</a>
+        <a href="#" class="flex items-center py-2 px-3 hover:bg-white rounded-lg">Customers</a>
+        <a href="#" class="flex items-center py-2 px-3 hover:bg-white rounded-lg">Orders</a>
+        <a href="#" class="flex items-center py-2 px-3 hover:bg-white rounded-lg">Coupons</a>
+        <a href="#" class="flex items-center py-2 px-3 hover:bg-white rounded-lg">Offers</a>
       </nav>
     </aside>
   

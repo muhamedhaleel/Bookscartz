@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .models import Category, Brand
+from .models import Category, Brand,Product
 from .forms import CategoryForm
 from django.views import View
 from django.shortcuts import render, redirect, get_object_or_404
@@ -10,6 +10,7 @@ from django.contrib import messages
 from django.core.paginator import Paginator
 import os
 from django.db.models import Q
+
 
 
 
@@ -36,7 +37,7 @@ def admin_login(request):
 # ----------------------------
 @login_required(login_url='admin_login')
 def admin_dashboard(request):
-    return render(request, 'admin_home.html')  
+    return render(request, 'admi_home.html')  
 
 
 # ----------------------------
@@ -230,6 +231,24 @@ def toggle_brand_status(request, pk):
 #  Other Admin Views
 # ----------------------------
 @login_required(login_url='admin_login')
+def admin_publisher(request):
+     return render(request,'admin_publisher.html')
+
+
+    
+    # Filter products based on search query
+    
+
+
+@login_required(login_url='admin_login')
+def admin_customers(request):
+    return render(request,'admin_caustomer.html')  # Corrected typo in filename
+
+
+
+#  Other Admin Views
+# ----------------------------
+@login_required(login_url='admin_login')
 def admin_dashboard(request):
      return render(request,'admi_home.html')  
 
@@ -243,10 +262,7 @@ def admin_publisher(request):
     
 
 
-@login_required(login_url='admin_login')
-def admin_customers(request):
-    return render(request,'admin_caustomer.html')  # Corrected typo in filename
+
 login_required(login_url='admin_login')
 def admin_products(request):
-    return render(request,'admin_products.html')  # Corrected typo in filename
-
+    return render(request,'admin_product.html')  # Corrected typo in filename
