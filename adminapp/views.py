@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .models import Category, Brand,Product
+from .models import Category, Brand,Product, Language
 from .forms import CategoryForm
 from django.views import View
 from django.shortcuts import render, redirect, get_object_or_404
@@ -265,4 +265,74 @@ def admin_publisher(request):
 
 login_required(login_url='admin_login')
 def admin_products(request):
-    return render(request,'admin_product.html')  # Corrected typo in filename
+    try:
+        search_query = request.GET.get('search', '')
+        products = Product.objects.select_related('category', 'brand', 'language').all()
+        
+        if search_query:
+            products = products.filter(
+                Q(name__icontains=search_query) |
+                Q(category__name__icontains=search_query) |
+                Q(brand__name__icontains=search_query)
+            )
+        
+        # Get active categories, brands and languages for the modal
+        categories = Category.objects.filter(is_active=True)
+        brands = Brand.objects.filter(is_active=True)
+        languages = Language.objects.filter(is_active=True)
+        
+        context = {
+            'products': products,
+            'search_query': search_query,
+            'categories': categories,
+            'brands': brands,
+            'languages': languages
+        }
+        return render(request, 'admin_product.html', context)
+    except Exception as e:
+        messages.error(request, f"Error: {str(e)}")
+        return redirect('admin_dashboard')
+
+@login_required(login_url='admin_login')
+def add_product(request):
+    if request.method == 'POST':
+        try:
+            # Get form data
+            name = request.POST.get('name')
+            description = request.POST.get('description')
+            category_id = request.POST.get('category')
+            brand_id = request.POST.get('brand')
+            language_id = request.POST.get('language')
+            price = request.POST.get('price')
+            stock = request.POST.get('stock')
+            image1 = request.FILES.get('image1')
+            image2 = request.FILES.get('image2')
+            image3 = request.FILES.get('image3')
+
+            # Validate required fields
+            if not all([name, description, category_id, brand_id, price, stock, image1]):
+                messages.error(request, "Please fill all required fields")
+                return redirect('admin_product')
+
+            # Create new product
+            product = Product.objects.create(
+                name=name,
+                description=description,
+                category_id=category_id,
+                brand_id=brand_id,
+                language_id=language_id if language_id else None,
+                price=price,
+                stock=stock,
+                image1=image1,
+                image2=image2,
+                image3=image3
+            )
+            messages.success(request, "Product added successfully!")
+            
+        except Exception as e:
+            messages.error(request, f"Error adding product: {str(e)}")
+        
+        return redirect('admin_product')
+
+    # If GET request, redirect to products page
+    return redirect('admin_products')
