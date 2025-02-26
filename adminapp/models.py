@@ -22,26 +22,25 @@ class Brand(models.Model):
         return self.name
 
 class Language(models.Model):
-    name = models.CharField(max_length=50, unique=True)
-    code = models.CharField(max_length=10, unique=True)
+    name = models.CharField(max_length=100)
     is_active = models.BooleanField(default=True)
-
+    
     def __str__(self):
         return self.name
 
 class Product(models.Model):
-    name = models.CharField(max_length=200)
+    name = models.CharField(max_length=100)
     description = models.TextField()
-    category = models.ForeignKey('Category', on_delete=models.CASCADE)
-    brand = models.ForeignKey('Brand', on_delete=models.CASCADE)
-    language = models.ForeignKey('Language', on_delete=models.CASCADE, null=True, blank=True)
     price = models.DecimalField(max_digits=10, decimal_places=2)
-    stock = models.PositiveIntegerField(default=0)
+    stock = models.IntegerField()
+    is_active = models.BooleanField(default=True)
+    category = models.ForeignKey(Category, on_delete=models.CASCADE)
+    brand = models.ForeignKey(Brand, on_delete=models.CASCADE)
+    language = models.ForeignKey(Language, on_delete=models.CASCADE, null=True, blank=True)
     image1 = models.ImageField(upload_to='products/')
     image2 = models.ImageField(upload_to='products/', null=True, blank=True)
     image3 = models.ImageField(upload_to='products/', null=True, blank=True)
     added_on = models.DateTimeField(auto_now_add=True)
-    is_active = models.BooleanField(default=True)
 
     def __str__(self):
         return self.name
@@ -61,4 +60,3 @@ class Product(models.Model):
 
     class Meta:
         db_table = 'adminapp_product'
-

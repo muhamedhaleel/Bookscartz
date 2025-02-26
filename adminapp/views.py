@@ -282,10 +282,10 @@ def admin_products(request):
                 Q(language__name__icontains=search_query)
             )
 
-        # Get categories, brands, and languages for the forms
+        # Get active categories, brands, and languages for the forms
         categories = Category.objects.filter(is_active=True)
         brands = Brand.objects.filter(is_active=True)
-        languages = Language.objects.all()  # Get all languages
+        languages = Language.objects.filter(is_active=True)
 
         context = {
             'products': products,
@@ -298,74 +298,12 @@ def admin_products(request):
         return render(request, 'admin_product.html', context)
         
     except Exception as e:
-        print(f"Error in admin_products view: {str(e)}")
+        print(f"Error in admin_products view: {str(e)}")  # Add this for debugging
         messages.error(request, f"Error: {str(e)}")
         return redirect('admin_dashboard')
 
 @login_required(login_url='admin_login')
 def add_product(request):
-    if request.method == 'POST':
-        try:
-            # Get form data
-            name = request.POST.get('name')
-            description = request.POST.get('description')
-            category_id = request.POST.get('category')
-            brand_id = request.POST.get('brand')
-            language_name = request.POST.get('language')  # Get language as text
-            price = request.POST.get('price')
-            stock = request.POST.get('stock')
-            image1 = request.FILES.get('image1')
-            image2 = request.FILES.get('image2')
-            image3 = request.FILES.get('image3')
-
-            # Validate required fields
-            if not all([name, description, category_id, brand_id, language_name, price, stock, image1]):
-                missing_fields = []
-                if not name: missing_fields.append("Product Name")
-                if not description: missing_fields.append("Description")
-                if not category_id: missing_fields.append("Category")
-                if not brand_id: missing_fields.append("Publisher")
-                if not language_name: missing_fields.append("Language")
-                if not price: missing_fields.append("Price")
-                if not stock: missing_fields.append("Stock")
-                if not image1: missing_fields.append("Main Image")
-                
-                messages.error(request, f"Please fill in all required fields: {', '.join(missing_fields)}")
-                return redirect('admin_products')
-
-            # Get or create the language
-            language, created = Language.objects.get_or_create(
-                name=language_name.strip(),
-                defaults={'is_active': True}
-            )
-
-            # Create new product
-            product = Product.objects.create(
-                name=name,
-                description=description,
-                category_id=category_id,
-                brand_id=brand_id,
-                language=language,  # Assign the language object
-                price=price,
-                stock=stock,
-                image1=image1,
-                image2=image2 if image2 else None,
-                image3=image3 if image3 else None
-            )
-            messages.success(request, "Product added successfully!")
-            
-        except Exception as e:
-            print(f"Error adding product: {str(e)}")
-            messages.error(request, f"Error adding product: {str(e)}")
-        
-        return redirect('admin_products')
-
-    return redirect('admin_products')
-
-@login_required(login_url='admin_login')
-def edit_product(request, pk):
-    product = get_object_or_404(Product, pk=pk)
-    
     if request.method == 'POST':
         try:
             # Get form data
@@ -381,26 +319,61 @@ def edit_product(request, pk):
             image3 = request.FILES.get('image3')
 
             # Validate required fields
-            if not all([name, description, category_id, brand_id, language_name, price, stock]):
-                messages.error(request, "Please fill in all required fields")
+            if not all([name, description, category_id, brand_id, language_name, price, stock, image1]):
+                messages.error(request, "Please fill all required fields")
                 return redirect('admin_products')
 
-            # Get or create language
-            language, created = Language.objects.get_or_create(
+            # Get or create language with just the name
+            language, _ = Language.objects.get_or_create(
                 name=language_name.strip(),
                 defaults={'is_active': True}
             )
 
-            # Update product
-            product.name = name
-            product.description = description
-            product.category_id = category_id
-            product.brand_id = brand_id
-            product.language = language
-            product.price = price
-            product.stock = stock
+            # Create product
+            product = Product.objects.create(
+                name=name,
+                description=description,
+                category_id=category_id,
+                brand_id=brand_id,
+                language=language,
+                price=price,
+                stock=stock,
+                image1=image1,
+                image2=image2,
+                image3=image3,
+                is_active=True
+            )
+            messages.success(request, "Product added successfully!")
+            
+        except Exception as e:
+            messages.error(request, f"Error adding product: {str(e)}")
+        
+    return redirect('admin_products')
 
-            # Update images if provided
+@login_required(login_url='admin_login')
+def edit_product(request, pk):
+    if request.method == 'POST':
+        try:
+            product = get_object_or_404(Product, pk=pk)
+            
+            # Update basic fields
+            product.name = request.POST.get('name')
+            product.description = request.POST.get('description')
+            product.category_id = request.POST.get('category')
+            product.brand_id = request.POST.get('brand')
+            product.price = request.POST.get('price')
+            product.stock = request.POST.get('stock')
+            
+            # Handle language
+            language_name = request.POST.get('language')
+            language, _ = Language.objects.get_or_create(name=language_name.strip())
+            product.language = language
+            
+            # Handle images
+            image1 = request.FILES.get('image1')
+            image2 = request.FILES.get('image2')
+            image3 = request.FILES.get('image3')
+            
             if image1:
                 if product.image1:
                     if os.path.isfile(product.image1.path):
@@ -423,9 +396,21 @@ def edit_product(request, pk):
             messages.success(request, "Product updated successfully!")
             
         except Exception as e:
-            print(f"Error updating product: {str(e)}")
             messages.error(request, f"Error updating product: {str(e)}")
         
-        return redirect('admin_products')
+    return redirect('admin_products')
 
+# Toggle product status
+@login_required(login_url='admin_login')
+def toggle_product_status(request, pk):
+    try:
+        product = get_object_or_404(Product, pk=pk)
+        product.is_active = not product.is_active
+        product.save()
+        
+        status = "activated" if product.is_active else "blocked"
+        messages.success(request, f"Product {status} successfully!")
+    except Exception as e:
+        messages.error(request, f"Error toggling product status: {str(e)}")
+    
     return redirect('admin_products')
