@@ -17,6 +17,7 @@ from django.db.models import Q
 # ----------------------------
 # Admin Authentication
 # ----------------------------
+@login_required(login_url='admin_login')
 def admin_login(request):
     if request.method == 'POST':
         username = request.POST['username']
@@ -25,11 +26,11 @@ def admin_login(request):
 
         if user is not None and user.is_staff:
             login(request, user)
-            return redirect('admin_dashboard')
+            return redirect('admin_products')  # Make sure this matches URL name
         else:
             messages.error(request, 'Invalid Credentials or Not an Admin')
 
-    return render(request, 'admin_login.html')  
+    return render(request, 'admin_login.html')
 
 
 # ----------------------------
@@ -263,33 +264,41 @@ def admin_publisher(request):
 
 
 
-login_required(login_url='admin_login')
+@login_required(login_url='admin_login')
 def admin_products(request):
     try:
+        # Get search query
         search_query = request.GET.get('search', '')
-        products = Product.objects.select_related('category', 'brand', 'language').all()
         
+        # Get all products with related data
+        products = Product.objects.select_related('category', 'brand', 'language').order_by('-added_on')
+        
+        # Apply search filter if search query exists
         if search_query:
             products = products.filter(
                 Q(name__icontains=search_query) |
                 Q(category__name__icontains=search_query) |
-                Q(brand__name__icontains=search_query)
+                Q(brand__name__icontains=search_query) |
+                Q(language__name__icontains=search_query)
             )
-        
-        # Get active categories, brands and languages for the modal
+
+        # Get categories, brands, and languages for the forms
         categories = Category.objects.filter(is_active=True)
         brands = Brand.objects.filter(is_active=True)
-        languages = Language.objects.filter(is_active=True)
-        
+        languages = Language.objects.all()  # Get all languages
+
         context = {
             'products': products,
-            'search_query': search_query,
             'categories': categories,
             'brands': brands,
-            'languages': languages
+            'languages': languages,
+            'search_query': search_query
         }
+        
         return render(request, 'admin_product.html', context)
+        
     except Exception as e:
+        print(f"Error in admin_products view: {str(e)}")
         messages.error(request, f"Error: {str(e)}")
         return redirect('admin_dashboard')
 
@@ -302,7 +311,7 @@ def add_product(request):
             description = request.POST.get('description')
             category_id = request.POST.get('category')
             brand_id = request.POST.get('brand')
-            language_id = request.POST.get('language')
+            language_name = request.POST.get('language')  # Get language as text
             price = request.POST.get('price')
             stock = request.POST.get('stock')
             image1 = request.FILES.get('image1')
@@ -310,9 +319,25 @@ def add_product(request):
             image3 = request.FILES.get('image3')
 
             # Validate required fields
-            if not all([name, description, category_id, brand_id, price, stock, image1]):
-                messages.error(request, "Please fill all required fields")
-                return redirect('admin_product')
+            if not all([name, description, category_id, brand_id, language_name, price, stock, image1]):
+                missing_fields = []
+                if not name: missing_fields.append("Product Name")
+                if not description: missing_fields.append("Description")
+                if not category_id: missing_fields.append("Category")
+                if not brand_id: missing_fields.append("Publisher")
+                if not language_name: missing_fields.append("Language")
+                if not price: missing_fields.append("Price")
+                if not stock: missing_fields.append("Stock")
+                if not image1: missing_fields.append("Main Image")
+                
+                messages.error(request, f"Please fill in all required fields: {', '.join(missing_fields)}")
+                return redirect('admin_products')
+
+            # Get or create the language
+            language, created = Language.objects.get_or_create(
+                name=language_name.strip(),
+                defaults={'is_active': True}
+            )
 
             # Create new product
             product = Product.objects.create(
@@ -320,19 +345,87 @@ def add_product(request):
                 description=description,
                 category_id=category_id,
                 brand_id=brand_id,
-                language_id=language_id if language_id else None,
+                language=language,  # Assign the language object
                 price=price,
                 stock=stock,
                 image1=image1,
-                image2=image2,
-                image3=image3
+                image2=image2 if image2 else None,
+                image3=image3 if image3 else None
             )
             messages.success(request, "Product added successfully!")
             
         except Exception as e:
+            print(f"Error adding product: {str(e)}")
             messages.error(request, f"Error adding product: {str(e)}")
         
-        return redirect('admin_product')
+        return redirect('admin_products')
 
-    # If GET request, redirect to products page
+    return redirect('admin_products')
+
+@login_required(login_url='admin_login')
+def edit_product(request, pk):
+    product = get_object_or_404(Product, pk=pk)
+    
+    if request.method == 'POST':
+        try:
+            # Get form data
+            name = request.POST.get('name')
+            description = request.POST.get('description')
+            category_id = request.POST.get('category')
+            brand_id = request.POST.get('brand')
+            language_name = request.POST.get('language')
+            price = request.POST.get('price')
+            stock = request.POST.get('stock')
+            image1 = request.FILES.get('image1')
+            image2 = request.FILES.get('image2')
+            image3 = request.FILES.get('image3')
+
+            # Validate required fields
+            if not all([name, description, category_id, brand_id, language_name, price, stock]):
+                messages.error(request, "Please fill in all required fields")
+                return redirect('admin_products')
+
+            # Get or create language
+            language, created = Language.objects.get_or_create(
+                name=language_name.strip(),
+                defaults={'is_active': True}
+            )
+
+            # Update product
+            product.name = name
+            product.description = description
+            product.category_id = category_id
+            product.brand_id = brand_id
+            product.language = language
+            product.price = price
+            product.stock = stock
+
+            # Update images if provided
+            if image1:
+                if product.image1:
+                    if os.path.isfile(product.image1.path):
+                        os.remove(product.image1.path)
+                product.image1 = image1
+            
+            if image2:
+                if product.image2:
+                    if os.path.isfile(product.image2.path):
+                        os.remove(product.image2.path)
+                product.image2 = image2
+            
+            if image3:
+                if product.image3:
+                    if os.path.isfile(product.image3.path):
+                        os.remove(product.image3.path)
+                product.image3 = image3
+
+            product.save()
+            messages.success(request, "Product updated successfully!")
+            
+        except Exception as e:
+            print(f"Error updating product: {str(e)}")
+            messages.error(request, f"Error updating product: {str(e)}")
+        
+        return redirect('admin_products')
+
     return redirect('admin_products')
