@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth import authenticate, login
+from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from .models import Category, Brand,Product, Language
@@ -17,28 +17,54 @@ from django.db.models import Q
 # ----------------------------
 # Admin Authentication
 # ----------------------------
-@login_required(login_url='admin_login')
 def admin_login(request):
+    # If user is already logged in and is staff, redirect to dashboard
+    if request.user.is_authenticated and request.user.is_staff:
+        return redirect('admin_dashboard')
+    
     if request.method == 'POST':
-        username = request.POST['username']
-        password = request.POST['password']
+        username = request.POST.get('username')
+        password = request.POST.get('password')
         user = authenticate(request, username=username, password=password)
-
+        
         if user is not None and user.is_staff:
             login(request, user)
-            return redirect('admin_products')  # Make sure this matches URL name
+            return redirect('admin_dashboard')
         else:
             messages.error(request, 'Invalid Credentials or Not an Admin')
-
+    
     return render(request, 'admin_login.html')
 
+@login_required(login_url='admin_login')
+def admin_logout(request):
+    logout(request)
+    return redirect('admin_login')
 
 # ----------------------------
 #  Admin Dashboard
 # ----------------------------
 @login_required(login_url='admin_login')
 def admin_dashboard(request):
-    return render(request, 'admi_home.html')  
+    if not request.user.is_staff:
+        logout(request)
+        messages.error(request, 'Unauthorized access')
+        return redirect('admin_login')
+    
+    # Get counts for dashboard
+    try:
+        product_count = Product.objects.count()
+        category_count = Category.objects.count()
+        brand_count = Brand.objects.count()
+        
+        context = {
+            'product_count': product_count,
+            'category_count': category_count,
+            'brand_count': brand_count,
+        }
+        return render(request, 'admin_home.html', context)
+    except Exception as e:
+        messages.error(request, f'Error loading dashboard: {str(e)}')
+        return render(request, 'admin_home.html')
 
 
 # ----------------------------
@@ -249,10 +275,6 @@ def admin_customers(request):
 
 #  Other Admin Views
 # ----------------------------
-@login_required(login_url='admin_login')
-def admin_dashboard(request):
-     return render(request,'admi_home.html')  
-
 @login_required(login_url='admin_login')
 def admin_publisher(request):
      return render(request,'admin_publisher.html')
