@@ -1,8 +1,26 @@
 from django.db import models
 import os
+from django.contrib.auth.models import AbstractUser
 
-# Create your models here.
-from django.db import models
+# admin
+
+
+class CustomUser(AbstractUser):
+    phone_number = models.CharField(max_length=15, unique=True, null=True, blank=True)
+    groups = models.ManyToManyField(
+        "auth.Group", related_name="+", blank=True
+    )
+    user_permissions = models.ManyToManyField(
+        "auth.Permission", related_name="+", blank=True
+    )
+
+
+    class Meta:
+        db_table = 'adminapp_customuser'
+        
+    def __str__(self):
+        return self.username
+
 
 class Category(models.Model):
     name = models.CharField(max_length=100, unique=True)
@@ -44,6 +62,7 @@ class Product(models.Model):
     image2 = models.ImageField(upload_to='products/', null=True, blank=True)
     image3 = models.ImageField(upload_to='products/', null=True, blank=True)
     added_on = models.DateTimeField(auto_now_add=True)
+    
 
     def __str__(self):
         return self.name
@@ -63,3 +82,4 @@ class Product(models.Model):
 
     class Meta:
         db_table = 'adminapp_product'
+
