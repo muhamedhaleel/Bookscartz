@@ -9,7 +9,7 @@
 <body class="bg-gray-100">
     <div class="min-h-screen flex items-center justify-center">
         <div class="bg-white p-8 rounded-lg shadow-md w-96">
-            <h2 class="text-2xl font-bold mb-6 text-center">Admin Login</h2>
+            <h2 class="text-2xl font-bold mb-6 text-center">Please Login</h2>
             
             {% if messages %}
                 {% for message in messages %}
@@ -39,7 +39,15 @@
                     <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline w-full"
                             type="submit">
                         Sign In
-                    </button>
+                    </button> 
+                </div>
+                <div class="signup-link text-center mt-4">
+                    <p class="text-gray-600">
+                        Don't have an account? 
+                        <a href="{% url 'signup' %}" class="text-blue-500 hover:underline font-semibold">
+                            Sign up here
+                        </a>
+                    </p>
                 </div>
             </form>
         </div>

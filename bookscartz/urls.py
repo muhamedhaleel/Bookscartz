@@ -14,13 +14,26 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+# from django.contrib import admin
+# from django.urls import path, include
+# from django.conf import settings
+# from django.conf.urls.static import static
+
+# urlpatterns = [
+#     path('admin/', admin.site.urls),
+#     path('', include('adminapp.urls')),
+#     path('', include('userapp.urls')),
+# ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from django.shortcuts import redirect
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('adminapp.urls')),
-    path('', include('userapp.urls')),
+    path('', include('adminapp.urls')),  # Change the path to avoid conflict
+    path('', include('userapp.urls')),  # Change the path to avoid conflict
+    path('', lambda request: redirect('admin_login')),  # Redirect root URL to login
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+ 

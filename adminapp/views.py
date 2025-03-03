@@ -126,7 +126,7 @@ def edit_category(request, pk):
     if request.method == 'POST':
         name = request.POST.get('name')
         if name:
-            # Check if the new name already exists for other categories
+            
             if Category.objects.filter(name=name).exclude(pk=pk).exists():
                 messages.error(request, 'A category with this name already exists.')
             else:
@@ -187,7 +187,8 @@ def brand_list(request):
 @login_required(login_url='admin_login')
 def add_brand(request):
     if request.method == 'POST':
-        name = request.POST.get('name')
+    
+        name = request.POST.get('name', '').strip()
         image = request.FILES.get('image')
 
         if not name or len(name) < 3:
@@ -346,6 +347,7 @@ def add_product(request):
                 return redirect('admin_products')
 
             # Get or create language with just the name
+            
             language, _ = Language.objects.get_or_create(
                 name=language_name.strip(),
                 defaults={'is_active': True}
