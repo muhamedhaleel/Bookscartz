@@ -1,12 +1,16 @@
 from django.db import models
 import os
 from django.contrib.auth.models import AbstractUser
+from django.core.exceptions import ValidationError
 
 # admin
 
 
 class CustomUser(AbstractUser):
     phone_number = models.CharField(max_length=15, unique=True, null=True, blank=True)
+    email = models.EmailField(unique=True)
+    otp = models.CharField(max_length=6, null=True, blank=True)
+    is_verified = models.BooleanField(default=False)
     groups = models.ManyToManyField(
         "auth.Group", related_name="+", blank=True
     )
@@ -14,6 +18,13 @@ class CustomUser(AbstractUser):
         "auth.Permission", related_name="+", blank=True
     )
 
+    def clean(self):
+        super().clean()
+        if self.phone_number:
+            # Remove any non-digit characters
+            self.phone_number = ''.join(filter(str.isdigit, self.phone_number))
+            if len(self.phone_number) < 10:
+                raise ValidationError('Phone number must be at least 10 digits long.')
 
     class Meta:
         db_table = 'adminapp_customuser'

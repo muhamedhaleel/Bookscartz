@@ -17,6 +17,13 @@
 <body class="flex items-center justify-center h-screen bg-gray-100">
     <div class="bg-white p-6 rounded-lg shadow-md w-96">
         <h2 class="text-2xl font-semibold text-center mb-4">OTP Verification</h2>
+        {% if messages %}
+            {% for message in messages %}
+                <div class="p-4 mb-4 text-sm rounded-lg {% if message.tags == 'success' %}bg-green-100 text-green-700{% else %}bg-red-100 text-red-700{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
         <form method="post" class="space-y-4">
             {% csrf_token %}
             <input type="text" name="otp" placeholder="Enter OTP" required
