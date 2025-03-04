@@ -12,7 +12,7 @@ def signup(request):
             print("...........valid and saved")
             user = form.save(commit=True)  
             user.save()
-            request.session['email'] = user.email  # Store email in session
+            request.session['email'] = user.email 
             return redirect('verify_otp')
         else:
             print("form is invalid...")

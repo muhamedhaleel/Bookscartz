@@ -10,7 +10,9 @@ from django.contrib import messages
 from django.core.paginator import Paginator
 import os
 from django.db.models import Q
-
+from django.core.files.images import get_image_dimensions
+from PIL import Image
+import os
 
 
 
@@ -67,25 +69,8 @@ def admin_dashboard(request):
         return render(request, 'admin_home.html')
 
 
-# ----------------------------
-#  Category List & Add
-# ----------------------------
-# @login_required(login_url='admin_login')
-# def category_list(request):
-#     categories = Category.objects.all().order_by('-added_on')
-#     form = CategoryForm()
-
-#     if request.method == 'POST':
-#         form = CategoryForm(request.POST)
-#         if form.is_valid():
-#             form.save()
-#             messages.success(request, 'Category added successfully!')
-#             # return redirect('category_list')
-#         else:
-#             messages.error(request, 'Error adding category. Please try again.')
-
-#     return render(request,'admin_category.html', {'categories': categories, 'form': form})
-
+# 
+#  
 # ----------------------------
 #  Category List, Add, Edit & Delete
 # ----------------------------
@@ -104,11 +89,16 @@ def category_list(request):
     if request.method == 'POST':
         form = CategoryForm(request.POST)
         if form.is_valid():
-            form.save()
-            messages.success(request, 'Category added successfully!')
+            try:
+                form.save()
+                messages.success(request, 'Category added successfully!')
+            except Exception as e:
+                messages.error(request, f'Error adding category: {str(e)}')
             return redirect('category_list')
         else:
-            messages.error(request, 'Error adding category. Please try again.')
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f'{field}: {error}')
 
     context = {
         'categories': categories,
@@ -124,26 +114,37 @@ def edit_category(request, pk):
     category = get_object_or_404(Category, pk=pk)
     
     if request.method == 'POST':
-        name = request.POST.get('name')
-        if name:
-            
-            if Category.objects.filter(name=name).exclude(pk=pk).exists():
-                messages.error(request, 'A category with this name already exists.')
-            else:
+        name = request.POST.get('name').strip()
+    
+        if not name:
+            messages.error(request, 'Category name cannot be empty.')
+        elif name.lower() == category.name.lower():
+            messages.warning(request, 'No changes were made.')
+        elif Category.objects.filter(name__iexact=name).exclude(pk=pk).exists():
+            messages.error(request, 'A category with this name already exists.')
+        else:
+            try:
                 category.name = name
                 category.save()
                 messages.success(request, 'Category updated successfully!')
-        return redirect('category_list')
+            except Exception as e:
+                messages.error(request, f'Error updating category: {str(e)}')
+            return redirect('category_list')
 
     return redirect('category_list')
+
 
 
 @login_required(login_url='admin_login')
 def delete_category(request, pk):
     category = get_object_or_404(Category, pk=pk)
-    category.is_active = not category.is_active
-    category.save()
-    messages.success(request, 'Category deleted successfully!')
+    try:
+        category.is_active = not category.is_active
+        category.save()
+        status = "activated" if category.is_active else "blocked"
+        messages.success(request, f'Category {status} successfully!')
+    except Exception as e:
+        messages.error(request, f'Error updating category status: {str(e)}')
     return redirect('category_list')
 
 
@@ -187,7 +188,6 @@ def brand_list(request):
 @login_required(login_url='admin_login')
 def add_brand(request):
     if request.method == 'POST':
-    
         name = request.POST.get('name', '').strip()
         image = request.FILES.get('image')
 
@@ -199,15 +199,34 @@ def add_brand(request):
             messages.error(request, "Brand already exists.")
             return redirect('brand_list')
 
+        if image:
+            # Validate file size
+            if image.size > 1 * 1024 * 1024:  # 1 MB
+                messages.error(request, "Image file size must be less than 1 MB.")
+                return redirect('brand_list')
+
+            # Validate file type
+            try:
+                img = Image.open(image)
+                img.verify()
+                img_format = img.format.lower()
+                if img_format not in ['jpeg', 'png', 'gif']:
+                    messages.error(request, "Unsupported file type. Only JPEG, PNG, and GIF are allowed.")
+                    return redirect('brand_list')
+            except Exception as e:
+                messages.error(request, "Invalid image file.")
+                return redirect('brand_list')
+
         try:
             brand = Brand.objects.create(name=name, image=image)
-            messages.success(request, "Brand added successfully.")
+            messages.success(request, "Publisher added successfully!")
         except Exception as e:
-            messages.error(request, f"Error adding brand: {str(e)}")
-        
+            messages.error(request, f"Error adding publisher: {str(e)}")
+
         return redirect('brand_list')
 
-# Edit Brand View
+    return render(request, 'add_brand.html')
+
 @login_required(login_url='admin_login')
 def edit_brand(request, pk):
     brand = get_object_or_404(Brand, pk=pk)
@@ -217,12 +236,12 @@ def edit_brand(request, pk):
         image = request.FILES.get('image')
         
         if not name or len(name) < 3:
-            messages.error(request, "Brand name must be at least 3 characters.")
+            messages.error(request, "Publisher name must be at least 3 characters.")
             return redirect('brand_list')
 
         # Check if the new name already exists for other brands
         if Brand.objects.filter(name=name).exclude(pk=pk).exists():
-            messages.error(request, "A brand with this name already exists.")
+            messages.error(request, "A publisher with this name already exists.")
             return redirect('brand_list')
 
         try:
@@ -234,9 +253,9 @@ def edit_brand(request, pk):
                         os.remove(brand.image.path)
                 brand.image = image
             brand.save()
-            messages.success(request, "Brand updated successfully.")
+            messages.success(request, "Publisher updated successfully!")
         except Exception as e:
-            messages.error(request, f"Error updating brand: {str(e)}")
+            messages.error(request, f"Error updating publisher: {str(e)}")
         
     return redirect('brand_list')
 
@@ -288,6 +307,7 @@ def admin_publisher(request):
 
 
 @login_required(login_url='admin_login')
+
 def admin_products(request):
     try:
         # Get search query

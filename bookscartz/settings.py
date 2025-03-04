@@ -135,11 +135,10 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 AUTH_USER_MODEL = 'adminapp.CustomUser'
 
 
-#email
-
+# Email Configuration
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'  # Use your email provider's SMTP host
+EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'muhammedhaleel700@gmail.com'
-EMAIL_HOST_PASSWORD = 'smfm jghg xfas tjvz'  # Use App Password if using Gmail
+EMAIL_HOST_USER = 'your-email@gmail.com'  # Replace with your email
+EMAIL_HOST_USER_PASSWORD = 'your-app-password'  # Replace with your app password
