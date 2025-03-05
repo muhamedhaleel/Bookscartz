@@ -3,120 +3,148 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Signup</title>
+    <title>Signup - Bookscartz</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, rgb(249, 248, 250) 100%);
+        }
+        .error-message {
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            animation: slideInRight 0.3s ease-out;
+        }
+        @keyframes slideInRight {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+    </style>
 </head>
-<body class="bg-gray-100 min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg">
-        <div>
-            <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
-                Create your account
-            </h2>
+<body class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <!-- Global Messages -->
+    {% if messages %}
+    <div class="toast" id="messages-container">
+        {% for message in messages %}
+        <div class="mb-3 p-4 rounded-lg shadow-lg {% if message.tags == 'error' %}bg-red-500{% else %}bg-green-500{% endif %} text-white">
+            {{ message }}
+            <button onclick="this.parentElement.remove()" class="float-right font-bold">&times;</button>
         </div>
-        
-        {% if messages %}
-            {% for message in messages %}
-                <div class="rounded-md p-4 {% if message.tags == 'success' %}bg-green-50 text-green-700{% else %}bg-red-50 text-red-700{% endif %}">
-                    <div class="flex">
-                        <div class="flex-shrink-0">
-                            {% if message.tags == 'success' %}
-                                <svg class="h-5 w-5 text-green-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                                </svg>
-                            {% else %}
-                                <svg class="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
-                                </svg>
-                            {% endif %}
-                        </div>
-                        <div class="ml-3">
-                            <p class="text-sm font-medium">{{ message }}</p>
-                        </div>
-                    </div>
-                </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg">
+        <div class="text-center">
+            <h2 class="text-3xl font-extrabold text-gray-900">Welcome Signup</h2>
+
+        </div>
+
+        <!-- Form Errors -->
+        {% if form.non_field_errors %}
+        <div class="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded relative" role="alert">
+            {% for error in form.non_field_errors %}
+            <p class="text-sm">{{ error }}</p>
             {% endfor %}
+        </div>
         {% endif %}
-
-        <form class="mt-8 space-y-6" method="post">
+        
+        <form method="post" novalidate id="signupForm" class="mt-8 space-y-6">
             {% csrf_token %}
-            <div class="rounded-md shadow-sm space-y-4">
-                <!-- Username Field -->
-                <div>
-                    <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
-                    {{ form.username }}
-                    {% if form.username.errors %}
-                        <div class="mt-1 text-sm text-red-600">
-                            {% for error in form.username.errors %}
-                                {{ error }}
-                            {% endfor %}
-                        </div>
-                    {% endif %}
+            
+            <!-- Username Field -->
+            <div>
+                <label for="{{ form.username.id_for_label }}" class="block text-sm font-medium text-gray-700">Username</label>
+                {{ form.username }}
+                {% if form.username.errors %}
+                <div class="mt-1 text-sm text-red-600 error-message">
+                    {% for error in form.username.errors %}
+                    <p>{{ error }}</p>
+                    {% endfor %}
                 </div>
-
-                <!-- Email Field -->
-                <div>
-                    <label for="email" class="block text-sm font-medium text-gray-700">Email address</label>
-                    {{ form.email }}
-                    {% if form.email.errors %}
-                        <div class="mt-1 text-sm text-red-600">
-                            {% for error in form.email.errors %}
-                                {{ error }}
-                            {% endfor %}
-                        </div>
-                    {% endif %}
+                {% endif %}
+                
+            </div>
+            
+            <!-- Email Field -->
+            <div>
+                <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-gray-700">Email address</label>
+                {{ form.email }}
+                {% if form.email.errors %}
+                <div class="mt-1 text-sm text-red-600 error-message">
+                    {% for error in form.email.errors %}
+                    <p>{{ error }}</p>
+                    {% endfor %}
                 </div>
-
-                <!-- Phone Number Field -->
-                <div>
-                    <label for="phone_number" class="block text-sm font-medium text-gray-700">Phone Number</label>
-                    {{ form.phone_number }}
-                    {% if form.phone_number.errors %}
-                        <div class="mt-1 text-sm text-red-600">
-                            {% for error in form.phone_number.errors %}
-                                {{ error }}
-                            {% endfor %}
-                        </div>
-                    {% endif %}
+                {% endif %}
+            </div>
+            
+            <!-- Phone Number Field -->
+            <div>
+                <label for="{{ form.phone_number.id_for_label }}" class="block text-sm font-medium text-gray-700">Phone Number</label>
+                {{ form.phone_number }}
+                {% if form.phone_number.errors %}
+                <div class="mt-1 text-sm text-red-600 error-message">
+                    {% for error in form.phone_number.errors %}
+                    <p>{{ error }}</p>
+                    {% endfor %}
                 </div>
-
-                <!-- Password Field -->
-                <div>
-                    <label for="password1" class="block text-sm font-medium text-gray-700">Password</label>
-                    {{ form.password1 }}
-                    {% if form.password1.errors %}
-                        <div class="mt-1 text-sm text-red-600">
-                            {% for error in form.password1.errors %}
-                                {{ error }}
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-                    {% if form.password1.help_text %}
-                        <div class="mt-1 text-sm text-gray-500">
-                            {{ form.password1.help_text }}
-                        </div>
-                    {% endif %}
+                {% endif %}
+                
+            </div>
+            
+            <!-- Password Field -->
+            <div>
+                <label for="{{ form.password1.id_for_label }}" class="block text-sm font-medium text-gray-700">Password</label>
+                {{ form.password1 }}
+                {% if form.password1.errors %}
+                <div class="mt-1 text-sm text-red-600 error-message">
+                    {% for error in form.password1.errors %}
+                    <p>{{ error }}</p>
+                    {% endfor %}
                 </div>
-
-                <!-- Confirm Password Field -->
-                <div>
-                    <label for="password2" class="block text-sm font-medium text-gray-700">Confirm Password</label>
-                    {{ form.password2 }}
-                    {% if form.password2.errors %}
-                        <div class="mt-1 text-sm text-red-600">
-                            {% for error in form.password2.errors %}
-                                {{ error }}
-                            {% endfor %}
-                        </div>
-                    {% endif %}
+                {% endif %}
+                <div class="mt-2 text-xs text-gray-500">
+                    <p>Password requirements:</p>
+                    
                 </div>
+            </div>
+            
+            <!-- Confirm Password Field -->
+            <div>
+                <label for="{{ form.password2.id_for_label }}" class="block text-sm font-medium text-gray-700">Confirm Password</label>
+                {{ form.password2 }}
+                {% if form.password2.errors %}
+                <div class="mt-1 text-sm text-red-600 error-message">
+                    {% for error in form.password2.errors %}
+                    <p>{{ error }}</p>
+                    {% endfor %}
+                </div>
+                {% endif %}
             </div>
 
             <div>
-                <button type="submit" class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 ease-in-out">
-                    Sign up
+                <button type="submit" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Create Account
                 </button>
             </div>
+
+            {% comment %} <div class="text-center text-sm">
+                <p>Already have an account? 
+                    <a href="{% url 'login_view' %}" class="text-blue-600 hover:text-blue-800">Login here</a>
+                </p>
+            </div> {% endcomment %}
         </form>
     </div>
-</body>
-</html>
+
+    

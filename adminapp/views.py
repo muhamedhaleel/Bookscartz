@@ -28,14 +28,14 @@ def admin_login(request):
         username = request.POST.get('username')
         password = request.POST.get('password')
         user = authenticate(request, username=username, password=password)
-        
+
         if user is not None and user.is_staff:
             login(request, user)
             return redirect('admin_dashboard')
         else:
             messages.error(request, 'Invalid Credentials or Not an Admin')
-    
-    return render(request, 'admin_login.html')
+
+    return render(request, 'admin_login.html')  
 
 @login_required(login_url='admin_login')
 def admin_logout(request):
@@ -66,7 +66,7 @@ def admin_dashboard(request):
         return render(request, 'admin_home.html', context)
     except Exception as e:
         messages.error(request, f'Error loading dashboard: {str(e)}')
-        return render(request, 'admin_home.html')
+    return render(request, 'admin_home.html')  
 
 
 # 
@@ -129,7 +129,7 @@ def edit_category(request, pk):
                 messages.success(request, 'Category updated successfully!')
             except Exception as e:
                 messages.error(request, f'Error updating category: {str(e)}')
-            return redirect('category_list')
+        return redirect('category_list')
 
     return redirect('category_list')
 
@@ -215,14 +215,14 @@ def add_brand(request):
                     return redirect('brand_list')
             except Exception as e:
                 messages.error(request, "Invalid image file.")
-                return redirect('brand_list')
+            return redirect('brand_list')
 
         try:
             brand = Brand.objects.create(name=name, image=image)
             messages.success(request, "Publisher added successfully!")
         except Exception as e:
             messages.error(request, f"Error adding publisher: {str(e)}")
-
+        
         return redirect('brand_list')
 
     return render(request, 'add_brand.html')
@@ -324,12 +324,12 @@ def admin_products(request):
                 Q(brand__name__icontains=search_query) |
                 Q(language__name__icontains=search_query)
             )
-
+        
         # Get active categories, brands, and languages for the forms
         categories = Category.objects.filter(is_active=True)
         brands = Brand.objects.filter(is_active=True)
         languages = Language.objects.filter(is_active=True)
-
+        
         context = {
             'products': products,
             'categories': categories,
@@ -360,7 +360,7 @@ def add_product(request):
             image1 = request.FILES.get('image1')
             image2 = request.FILES.get('image2')
             image3 = request.FILES.get('image3')
-
+            
             # Validate required fields
             if not all([name, description, category_id, brand_id, language_name, price, stock, image1]):
                 messages.error(request, "Please fill all required fields")
@@ -372,7 +372,7 @@ def add_product(request):
                 name=language_name.strip(),
                 defaults={'is_active': True}
             )
-
+            
             # Create product
             product = Product.objects.create(
                 name=name,
@@ -435,7 +435,7 @@ def edit_product(request, pk):
                     if os.path.isfile(product.image3.path):
                         os.remove(product.image3.path)
                 product.image3 = image3
-
+                
             product.save()
             messages.success(request, "Product updated successfully!")
             

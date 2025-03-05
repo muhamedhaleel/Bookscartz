@@ -1,278 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bookscartz - Premium Book Store</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #2C3639;
+            --secondary-color:rgb(151, 112, 78);
+            --accent-color: #DCD7C9;
+            --text-color: #2C3639;
+            --light-bg: #F5F5F5;
+            --white: #FFFFFF;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
 
-<!-- Add custom animations -->
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-   <script src="https://cdn.tailwindcss.com"></script>
-<style>
-    @keyframes fade-in-down {
-      0% {
-        opacity: 0;
-        transform: translateY(-20px);
-      }
-      100% {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-  
-    @keyframes fade-in-up {
-      0% {
-        opacity: 0;
-        transform: translateY(20px);
-      }
-      100% {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-  
-    .animate-fade-in-down {
-      animation: fade-in-down 1s ease-out;
-    }
-  
-    .animate-fade-in-up {
-      animation: fade-in-up 1s ease-out;
-    }
-  
-    .animate-fade-in {
-      animation: fade-in 1s ease-out;
-    }
-   </style>
-  <!-- Best Sellers & New Launches sections follow similar enhanced patterns -->
-  <body class="bg-gray-50 text-gray-800">
-     <!-- Navbar -->
-     <nav class="bg-white shadow-md py-4">
-      <div class="container mx-auto flex justify-between items-center px-4">
-          <a href="#" class="text-2xl font-bold text-[#8B7355]">BOOKSCARTZ</a>
-          <ul class="flex space-x-6">
-              <li><a href="#" class="hover:text-[#8B7355]">Home</a></li>
-              <li><a href="#" class="hover:text-[#8B7355]">Categories</a></li>
-              <li><a href="#" class="hover:text-[#8B7355]">Best Sellers</a></li>
-              <li><a href="#" class="hover:text-[#8B7355]">New Launches</a></li>
-              <li><a href="#" class="hover:text-[#8B7355]">Cart</a></li>
-          </ul>
-      </div>
-  </nav>
+        body {
+            font-family: 'Montserrat', sans-serif;
+            color: var(--text-color);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
 
+        /* Header & Navigation */
+        .header {
+            background: var(--white);
+            position: fixed;
+            width: 100%;
+            z-index: 1000;
+            box-shadow: var(--shadow);
+        }
+
+        .top-bar {
+            background: var(--primary-color);
+            color: var(--white);
+            padding: 8px 0;
+            font-size: 0.9rem;
+            text-align: center;
+        }
+
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            text-decoration: none;
+            letter-spacing: 1px;
+        }
+
+        .nav-menu {
+            display: flex;
+            gap: 3rem;
+            list-style: none;
+        }
+
+        .nav-link {
+            text-decoration: none;
+            color: var(--text-color);
+            font-weight: 500;
+            font-size: 1rem;
+            position: relative;
+            padding: 5px 0;
+        }
+
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--secondary-color);
+            transition: var(--transition);
+        }
+
+        .nav-link:hover::after {
+            width: 100%;
+        }
+
+        /* Hero Section */
+        .hero {
+            height: 100vh;
+            background: linear-gradient(rgba(44, 54, 57, 0.7), rgba(44, 54, 57, 0.7)),
+                        url('https://images.unsplash.com/photo-1507842217343-583bb7270b66?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80');
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            align-items: center;
+            padding-top: 80px;
+        }
+
+        .hero-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            color: var(--white);
+            text-align: center;
+        }
+
+        .hero-title {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            line-height: 1.2;
+            opacity: 0;
+            animation: fadeInUp 1s ease forwards;
+        }
+
+        .hero-subtitle {
+            font-size: 1.5rem;
+            margin-bottom: 2.5rem;
+            opacity: 0;
+            animation: fadeInUp 1s ease 0.3s forwards;
+        }
+
+        .hero-cta {
+            display: inline-block;
+            padding: 1.2rem 3rem;
+            background: var(--secondary-color);
+            color: var(--white);
+            text-decoration: none;
+            border-radius: 3px;
+            font-weight: 500;
+            transition: var(--transition);
+            opacity: 0;
+            animation: fadeInUp 1s ease 0.6s forwards;
+        }
+
+        .hero-cta:hover {
+            background: var(--primary-color);
+            transform: translateY(-3px);
+        }
+
+        /* Featured Categories */
+        .categories {
+            padding: 8rem 0;
+            background: var(--light-bg);
+        }
+
+        .section-title {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+
+        .section-title h2 {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 3rem;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        .section-title p {
+            color: var(--secondary-color);
+            font-size: 1.1rem;
+        }
+
+        .categories-grid {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 2rem;
+            padding: 0 2rem;
+        }
+
+        .category-card {
+            position: relative;
+            height: 400px;
+            overflow: hidden;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .category-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: var(--transition);
+        }
+
+        .category-content {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 2rem;
+            background: linear-gradient(transparent, rgba(0,0,0,0.8));
+            color: var(--white);
+            transform: translateY(100px);
+            transition: var(--transition);
+        }
+
+        .category-card:hover .category-img {
+            transform: scale(1.1);
+        }
+
+        .category-card:hover .category-content {
+            transform: translateY(0);
+        }
+
+        /* New Arrivals */
+        .new-arrivals {
+            padding: 8rem 0;
+            background: var(--white);
+        }
+
+        .books-grid {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2.5rem;
+            padding: 0 2rem;
+        }
+
+        .book-card {
+            background: var(--white);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+        }
+
+        .book-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+
+        .book-img {
+            width: 100%;
+            height: 400px;
+            object-fit: cover;
+        }
+
+        .book-details {
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .book-title {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: var(--primary-color);
+        }
+
+        .book-author {
+            color: var(--secondary-color);
+            margin-bottom: 1rem;
+        }
+
+        .book-price {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 1.5rem;
+        }
+
+        .add-to-cart {
+            display: inline-block;
+            padding: 0.8rem 2rem;
+            background: var(--primary-color);
+            color: var(--white);
+            text-decoration: none;
+            border-radius: 3px;
+            transition: var(--transition);
+        }
+
+        .add-to-cart:hover {
+            background: var(--secondary-color);
+        }
+
+        /* Newsletter Section */
+        .newsletter {
+            padding: 6rem 0;
+            background: var(--primary-color);
+            color: var(--white);
+            text-align: center;
+        }
+
+        .newsletter-content {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .newsletter h2 {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .newsletter p {
+            margin-bottom: 2rem;
+            color: var(--accent-color);
+        }
+
+        .newsletter-form {
+            display: flex;
+            gap: 1rem;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .newsletter-input {
+            flex: 1;
+            padding: 1rem;
+            border: none;
+            border-radius: 3px;
+            font-size: 1rem;
+        }
+
+        .newsletter-btn {
+            padding: 1rem 2rem;
+            background: var(--secondary-color);
+            color: var(--white);
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .newsletter-btn:hover {
+            background: var(--accent-color);
+            color: var(--primary-color);
+        }
+
+        /* Footer */
+        .footer {
+            background: var(--light-bg);
+            padding: 6rem 0 2rem;
+        }
+
+        .footer-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 4rem;
+        }
+
+        .footer-section h3 {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            color: var(--primary-color);
+        }
+
+        .footer-links {
+            list-style: none;
+        }
+
+        .footer-links li {
+            margin-bottom: 1rem;
+        }
+
+        .footer-links a {
+            text-decoration: none;
+            color: var(--text-color);
+            transition: var(--transition);
+        }
+
+        .footer-links a:hover {
+            color: var(--secondary-color);
+        }
+
+        .footer-bottom {
+            text-align: center;
+            margin-top: 4rem;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(0,0,0,0.1);
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .categories-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .nav-menu {
+                display: none;
+            }
+
+            .hero-title {
+                font-size: 3.5rem;
+            }
+
+            .categories-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .footer-container {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+
+            .newsletter-form {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="top-bar">
+            Free shipping on orders over ₹999 | Shop now
+        </div>
+        <nav class="nav-container">
+            <a href="#" class="logo">BOOKSCARTZ</a>
+            <ul class="nav-menu">
+                <li><a href="#" class="nav-link">Home</a></li>
+                <li><a href="#" class="nav-link">Categories</a></li>
+                <li><a href="#" class="nav-link">Best Sellers</a></li>
+                <li><a href="#" class="nav-link">New Releases</a></li>
+                <li><a href="#" class="nav-link">Cart</a></li>
+            </ul>
+        </nav>
+    </header>
 
     <!-- Hero Section -->
-    <section>
-      <div class="relative h-[60vh] sm:h-[70vh] lg:h-[80vh] overflow-hidden">
-        <img src="/public/assets/slid2.jpg" alt="Hero Banner" class="w-full h-full object-cover transform scale-100 hover:scale-105 transition-transform duration-700" />
-        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent flex flex-col justify-center items-center text-center">
-          <h1 class="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-4 animate-fade-in-down">Discover Premium <span class="text-[#8B7355]">Products</span></h1>
-          <p class="text-base sm:text-lg md:text-xl text-gray-200 mb-6 max-w-xl animate-fade-in-up">Explore our curated collection of exclusive products and top brands</p>
-          <a href="/allproduct" class="group inline-flex items-center gap-2 bg-white/90 text-gray-900 px-8 py-4 rounded-full hover:bg-[#8B7355] hover:text-white transform hover:scale-105 transition-all duration-300">
-            Explore Collection
-            <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
-            </svg>
-          </a>
+    <section class="hero">
+        <div class="hero-content">
+            <h1 class="hero-title">Discover Your Next Literary Adventure</h1>
+            <p class="hero-subtitle">Curated collections of the finest books from around the world</p>
+            <a href="#" class="hero-cta">Explore Collection</a>
         </div>
-      </div>
     </section>
-  
-    <!-- Features Section -->
-    <section class="py-8 bg-white">
-      <div class="container mx-auto px-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div class="p-6 bg-gray-50 rounded-xl hover:bg-[#8B7355] transition-colors text-center">
-          <div class="p-4 bg-white rounded-xl mb-4 hover:bg-[#A79277]">
-            <svg class="w-8 h-8 text-[#8B7355] hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
-            </svg>
-          </div>
-          <h3 class="text-xl font-semibold text-gray-900 hover:text-white">Free Shipping</h3>
-          <p class="text-gray-600 hover:text-white/80">On orders over ₹500</p>
-        </div>
-  
-        <div class="p-6 bg-gray-50 rounded-xl hover:bg-[#8B7355] transition-colors text-center">
-          <div class="p-4 bg-white rounded-xl mb-4 hover:bg-[#A79277]">
-            <svg class="w-8 h-8 text-[#8B7355] hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4"/>
-            </svg>
-          </div>
-          <h3 class="text-xl font-semibold text-gray-900 hover:text-white">Secure Payment</h3>
-          <p class="text-gray-600 hover:text-white/80">100% secure payment</p>
-        </div>
-  
-        <div class="p-6 bg-gray-50 rounded-xl hover:bg-[#8B7355] transition-colors text-center">
-          <div class="p-4 bg-white rounded-xl mb-4 hover:bg-[#A79277]">
-            <svg class="w-8 h-8 text-[#8B7355] hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536M9.172 9.172L5.636 5.636"/>
-            </svg>
-          </div>
-          <h3 class="text-xl font-semibold text-gray-900 hover:text-white">24/7 Support</h3>
-          <p class="text-gray-600 hover:text-white/80">Dedicated support</p>
-        </div>
-      </div>
-    </section>
-  
-    <!-- Top Brands Section -->
-    <section class="py-16 bg-gradient-to-b from-white to-gray-50">
-      <div class="text-center mb-12">
-        <h2 class="text-3xl font-extrabold text-gray-900">Top Brands</h2>
-        <p class="text-gray-600 max-w-xl mx-auto text-lg">Discover our collection of premium brands that define luxury and quality.</p>
-      </div>
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 px-4">
-        <!-- Brand Card -->
-        <a href="#" class="group block">
-          <div class="bg-white rounded-lg overflow-hidden shadow-lg hover:shadow-2xl transform hover:-translate-y-2 transition">
-            <div class="relative">
-              <img src="https://via.placeholder.com/300x200" alt="Brand" class="w-full h-56 object-cover" />
-              <div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-            </div>
-            <div class="p-6 text-center">
-              <h3 class="text-xl font-bold text-gray-800 group-hover:text-[#8B7355]">Brand Name</h3>
-              <span class="text-sm text-[#8B7355] opacity-0 group-hover:opacity-100 flex justify-center items-center mt-2">
-                Explore Products
-                <svg class="w-5 h-5 ml-2 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
-                </svg>
-              </span>
-            </div>
-          </div>
-        </a>
-      </div>
-    </section>
-  
-    <!-- Best Sellers Section -->
-    <section class="py-16 bg-white">
-      <div class="text-center mb-12">
-        <h2 class="text-3xl font-extrabold text-gray-900">Best Sellers</h2>
-        <p class="text-gray-600 max-w-xl mx-auto">Our most popular products</p>
-      </div>
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 px-4">
-        <!-- Product Card -->
-        <div class="bg-white rounded-lg shadow-lg hover:shadow-2xl transform hover:-translate-y-2 transition">
-          <div class="relative">
-            <img src="https://via.placeholder.com/300x300" alt="Product" class="w-full h-56 object-cover" />
-            <button class="absolute top-3 right-3 bg-white p-2 rounded-full hover:bg-red-500 transition">
-              <svg class="w-5 h-5 text-gray-600 hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
-              </svg>
-            </button>
-          </div>
-          <div class="p-4 text-center">
-            <h3 class="text-lg font-bold text-gray-800">Product Name</h3>
-            <p class="text-[#8B7355] font-semibold mt-2">₹499 <span class="text-gray-400 line-through ml-2">₹699</span></p>
-            <button class="w-full py-2 mt-4 bg-[#8B7355] text-white rounded-lg hover:bg-[#A79277]">Add to Cart</button>
-          </div>
-        </div>
-      </div>
-    </section>
-  
-  </body>
-  
-   
-   
 
-      <!DOCTYPE html>
-      <html lang="en">
-      <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Bookscartz - Home</title>
-          <script src="https://cdn.tailwindcss.com"></script>
-      </head>
-      <body class="bg-gray-50 text-gray-800">
-      
-          <!-- Navbar -->
-          <nav class="bg-white shadow-md py-4">
-              <div class="container mx-auto flex justify-between items-center px-4">
-                  <a href="#" class="text-2xl font-bold text-[#8B7355]">BOOKSCARTZ</a>
-                  <ul class="flex space-x-6">
-                      <li><a href="#" class="hover:text-[#8B7355]">Home</a></li>
-                      <li><a href="#" class="hover:text-[#8B7355]">Categories</a></li>
-                      <li><a href="#" class="hover:text-[#8B7355]">Best Sellers</a></li>
-                      <li><a href="#" class="hover:text-[#8B7355]">New Launches</a></li>
-                      <li><a href="#" class="hover:text-[#8B7355]">Cart</a></li>
-                  </ul>
-              </div>
-          </nav>
-      
-          <!-- Hero Section -->
-          <section class="relative h-64 bg-cover bg-center" style="background-image: url('https://via.placeholder.com/1340x400');">
-              <div class="absolute inset-0 bg-black/50 flex items-center justify-center text-center">
-                  <h1 class="text-4xl md:text-6xl text-white font-bold">Explore Your Next Favorite Book</h1>
-              </div>
-          </section>
-      
-          <!-- Top Categories -->
-          <section class="py-12">
-              <h2 class="text-3xl text-center font-bold mb-6">Top Categories</h2>
-              <div class="grid grid-cols-2 md:grid-cols-4 gap-4 px-4">
-                  <img src="https://via.placeholder.com/150" alt="Category 1" class="rounded-lg shadow-md">
-                  <img src="https://via.placeholder.com/150" alt="Category 2" class="rounded-lg shadow-md">
-                  <img src="https://via.placeholder.com/150" alt="Category 3" class="rounded-lg shadow-md">
-                  <img src="https://via.placeholder.com/150" alt="Category 4" class="rounded-lg shadow-md">
-              </div>
-          </section>
-      
-          <!-- Best Sellers -->
-          <section class="py-12 bg-gray-100">
-              <h2 class="text-3xl text-center font-bold mb-6">Best Sellers</h2>
-              <div class="grid grid-cols-2 md:grid-cols-4 gap-4 px-4">
-                  <div class="bg-white p-4 rounded-lg shadow-md text-center">
-                      <img src="https://via.placeholder.com/150" alt="Book 1" class="mb-2">
-                      <h3 class="font-bold">Book Title 1</h3>
-                      <p class="text-[#8B7355]">₹499</p>
-                  </div>
-                  <div class="bg-white p-4 rounded-lg shadow-md text-center">
-                      <img src="https://via.placeholder.com/150" alt="Book 2" class="mb-2">
-                      <h3 class="font-bold">Book Title 2</h3>
-                      <p class="text-[#8B7355]">₹599</p>
-                  </div>
-                  <div class="bg-white p-4 rounded-lg shadow-md text-center">
-                      <img src="https://via.placeholder.com/150" alt="Book 3" class="mb-2">
-                      <h3 class="font-bold">Book Title 3</h3>
-                      <p class="text-[#8B7355]">₹399</p>
-                  </div>
-                  <div class="bg-white p-4 rounded-lg shadow-md text-center">
-                      <img src="https://via.placeholder.com/150" alt="Book 4" class="mb-2">
-                      <h3 class="font-bold">Book Title 4</h3>
-                      <p class="text-[#8B7355]">₹699</p>
-                  </div>
-              </div>
-          </section>
-      
-          <!-- New Launches -->
-          <section class="py-12">
-              <h2 class="text-3xl text-center font-bold mb-6">New Launches</h2>
-              <div class="grid grid-cols-2 md:grid-cols-4 gap-4 px-4">
-                  <div class="bg-white p-4 rounded-lg shadow-md text-center">
-                      <img src="https://via.placeholder.com/150" alt="New Book 1" class="mb-2">
-                      <h3 class="font-bold">New Title 1</h3>
-                      <p class="text-[#8B7355]">₹549</p>
-                  </div>
-                  <div class="bg-white p-4 rounded-lg shadow-md text-center">
-                      <img src="https://via.placeholder.com/150" alt="New Book 2" class="mb-2">
-                      <h3 class="font-bold">New Title 2</h3>
-                      <p class="text-[#8B7355]">₹649</p>
-                  </div>
-                  <div class="bg-white p-4 rounded-lg shadow-md text-center">
-                      <img src="https://via.placeholder.com/150" alt="New Book 3" class="mb-2">
-                      <h3 class="font-bold">New Title 3</h3>
-                      <p class="text-[#8B7355]">₹749</p>
-                  </div>
-                  <div class="bg-white p-4 rounded-lg shadow-md text-center">
-                      <img src="https://via.placeholder.com/150" alt="New Book 4" class="mb-2">
-                      <h3 class="font-bold">New Title 4</h3>
-                      <p class="text-[#8B7355]">₹849</p>
-                  </div>
-              </div>
-          </section>
-      
-          <!-- Footer -->
-          <footer class="bg-[#8B7355] text-white py-6">
-              <div class="container mx-auto px-4 text-center">
-                  <p>&copy; 2025 Bookscartz. All Rights Reserved.</p>
-                  <div class="flex justify-center space-x-4 mt-2">
-                      <a href="#" class="hover:text-gray-300">About Us</a>
-                      <a href="#" class="hover:text-gray-300">Contact</a>
-                      <a href="#" class="hover:text-gray-300">Privacy Policy</a>
-                  </div>
-              </div>
-          </footer>
-      
-      </body>
-      </html>
-      
+    <!-- Categories Section -->
+    <section class="categories">
+        <div class="section-title">
+            <h2>Browse Categories</h2>
+            <p>Find your perfect read from our carefully curated collections</p>
+        </div>
+        <div class="categories-grid">
+            <div class="category-card">
+                <img src="https://images.unsplash.com/photo-1474932430478-367dbb6832c1" alt="Fiction" class="category-img">
+                <div class="category-content">
+                    <h3>Fiction</h3>
+                    <p>Explore imaginative worlds</p>
+                </div>
+            </div>
+            <div class="category-card">
+                <img src="https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8" alt="Non-Fiction" class="category-img">
+                <div class="category-content">
+                    <h3>Non-Fiction</h3>
+                    <p>Expand your knowledge</p>
+                </div>
+            </div>
+            <div class="category-card">
+                <img src="https://images.unsplash.com/photo-1497633762265-9d179a990aa6" alt="Academic" class="category-img">
+                <div class="category-content">
+                    <h3>Academic</h3>
+                    <p>Educational excellence</p>
+                </div>
+            </div>
+            <div class="category-card">
+                <img src="https://images.unsplash.com/photo-1476275466078-4007374efbbe" alt="Children" class="category-img">
+                <div class="category-content">
+                    <h3>Children</h3>
+                    <p>Inspire young minds</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- New Arrivals Section -->
+    <section class="new-arrivals">
+        <div class="section-title">
+            <h2>New Arrivals</h2>
+            <p>The latest additions to our collection</p>
+        </div>
+        <div class="books-grid">
+            <div class="book-card">
+                <img src="https://images.unsplash.com/photo-1544947950-fa07a98d237f" alt="Book" class="book-img">
+                <div class="book-details">
+                    <h3 class="book-title">The Silent Echo</h3>
+                    <p class="book-author">By Sarah Mitchell</p>
+                    <p class="book-price">₹499</p>
+                    <a href="#" class="add-to-cart">Add to Cart</a>
+                </div>
+            </div>
+            <div class="book-card">
+                <img src="https://images.unsplash.com/photo-1543002588-bfa74002ed7e" alt="Book" class="book-img">
+                <div class="book-details">
+                    <h3 class="book-title">Midnight Tales</h3>
+                    <p class="book-author">By John Anderson</p>
+                    <p class="book-price">₹599</p>
+                    <a href="#" class="add-to-cart">Add to Cart</a>
+                </div>
+            </div>
+            <div class="book-card">
+                <img src="https://images.unsplash.com/photo-1589998059171-988d887df646" alt="Book" class="book-img">
+                <div class="book-details">
+                    <h3 class="book-title">The Art of Living</h3>
+                    <p class="book-author">By Emily Parker</p>
+                    <p class="book-price">₹449</p>
+                    <a href="#" class="add-to-cart">Add to Cart</a>
+                </div>
+            </div>
+            <div class="book-card">
+                <img src="https://images.unsplash.com/photo-1541963463532-d68292c34b19" alt="Book" class="book-img">
+                <div class="book-details">
+                    <h3 class="book-title">Beyond Horizons</h3>
+                    <p class="book-author">By Michael Roberts</p>
+                    <p class="book-price">₹549</p>
+                    <a href="#" class="add-to-cart">Add to Cart</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+   {% comment %} <!-- Newsletter Section -->
+    <section class="newsletter">
+        <div class="newsletter-content">
+            <h2>Stay Updated</h2>
+            <p>Subscribe to our newsletter for exclusive offers and updates on new releases</p>
+            <form class="newsletter-form">
+                <input type="email" placeholder="Enter your email" class="newsletter-input">
+                <button type="submit" class="newsletter-btn">Subscribe</button>
+            </form>
+        </div>
+    </section>  {% endcomment %}
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-section">
+                <h3>About Bookscartz</h3>
+                <p>Your premier destination for quality books, connecting readers with extraordinary stories and knowledge from around the world.</p>
+            </div>
+            <div class="footer-section">
+                <h3>Quick Links</h3>
+                <ul class="footer-links">
+                    <li><a href="#">Home</a></li>
+                    <li><a href="#">Categories</a></li>
+                    <li><a href="#">Best Sellers</a></li>
+                    <li><a href="#">New Releases</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h3>Customer Service</h3>
+                <ul class="footer-links">
+                    <li><a href="#">Contact Us</a></li>
+                    <li><a href="#">Shipping Policy</a></li>
+                    <li><a href="#">Returns Policy</a></li>
+                    <li><a href="#">FAQ</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h3>Connect With Us</h3>
+                <ul class="footer-links">
+                    <li><a href="#">Facebook</a></li>
+                    <li><a href="#">Instagram</a></li>
+                    <li><a href="#">Twitter</a></li>
+                    <li><a href="#">LinkedIn</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2024 Bookscartz. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+</html>    
