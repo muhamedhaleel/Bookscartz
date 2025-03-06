@@ -101,11 +101,66 @@ def login_view(request):
 
 @login_required
 def user_profile(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        phone_number = request.POST.get('phone')
+        user = request.user
+        try:
+            user.username = username
+            user.phone_number = phone_number
+            user.save()
+            messages.success(request, 'Profile updated successfully!')
+            return redirect('profile')  # Redirect to the profile page
+        except Exception as e:
+            messages.error(request, f'Error updating profile: {str(e)}')
     return render(request, 'profile.html', {'user': request.user})
 
 @login_required
 def user_logout(request):
     logout(request)
     messages.success(request, 'You have been logged out successfully.')
-    return redirect('login')  # Redirect to the login page after logout 
-    
+    return redirect('login')  # Redirect to the login page after logout
+
+@login_required
+def reset_password(request):
+    if request.method == 'POST':
+        current_password = request.POST.get('current_password')
+        new_password = request.POST.get('new_password')
+        confirm_password = request.POST.get('confirm_password')
+        user = request.user
+
+        # Check if the current password is correct
+        if user.check_password(current_password):
+            if new_password == confirm_password:
+                user.set_password(new_password)
+                user.save()
+                messages.success(request, 'Your password has been changed successfully!')
+                return redirect('profile')  # Redirect to the profile page
+            else:
+                messages.error(request, 'New passwords do not match.')
+        else:
+            messages.error(request, 'Current password is incorrect.')
+    return render(request, 'profile.html', {'user': request.user})  # Render the profile page
+
+@login_required
+def change_password(request):
+    if request.method == 'POST':
+        current_password = request.POST.get('current_password')
+        new_password = request.POST.get('new_password')
+        confirm_password = request.POST.get('confirm_password')
+        user = request.user
+
+        # Check if the current password is correct
+        if user.check_password(current_password):
+            if new_password == confirm_password:
+                user.set_password(new_password)
+                user.save()
+                messages.success(request, 'Your password has been changed successfully!')
+            else:
+                messages.error(request, 'New passwords do not match.')
+        else:
+            messages.error(request, 'Current password is incorrect.')
+
+    # Render the profile page with the user context and messages
+    return render(request, 'profile.html', {'user': request.user})
+
