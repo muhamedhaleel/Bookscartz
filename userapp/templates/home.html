@@ -611,39 +611,20 @@
     <!-- Categories Section -->
     <section class="categories">
         <div class="section-title">
-            <h2>Browse Categories</h2>
+            <h2>Browse Publishers</h2>
             <p>Find your perfect read from our carefully curated collections</p>
         </div>
         <div class="categories-grid">
+            {% for brand in brands %}
             <div class="category-card">
-                <img src="https://images.unsplash.com/photo-1474932430478-367dbb6832c1" alt="Fiction" class="category-img">
+                <img src="{{ brand.image.url }}" alt="{{ brand.name }}" class="category-img">
                 <div class="category-content">
-                    <h3>Fiction</h3>
-                    <p>Explore imaginative worlds</p>
+                    <h3>{{ brand.name }}</h3>
+                    <p>{{ brand.description }}</p>
                 </div>
             </div>
-            <div class="category-card">
-                <img src="https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8" alt="Non-Fiction" class="category-img">
-                <div class="category-content">
-                    <h3>Non-Fiction</h3>
-                    <p>Expand your knowledge</p>
-                </div>
-            </div>
-            <div class="category-card">
-                <img src="https://images.unsplash.com/photo-1497633762265-9d179a990aa6" alt="Academic" class="category-img">
-                <div class="category-content">
-                    <h3>Academic</h3>
-                    <p>Educational excellence</p>
-                </div>
-          </div>
-            <div class="category-card">
-                <img src="https://images.unsplash.com/photo-1476275466078-4007374efbbe" alt="Children" class="category-img">
-                <div class="category-content">
-                    <h3>Children</h3>
-                    <p>Inspire young minds</p>
+            {% endfor %}
         </div>
-        </div>
-      </div>
     </section>
   
     <!-- New Arrivals Section -->
@@ -792,3 +773,4 @@
             <p><strong>Phone Number:</strong> {{ user.phone_number }}</p> <!-- Assuming phone_number is a field in your CustomUser model -->
         </div>
     </section>
+    

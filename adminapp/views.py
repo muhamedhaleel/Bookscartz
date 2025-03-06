@@ -87,19 +87,18 @@ def category_list(request):
     form = CategoryForm()
 
     if request.method == 'POST':
-        form = CategoryForm(request.POST)
-    if form.is_valid():
-        try:
-            form.save()
-            messages.success(request, 'Category added successfully!')
-        except Exception as e:
-            messages.error(request, f'Error adding category: {str(e)}')
-        return redirect('category_list')
-    else:
-        for field, errors in form.errors.items():
-            for error in errors:
-                messages.error(request, f'{field}: {error}')
-
+        form = CategoryForm(request.POST, request.FILES)
+        if form.is_valid():
+            try:
+                form.save()
+                messages.success(request, 'Category added successfully!')
+            except Exception as e:
+                messages.error(request, f'Error adding category: {str(e)}')
+            return redirect('category_list')
+        else:
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f'{field}: {error}')
 
     context = {
         'categories': categories,
@@ -289,8 +288,8 @@ def admin_publisher(request):
 
 
 @login_required(login_url='admin_login')
-def admin_customers(request):
-    return render(request,'admin_caustomer.html')  # Corrected typo in filename
+def admin_customer(request):
+    return render(request,'user_details.html')  # Corrected typo in filename
 
 
 

@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import login, authenticate, logout
 from django.contrib import messages
 from .forms import SignupForm
-from adminapp.models import CustomUser
+from adminapp.models import CustomUser, Brand
 from django.core.exceptions import ValidationError
 from django.contrib.auth.decorators import login_required
 
@@ -78,7 +78,10 @@ def verify_otp(request):
 
 @login_required
 def home(request):
-    return render(request, 'home.html', {'user': request.user})
+    # Fetch all active brands to display on the home page
+    brands = Brand.objects.filter(is_active=True)
+    
+    return render(request, 'home.html', {'brands': brands})  # Pass brands to the template
 
 def login_view(request):
     if request.method == 'POST':
