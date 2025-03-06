@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - Bookscartz</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #2C3639;
+            --secondary-color: #A27B5C;
+            --accent-color: #DCD7C9;
+            --text-color: #2C3639;
+            --light-bg: #F5F5F5;
+            --white: #FFFFFF;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, rgb(249, 248, 250) 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .profile-card {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .profile-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .info-label {
+            color: #6B7280;
+            font-size: 0.875rem;
+        }
+
+        .info-value {
+            color: #1F2937;
+            font-weight: 500;
+        }
+
+        /* Footer Styles */
+        .footer {
+            background: var(--accent-color);
+            padding: 4rem 0 2rem;
+            margin-top: auto;
+        }
+
+        .footer-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 4rem;
+        }
+
+        .footer-section h3 {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        .footer-section p {
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        .footer-links {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .footer-links li {
+            margin-bottom: 1rem;
+        }
+
+        .footer-links a {
+            text-decoration: none;
+            color: var(--text-color);
+            transition: var(--transition);
+        }
+
+        .footer-links a:hover {
+            color: var(--secondary-color);
+        }
+
+        .footer-bottom {
+            text-align: center;
+            margin-top: 4rem;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(0,0,0,0.1);
+        }
+
+        @media (max-width: 1024px) {
+            .footer-container {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 2rem;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .footer-container {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+        }
+
+        .edit-button {
+            background-color: var(--secondary-color);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            transition: var(--transition);
+        }
+
+        .edit-button:hover {
+            background-color: var(--primary-color);
+        }
+
+        .tab-button {
+            padding: 0.75rem 1.5rem;
+            font-weight: 500;
+            border-bottom: 2px solid transparent;
+            transition: var(--transition);
+        }
+
+        .tab-button.active {
+            border-bottom-color: var(--secondary-color);
+            color: var(--secondary-color);
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #E5E7EB;
+            border-radius: 0.375rem;
+            margin-top: 0.25rem;
+            transition: var(--transition);
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 2px rgba(162, 123, 92, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="bg-white shadow-sm">
+        <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <a href="{% url 'home' %}" class="text-2xl font-bold text-gray-900">BOOKSCARTZ</a>
+                <div class="flex items-center space-x-4">
+                    <a href="{% url 'home' %}" class="text-gray-700 hover:text-gray-900">Home</a>
+                    <a href="{% url 'logout' %}" class="text-red-600 hover:text-red-700">Logout</a>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8 flex-grow">
+        {% if messages %}
+        <div class="mb-8">
+            {% for message in messages %}
+            <div class="p-4 rounded-lg {% if message.tags == 'error' %}bg-red-100 text-red-700{% else %}bg-green-100 text-green-700{% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Profile Navigation -->
+        <div class="border-b border-gray-200 mb-8">
+            <div class="flex space-x-8">
+                <button class="tab-button active" onclick="showTab('profile')">Profile</button>
+                <button class="tab-button" onclick="showTab('security')">Security</button>
+                <button class="tab-button" onclick="showTab('orders')">Orders</button>
+            </div>
+        </div>
+
+        <!-- Profile Tab -->
+        <div id="profileTab" class="tab-content">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Profile Info Card -->
+                <div class="profile-card p-6 col-span-2">
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center text-white text-3xl font-bold">
+                                {{ user.username|make_list|first|upper }}
+                            </div>
+                            <div>
+                                <h1 class="text-2xl font-bold text-gray-900">{{ user.username }}</h1>
+                                <p class="text-gray-600">Member since {{ user.date_joined|date:"F j, Y" }}</p>
+                            </div>
+                        </div>
+                        <button onclick="toggleEdit()" class="edit-button">
+                            Edit Profile
+                        </button>
+                    </div>
+
+                    <!-- Profile Form -->
+                    <form id="profileForm" method="POST" class="hidden">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="update_profile">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Username</label>
+                                <input type="text" name="username" value="{{ user.username }}" class="input-field" readonly>
+                                <p class="mt-1 text-xs text-gray-500">Username cannot be changed</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Email Address</label>
+                                <input type="email" name="email" value="{{ user.email }}" class="input-field" readonly>
+                                <p class="mt-1 text-xs text-gray-500">Email cannot be changed</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Phone Number</label>
+                                <input type="tel" name="phone_number" value="{{ user.phone_number }}" class="input-field" pattern="[0-9]{10}" title="Please enter a valid 10-digit phone number">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Address</label>
+                                <input type="text" name="address" value="{{ user.address }}" class="input-field" placeholder="Enter your address">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">City</label>
+                                <input type="text" name="city" value="{{ user.city }}" class="input-field" placeholder="Enter your city">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">State</label>
+                                <input type="text" name="state" value="{{ user.state }}" class="input-field" placeholder="Enter your state">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Pincode</label>
+                                <input type="text" name="pincode" value="{{ user.pincode }}" class="input-field" pattern="[0-9]{6}" title="Please enter a valid 6-digit pincode">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Date of Birth</label>
+                                <input type="date" name="date_of_birth" value="{{ user.date_of_birth|date:'Y-m-d' }}" class="input-field">
+                            </div>
+                        </div>
+                        <div class="mt-6 flex justify-end space-x-4">
+                            <button type="button" onclick="toggleEdit()" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+                                Cancel
+                            </button>
+                            <button type="submit" class="edit-button">
+                                Save Changes
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Profile Info -->
+                    <div id="profileInfo" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-4">
+                            <div>
+                                <p class="info-label">Username</p>
+                                <p class="info-value">{{ user.username }}</p>
+                            </div>
+                            <div>
+                                <p class="info-label">Email Address</p>
+                                <p class="info-value">{{ user.email }}</p>
+                            </div>
+                            <div>
+                                <p class="info-label">Phone Number</p>
+                                <p class="info-value">{{ user.phone_number|default:"Not provided" }}</p>
+                            </div>
+                            <div>
+                                <p class="info-label">Address</p>
+                                <p class="info-value">{{ user.address|default:"Not provided" }}</p>
+                            </div>
+                        </div>
+                        <div class="space-y-4">
+                            <div>
+                                <p class="info-label">City</p>
+                                <p class="info-value">{{ user.city|default:"Not provided" }}</p>
+                            </div>
+                            <div>
+                                <p class="info-label">State</p>
+                                <p class="info-value">{{ user.state|default:"Not provided" }}</p>
+                            </div>
+                            <div>
+                                <p class="info-label">Pincode</p>
+                                <p class="info-value">{{ user.pincode|default:"Not provided" }}</p>
+                            </div>
+                            <div>
+                                <p class="info-label">Date of Birth</p>
+                                <p class="info-value">{{ user.date_of_birth|date:"F j, Y"|default:"Not provided" }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Activity Card -->
+                <div class="profile-card p-6">
+                    <h2 class="text-xl font-semibold mb-6">Account Activity</h2>
+                    <div class="space-y-6">
+                        <div>
+                            <p class="info-label">Last Login</p>
+                            <p class="info-value">{{ user.last_login|date:"F j, Y H:i" }}</p>
+                        </div>
+                        <div>
+                            <p class="info-label">Total Orders</p>
+                            <p class="info-value">{{ activity_data.total_orders }}</p>
+                        </div>
+                        <div>
+                            <p class="info-label">Wishlist Items</p>
+                            <p class="info-value">{{ activity_data.wishlist_items }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Security Tab -->
+        <div id="securityTab" class="tab-content hidden">
+            <div class="profile-card p-6 max-w-2xl mx-auto">
+                <h2 class="text-xl font-semibold mb-6">Change Password</h2>
+                <form method="POST">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="change_password">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Current Password</label>
+                            <input type="password" name="old_password" required class="input-field">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">New Password</label>
+                            <input type="password" name="new_password" required class="input-field">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Confirm New Password</label>
+                            <input type="password" name="confirm_password" required class="input-field">
+                        </div>
+                        <div class="flex justify-end">
+                            <button type="submit" class="edit-button">
+                                Change Password
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Orders Tab -->
+        <div id="ordersTab" class="tab-content hidden">
+            <div class="profile-card p-6">
+                <h2 class="text-xl font-semibold mb-6">Order History</h2>
+                {% if activity_data.recent_orders %}
+                    <div class="space-y-4">
+                        {% for order in activity_data.recent_orders %}
+                        <div class="border rounded-lg p-4">
+                            <p class="font-medium">Order #{{ order.id }}</p>
+                            <p class="text-gray-600">{{ order.date }}</p>
+                            <p class="text-gray-800">Total: ₹{{ order.total }}</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-gray-600">No orders yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-section">
+                <h3>About Bookscartz</h3>
+                <p>Your premier destination for quality books, connecting readers with extraordinary stories and knowledge from around the world.</p>
+            </div>
+            <div class="footer-section">
+                <h3>Quick Links</h3>
+                <ul class="footer-links">
+                    <li><a href="{% url 'home' %}">Home</a></li>
+                    <li><a href="#">Categories</a></li>
+                    <li><a href="#">Best Sellers</a></li>
+                    <li><a href="#">New Releases</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h3>Customer Service</h3>
+                <ul class="footer-links">
+                    <li><a href="#">Contact Us</a></li>
+                    <li><a href="#">Shipping Policy</a></li>
+                    <li><a href="#">Returns Policy</a></li>
+                    <li><a href="#">FAQ</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h3>Connect With Us</h3>
+                <ul class="footer-links">
+                    <li><a href="#">Facebook</a></li>
+                    <li><a href="#">Instagram</a></li>
+                    <li><a href="#">Twitter</a></li>
+                    <li><a href="#">LinkedIn</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2024 Bookscartz. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        function toggleEdit() {
+            const profileForm = document.getElementById('profileForm');
+            const profileInfo = document.getElementById('profileInfo');
+            profileForm.classList.toggle('hidden');
+            profileInfo.classList.toggle('hidden');
+        }
+
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.add('hidden');
+            });
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('active');
+            });
+
+            // Show selected tab
+            document.getElementById(tabName + 'Tab').classList.remove('hidden');
+            event.target.classList.add('active');
+        }
+
+        // Auto-hide messages after 5 seconds
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(function() {
+                const messages = document.querySelectorAll('[class*="bg-red-100"], [class*="bg-green-100"]');
+                messages.forEach(message => {
+                    message.style.opacity = '0';
+                    message.style.transition = 'opacity 0.5s ease-in-out';
+                    setTimeout(() => message.remove(), 500);
+                });
+            }, 5000);
+        });
+    </script>
+</body>
+</html> 
