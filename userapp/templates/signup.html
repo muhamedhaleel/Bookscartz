@@ -33,9 +33,9 @@
 </head>
 <body class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
     <!-- Global Messages -->
-    {% if messages %}
+        {% if messages %}
     <div class="toast" id="messages-container">
-        {% for message in messages %}
+            {% for message in messages %}
         <div class="mb-3 p-4 rounded-lg shadow-lg {% if message.tags == 'error' %}bg-red-500{% else %}bg-green-500{% endif %} text-white">
             {{ message }}
             <button onclick="this.parentElement.remove()" class="float-right font-bold">&times;</button>
@@ -58,7 +58,7 @@
             {% endfor %}
         </div>
         {% endif %}
-        
+
         <form method="post" novalidate id="signupForm" class="mt-8 space-y-6">
             {% csrf_token %}
             
@@ -147,4 +147,3 @@
         </form>
     </div>
 
-    

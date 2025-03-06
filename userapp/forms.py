@@ -40,7 +40,7 @@ class SignupForm(UserCreationForm):
             'placeholder': 'Confirm password'
         })
     )
-    
+
     class Meta:
         model = CustomUser
         fields = ['username', 'email', 'phone_number', 'password1', 'password2']

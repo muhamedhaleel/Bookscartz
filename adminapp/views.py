@@ -88,17 +88,18 @@ def category_list(request):
 
     if request.method == 'POST':
         form = CategoryForm(request.POST)
-        if form.is_valid():
-            try:
-                form.save()
-                messages.success(request, 'Category added successfully!')
-            except Exception as e:
-                messages.error(request, f'Error adding category: {str(e)}')
-            return redirect('category_list')
-        else:
-            for field, errors in form.errors.items():
-                for error in errors:
-                    messages.error(request, f'{field}: {error}')
+    if form.is_valid():
+        try:
+            form.save()
+            messages.success(request, 'Category added successfully!')
+        except Exception as e:
+            messages.error(request, f'Error adding category: {str(e)}')
+        return redirect('category_list')
+    else:
+        for field, errors in form.errors.items():
+            for error in errors:
+                messages.error(request, f'{field}: {error}')
+
 
     context = {
         'categories': categories,
@@ -121,7 +122,7 @@ def edit_category(request, pk):
         elif name.lower() == category.name.lower():
             messages.warning(request, 'No changes were made.')
         elif Category.objects.filter(name__iexact=name).exclude(pk=pk).exists():
-            messages.error(request, 'A category with this name already exists.')
+                messages.error(request, 'A category with this name already exists.')
         else:
             try:
                 category.name = name

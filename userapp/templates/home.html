@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bookscartz - Premium Book Store</title>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
+<style>
         :root {
             --primary-color: #2C3639;
             --secondary-color:rgb(151, 112, 78);
@@ -148,7 +148,7 @@
             border-radius: 3px;
             font-weight: 500;
             transition: var(--transition);
-            opacity: 0;
+        opacity: 0;
             animation: fadeInUp 1s ease 0.6s forwards;
         }
 
@@ -221,8 +221,8 @@
         }
 
         .category-card:hover .category-content {
-            transform: translateY(0);
-        }
+        transform: translateY(0);
+      }
 
         /* New Arrivals */
         .new-arrivals {
@@ -401,15 +401,15 @@
         /* Animations */
         @keyframes fadeInUp {
             from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
+        opacity: 0;
+        transform: translateY(20px);
+      }
             to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  
         /* Responsive Design */
         @media (max-width: 1200px) {
             .categories-grid {
@@ -534,8 +534,8 @@
             .nav-right {
                 gap: 1rem;
             }
-        }
-    </style>
+    }
+   </style>
 </head>
 <body>
     <!-- Header -->
@@ -551,62 +551,52 @@
                     <li><a href="#" class="nav-link">Categories</a></li>
                     <li><a href="#" class="nav-link">Best Sellers</a></li>
                     <li><a href="#" class="nav-link">New Releases</a></li>
-                </ul>
+          </ul>
                 <div class="user-menu" id="userMenu">
                     <div class="user-icon">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                             <circle cx="12" cy="7" r="4"></circle>
                         </svg>
-                        <span class="user-icon-text">
-                            {% if user.is_authenticated %}
-                                {{ user.username }}
-                            {% else %}
-                                Account
-                            {% endif %}
-                        </span>
+                        <span class="user-icon-text">{{ user.username }}</span>
                     </div>
                     <div class="user-dropdown">
-                        {% if user.is_authenticated %}
-                            <a href="{% url 'profile' %}" class="dropdown-item">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                    <circle cx="12" cy="7" r="4"></circle>
-                                </svg>
-                                Profile
-                            </a>
-                            <div class="dropdown-divider"></div>
-                            <a href="{% url 'logout' %}" class="dropdown-item">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                                    <polyline points="16 17 21 12 16 7"></polyline>
-                                    <line x1="21" y1="12" x2="9" y2="12"></line>
-                                </svg>
-                                Logout
-                            </a>
-                        {% else %}
-                            <a href="{% url 'login_user' %}" class="dropdown-item">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
-                                    <polyline points="10 17 15 12 10 7"></polyline>
-                                    <line x1="15" y1="12" x2="3" y2="12"></line>
-                                </svg>
-                                Login
-                            </a>
-                            <a href="{% url 'signup' %}" class="dropdown-item">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                    <circle cx="8.5" cy="7" r="4"></circle>
-                                    <line x1="20" y1="8" x2="20" y2="14"></line>
-                                    <line x1="23" y1="11" x2="17" y2="11"></line>
-                                </svg>
-                                Sign Up
-                            </a>
-                        {% endif %}
+                        <a href="{% url 'profile' %}" class="dropdown-item">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                            Profile
+                        </a>
+                        {% comment %} { <a href="#" class="dropdown-item">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+                            </svg>
+                            My Orders
+                        </a>  {% endcomment %}
+                        {% comment %} <a href="#" class="dropdown-item">
+                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                                <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                                <polyline points="7 3 7 8 15 8"></polyline>
+                            </svg>
+                            Wishlist
+                        </a>  {% endcomment %}
+                        <div class="dropdown-divider"></div>
+
+                        
+                         <a href="{% url 'logout' %}" class="dropdown-item"> 
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                <polyline points="16 17 21 12 16 7"></polyline>
+                                <line x1="21" y1="12" x2="9" y2="12"></line>
+                            </svg>
+                            Logout
+                        </a>
                     </div>
                 </div>
-            </div>
-        </nav>
+      </div>
+  </nav>
     </header>
 
     <!-- Hero Section -->
@@ -615,9 +605,9 @@
             <h1 class="hero-title">Discover Your Next Literary Adventure</h1>
             <p class="hero-subtitle">Curated collections of the finest books from around the world</p>
             <a href="#" class="hero-cta">Explore Collection</a>
-        </div>
+      </div>
     </section>
-
+  
     <!-- Categories Section -->
     <section class="categories">
         <div class="section-title">
@@ -645,17 +635,17 @@
                     <h3>Academic</h3>
                     <p>Educational excellence</p>
                 </div>
-            </div>
+          </div>
             <div class="category-card">
                 <img src="https://images.unsplash.com/photo-1476275466078-4007374efbbe" alt="Children" class="category-img">
                 <div class="category-content">
                     <h3>Children</h3>
                     <p>Inspire young minds</p>
-                </div>
-            </div>
         </div>
+        </div>
+      </div>
     </section>
-
+  
     <!-- New Arrivals Section -->
     <section class="new-arrivals">
         <div class="section-title">
@@ -670,7 +660,7 @@
                     <p class="book-author">By Sarah Mitchell</p>
                     <p class="book-price">₹499</p>
                     <a href="#" class="add-to-cart">Add to Cart</a>
-                </div>
+      </div>
             </div>
             <div class="book-card">
                 <img src="https://images.unsplash.com/photo-1543002588-bfa74002ed7e" alt="Book" class="book-img">
@@ -688,8 +678,8 @@
                     <p class="book-author">By Emily Parker</p>
                     <p class="book-price">₹449</p>
                     <a href="#" class="add-to-cart">Add to Cart</a>
-                </div>
-            </div>
+          </div>
+      </div>
             <div class="book-card">
                 <img src="https://images.unsplash.com/photo-1541963463532-d68292c34b19" alt="Book" class="book-img">
                 <div class="book-details">
@@ -697,11 +687,11 @@
                     <p class="book-author">By Michael Roberts</p>
                     <p class="book-price">₹549</p>
                     <a href="#" class="add-to-cart">Add to Cart</a>
-                </div>
-            </div>
+          </div>
         </div>
+      </div>
     </section>
-
+  
    {% comment %} <!-- Newsletter Section -->
     <section class="newsletter">
         <div class="newsletter-content">
@@ -713,8 +703,8 @@
             </form>
         </div>
     </section>  {% endcomment %}
-
-    <!-- Footer -->
+      
+          <!-- Footer -->
     <footer class="footer">
         <div class="footer-container">
             <div class="footer-section">
@@ -747,13 +737,13 @@
                     <li><a href="#">Twitter</a></li>
                     <li><a href="#">LinkedIn</a></li>
                 </ul>
-            </div>
-        </div>
+                  </div>
+              </div>
         <div class="footer-bottom">
             <p>&copy; 2024 Bookscartz. All rights reserved.</p>
-        </div>
-    </footer>
-
+              </div>
+          </footer>
+      
     <!-- Add this script before the closing body tag -->
     <script>
         // User dropdown toggle functionality
@@ -788,5 +778,17 @@
             });
         });
     </script>
-</body>
-</html>    
+      </body>
+      </html>
+
+    <!-- User Profile Section -->
+    <section class="user-profile">
+        <div class="section-title">
+            <h2>Your Profile</h2>
+        </div>
+        <div class="profile-details">
+            <p><strong>Username:</strong> {{ user.username }}</p>
+            <p><strong>Email:</strong> {{ user.email }}</p>
+            <p><strong>Phone Number:</strong> {{ user.phone_number }}</p> <!-- Assuming phone_number is a field in your CustomUser model -->
+        </div>
+    </section>
