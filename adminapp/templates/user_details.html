@@ -1,10 +1,10 @@
-
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.tailwindcss.com"></script>
-    <title>Admin Panel</title>
+    <title>User Management - Admin Panel</title>
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -39,45 +39,133 @@
                 <a href="{% url 'admin_products' %}" class="block py-2 px-3 hover:bg-white rounded-lg">Products</a>
                 <a href="{% url 'category_list' %}" class="block py-2 px-3 hover:bg-white rounded-lg">Category</a>
                 <a href="{% url 'brand_list' %}" class="block py-2 px-3 hover:bg-white rounded-lg">Publisher</a>
-                <a href="{% url 'admin_customer' %}" class="block py-2 px-3 hover:bg-white rounded-lg">Customers</a>
+                <a href="{% url 'admin_customer' %}" class="block py-2 px-3 bg-white rounded-lg shadow-md">Customers</a>
             </nav>
         </aside>
         
-        <!-- Category Section -->
+        <!-- User Details Section -->
         <main class="flex-1 p-6 bg-white">
             <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold">varients</h2>
+                <h2 class="text-2xl font-bold">Current Users</h2>
                 <div class="flex gap-4">
-                    <button onclick="toggleModal('addCvarientsModal')" class="bg-[#A79277] text-white px-4 py-2 rounded-lg shadow-md hover:bg-[#E5E7EB] hover:text-black">Add varient</button>
                     <form method="GET" class="flex gap-2">
-                        <input type="text" name="search" placeholder="Search Category" value="{{ search_query }}" class="border rounded-lg px-4 py-2">
-                        <button type="submit" class="bg-[#A79277] text-white px-4 py-2 rounded-lg">Search</button>
-                        {% if search_query %}
-                            <a href="{% url 'category_list' %}" class="bg-gray-500 text-white px-4 py-2 rounded-lg">Clear</a>
-                        {% endif %}
+                        <input type="text" 
+                               name="search" 
+                               placeholder="Search users..." 
+                               value="{{ search_query }}" 
+                               class="border rounded-lg px-4 py-2">
+                        <button type="submit" 
+                                class="bg-[#A79277] text-white px-4 py-2 rounded-lg hover:bg-[#8B7355]">
+                            Search
+                        </button>
                     </form>
                 </div>
             </div>
             
-            <!-- Category Table -->
+            <!-- Users Table -->
             <div class="overflow-hidden rounded-lg shadow-lg">
-                <table class="w-full border border-gray-200 text-sm lg:text-base">
+                <table class="w-full border border-gray-200">
                     <thead class="bg-[#A79277] text-white">
                         <tr>
-                            <th class="py-4 px-5">SL.No</th>
-                            <th class="py-4 px-5">Name</th>
-                            <th class="py-4 px-5">Added on</th>
-                            <th class="py-4 px-5">Status</th>
-                            <th class="py-4 px-5">Action</th>
+                            <th class="py-3 px-4 text-left">ID</th>
+                            <th class="py-3 px-4 text-left">Username</th>
+                            <th class="py-3 px-4 text-left">Email</th>
+                            <th class="py-3 px-4 text-left">Phone</th>
+                            <th class="py-3 px-4 text-left">Date Joined</th>
+                            <th class="py-3 px-4 text-left">Status</th>
+                            
                         </tr>
                     </thead>
-                    
+                    <tbody class="divide-y divide-gray-200">
+                        {% for user in users %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="py-3 px-4">{{ forloop.counter }}</td>
+                            <td class="py-3 px-4">{{ user.username }}</td>
+                            <td class="py-3 px-4">{{ user.email }}</td>
+                            <td class="py-3 px-4">{{ user.phone_number|default:"Not provided" }}</td>
+                            <td class="py-3 px-4">{{ user.date_joined|date:"M d, Y" }}</td>
+                            <td class="py-3 px-4">
+                                <form action="{% url 'toggle_user_status' user.id %}" method="POST" class="inline">
+                                    {% csrf_token %}
+                                    <button type="submit" 
+                                            class="relative inline-flex items-center h-6 rounded-full w-11 
+                                                   {% if user.is_active %}bg-green-500{% else %}bg-red-500{% endif %}
+                                                   transition-colors duration-200 focus:outline-none">
+                                        <span class="sr-only">Toggle status</span>
+                                        <span class="inline-block w-4 h-4 transform transition-transform bg-white rounded-full 
+                                                     {% if user.is_active %}translate-x-6{% else %}translate-x-1{% endif %}">
+                                        </span>
+                                    </button>
+                                </form>
+                            </td>
+                           
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="py-4 px-4 text-center text-gray-500">
+                                No users found
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
                 </table>
             </div>
+
+            <!-- Pagination -->
+            {% if users.has_other_pages %}
+            <div class="flex justify-center mt-6">
+                <nav class="inline-flex rounded-md shadow">
+                    {% if users.has_previous %}
+                    <a href="?page={{ users.previous_page_number }}" 
+                       class="px-3 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                        Previous
+                    </a>
+                    {% endif %}
+
+                    {% for num in users.paginator.page_range %}
+                        {% if users.number == num %}
+                        <span class="px-3 py-2 border border-gray-300 bg-[#A79277] text-white text-sm font-medium">
+                            {{ num }}
+                        </span>
+                        {% else %}
+                        <a href="?page={{ num }}" 
+                           class="px-3 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                            {{ num }}
+                        </a>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if users.has_next %}
+                    <a href="?page={{ users.next_page_number }}" 
+                       class="px-3 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                        Next
+                    </a>
+                    {% endif %}
+                </nav>
+            </div>
+            {% endif %}
         </main>
     </div>
 
-    
+    <script>
+        // Auto-hide messages after 3 seconds
+        document.addEventListener('DOMContentLoaded', function() {
+            const messages = document.querySelectorAll('.message');
+            messages.forEach(function(message) {
+                setTimeout(function() {
+                    message.style.opacity = '0';
+                    setTimeout(function() {
+                        message.remove();
+                    }, 300);
+                }, 3000);
+            });
+        });
+
+        // View user details function
+        function viewUserDetails(userId) {
+            // Implement user details view functionality
+            console.log('Viewing details for user:', userId);
+        }
     </script>
 </body>
 </html>

@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from .models import Category, Brand,Product, Language
@@ -289,7 +289,63 @@ def admin_publisher(request):
 
 @login_required(login_url='admin_login')
 def admin_customer(request):
-    return render(request,'user_details.html')  # Corrected typo in filename
+    if not request.user.is_staff:
+        messages.error(request, 'Unauthorized access')
+        return redirect('admin_login')
+    
+    # Get search query
+    search_query = request.GET.get('search', '')
+    
+    # Get all users except superusers
+    User = get_user_model()
+    users = User.objects.filter(is_superuser=False).order_by('-date_joined')
+    
+    # Apply search filter
+    if search_query:
+        users = users.filter(
+            Q(username__icontains=search_query) |
+            Q(email__icontains=search_query) |
+            Q(phone_number__icontains=search_query)
+        )
+    
+    # Pagination
+    paginator = Paginator(users, 10)  # Show 10 users per page
+    page = request.GET.get('page')
+    users = paginator.get_page(page)
+    
+    context = {
+        'users': users,
+        'search_query': search_query
+    }
+    
+    return render(request, 'user_details.html', context)
+
+@login_required(login_url='admin_login')
+def toggle_user_status(request, user_id):
+    if not request.user.is_staff:
+        messages.error(request, 'Unauthorized access')
+        return redirect('admin_login')
+    
+    if request.method == 'POST':
+        try:
+            User = get_user_model()
+            user = get_object_or_404(User, id=user_id)
+            
+            # Don't allow toggling superuser status
+            if user.is_superuser:
+                messages.error(request, 'Cannot modify superuser status')
+                return redirect('admin_customer')
+            
+            user.is_active = not user.is_active
+            user.save()
+            
+            status = "activated" if user.is_active else "deactivated"
+            messages.success(request, f'User {user.username} has been {status}')
+            
+        except Exception as e:
+            messages.error(request, f'Error updating user status: {str(e)}')
+    
+    return redirect('admin_customer')
 
 
 

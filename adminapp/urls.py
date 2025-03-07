@@ -23,4 +23,5 @@ urlpatterns = [
     path('edit-variant/<int:pk>/', views.edit_variant, name='edit_variant'),
     path('toggle-variant-status/<int:pk>/', views.toggle_variant_status, name='toggle_variant_status'),
     path('delete-variant/<int:pk>/', views.delete_variant, name='delete_variant'),
+    path('toggle-user-status/<int:user_id>/', views.toggle_user_status, name='toggle_user_status'),
 ]
