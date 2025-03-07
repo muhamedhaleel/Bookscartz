@@ -574,4 +574,3 @@ def delete_variant(request, pk):
             messages.error(request, f"Error deleting variant: {str(e)}")
     
     return redirect('variant_list')
-

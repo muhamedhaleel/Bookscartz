@@ -547,8 +547,8 @@
             <a href="#" class="logo">BOOKSCARTZ</a>
             <div class="nav-wrapper">
                 <ul class="nav-menu">
-                    <li><a href="#" class="nav-link">Home</a></li>
-                    <li><a href="#" class="nav-link">Categories</a></li>
+                    <li><a href="{% url 'home' %}" class="nav-link">Home</a></li>
+                    <li><a href="{% url 'product_list' %}" class="nav-link">Products</a></li>
                     <li><a href="#" class="nav-link">Best Sellers</a></li>
                     <li><a href="#" class="nav-link">New Releases</a></li>
           </ul>
@@ -604,7 +604,7 @@
         <div class="hero-content">
             <h1 class="hero-title">Discover Your Next Literary Adventure</h1>
             <p class="hero-subtitle">Curated collections of the finest books from around the world</p>
-            <a href="#" class="hero-cta">Explore Collection</a>
+            <a href="{% url 'product_list' %}" class="hero-cta">Explore Collection</a>
       </div>
     </section>
   
@@ -634,43 +634,18 @@
             <p>The latest additions to our collection</p>
         </div>
         <div class="books-grid">
+            {% for product in latest_products %}
             <div class="book-card">
-                <img src="https://images.unsplash.com/photo-1544947950-fa07a98d237f" alt="Book" class="book-img">
+                <img src="{{ product.image1.url }}" alt="{{ product.name }}" class="book-img">
                 <div class="book-details">
-                    <h3 class="book-title">The Silent Echo</h3>
-                    <p class="book-author">By Sarah Mitchell</p>
-                    <p class="book-price">₹499</p>
-                    <a href="#" class="add-to-cart">Add to Cart</a>
-      </div>
-            </div>
-            <div class="book-card">
-                <img src="https://images.unsplash.com/photo-1543002588-bfa74002ed7e" alt="Book" class="book-img">
-                <div class="book-details">
-                    <h3 class="book-title">Midnight Tales</h3>
-                    <p class="book-author">By John Anderson</p>
-                    <p class="book-price">₹599</p>
+                    <h3 class="book-title">{{ product.name }}</h3>
+                    <p class="book-author">By {{ product.brand.name }}</p>
+                    <p class="book-price">₹{{ product.price }}</p>
                     <a href="#" class="add-to-cart">Add to Cart</a>
                 </div>
             </div>
-            <div class="book-card">
-                <img src="https://images.unsplash.com/photo-1589998059171-988d887df646" alt="Book" class="book-img">
-                <div class="book-details">
-                    <h3 class="book-title">The Art of Living</h3>
-                    <p class="book-author">By Emily Parker</p>
-                    <p class="book-price">₹449</p>
-                    <a href="#" class="add-to-cart">Add to Cart</a>
-          </div>
-      </div>
-            <div class="book-card">
-                <img src="https://images.unsplash.com/photo-1541963463532-d68292c34b19" alt="Book" class="book-img">
-                <div class="book-details">
-                    <h3 class="book-title">Beyond Horizons</h3>
-                    <p class="book-author">By Michael Roberts</p>
-                    <p class="book-price">₹549</p>
-                    <a href="#" class="add-to-cart">Add to Cart</a>
-          </div>
+            {% endfor %}
         </div>
-      </div>
     </section>
   
    {% comment %} <!-- Newsletter Section -->

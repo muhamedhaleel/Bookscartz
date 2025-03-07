@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Products - Bookscartz</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #2C3639;
+            --secondary-color: rgb(151, 112, 78);
+            --accent-color: #DCD7C9;
+            --text-color: #2C3639;
+            --light-bg: #F5F5F5;
+            --white: #FFFFFF;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            color: var(--text-color);
+            line-height: 1.6;
+            background-color: var(--light-bg);
+        }
+
+        /* Header and Navigation Styles */
+        .header {
+            background: var(--white);
+            position: fixed;
+            width: 100%;
+            z-index: 1000;
+            box-shadow: var(--shadow);
+        }
+
+        .top-bar {
+            background: var(--primary-color);
+            color: var(--white);
+            padding: 8px 0;
+            font-size: 0.9rem;
+            text-align: center;
+            width: 100%;
+        }
+
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--white);
+        }
+
+        .logo {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            text-decoration: none;
+            letter-spacing: 1px;
+        }
+
+        .nav-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .nav-menu {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .nav-link {
+            text-decoration: none;
+            color: var(--text-color);
+            font-weight: 500;
+            font-size: 1rem;
+            position: relative;
+            padding: 5px 0;
+        }
+
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--secondary-color);
+            transition: var(--transition);
+        }
+
+        .nav-link:hover::after {
+            width: 100%;
+        }
+
+        /* User Menu Styles */
+        .user-menu {
+            position: relative;
+        }
+
+        .user-icon {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            border-radius: 50px;
+            transition: all 0.3s ease;
+            color: var(--primary-color);
+        }
+
+        .user-icon:hover {
+            background-color: var(--light-bg);
+        }
+
+        .user-icon-text {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .user-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background-color: var(--white);
+            min-width: 220px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(10px);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .user-menu.active .user-dropdown {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1.5rem;
+            color: var(--text-color);
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .dropdown-item:hover {
+            background-color: var(--light-bg);
+            color: var(--secondary-color);
+        }
+
+        .dropdown-divider {
+            height: 1px;
+            background-color: var(--light-bg);
+            margin: 0.5rem 0;
+        }
+
+        /* Main Content Adjustment */
+        .main-content {
+            padding-top: 120px; /* Adjusted to account for fixed header */
+            min-height: calc(100vh - 120px);
+        }
+
+        /* Layout and Basic Styles */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Page Header */
+        .page-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .page-title {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 2.5rem;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        .page-description {
+            color: var(--secondary-color);
+            font-size: 1.1rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Enhanced Filters Section */
+        .filters-section {
+            background: var(--white);
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            margin-bottom: 2rem;
+        }
+
+        .filters-title {
+            font-size: 1.2rem;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .filter-label {
+            font-size: 0.9rem;
+            color: var(--text-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .filter-select {
+            padding: 0.75rem;
+            border: 1px solid var(--accent-color);
+            border-radius: 6px;
+            font-size: 0.95rem;
+            color: var(--text-color);
+            background-color: var(--white);
+            transition: var(--transition);
+        }
+
+        .filter-select:focus {
+            border-color: var(--secondary-color);
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(151, 112, 78, 0.1);
+        }
+
+        .search-box {
+            padding: 0.75rem;
+            border: 1px solid var(--accent-color);
+            border-radius: 6px;
+            font-size: 0.95rem;
+            width: 100%;
+        }
+
+        /* Enhanced Product Grid */
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .product-card {
+            background: var(--white);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .product-image {
+            position: relative;
+            height: 320px;
+            overflow: hidden;
+        }
+
+        .product-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+
+        .product-card:hover .product-image img {
+            transform: scale(1.05);
+        }
+
+        .product-details {
+            padding: 1.5rem;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .product-title {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+            line-height: 1.3;
+        }
+
+        .product-publisher {
+            color: var(--secondary-color);
+            font-size: 0.9rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .product-description {
+            color: var(--text-color);
+            font-size: 0.9rem;
+            line-height: 1.6;
+            margin-bottom: 1rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            flex-grow: 1;
+        }
+
+        .product-footer {
+            margin-top: auto;
+        }
+
+        .product-price {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        .add-to-cart {
+            display: inline-block;
+            width: 100%;
+            padding: 0.9rem;
+            background: var(--primary-color);
+            color: var(--white);
+            text-align: center;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 500;
+            transition: var(--transition);
+        }
+
+        .add-to-cart:hover {
+            background: var(--secondary-color);
+        }
+
+        /* No Results Message */
+        .no-results {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-color);
+        }
+
+        .no-results h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .nav-container {
+                padding: 1rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .nav-menu {
+                display: none;
+            }
+
+            .nav-wrapper {
+                gap: 1rem;
+            }
+
+            .logo {
+                font-size: 2rem;
+            }
+
+            .user-icon-text {
+                display: none;
+            }
+
+            .user-icon {
+                padding: 0.5rem;
+            }
+
+            .main-content {
+                padding-top: 100px;
+            }
+        }
+
+        /* Add these footer styles in the style section */
+        .footer {
+            background: var(--light-bg);
+            padding: 6rem 0 2rem;
+            margin-top: 4rem;
+        }
+
+        .footer-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 4rem;
+        }
+
+        .footer-section h3 {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            color: var(--primary-color);
+        }
+
+        .footer-section p {
+            color: var(--text-color);
+            line-height: 1.6;
+            margin-bottom: 1rem;
+        }
+
+        .footer-links {
+            list-style: none;
+            padding: 0;
+        }
+
+        .footer-links li {
+            margin-bottom: 1rem;
+        }
+
+        .footer-links a {
+            text-decoration: none;
+            color: var(--text-color);
+            transition: var(--transition);
+        }
+
+        .footer-links a:hover {
+            color: var(--secondary-color);
+        }
+
+        .footer-bottom {
+            text-align: center;
+            margin-top: 4rem;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(0,0,0,0.1);
+        }
+
+        @media (max-width: 1024px) {
+            .footer-container {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 3rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .footer-container {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+            
+            .footer {
+                padding: 4rem 0 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+   
+    <header class="header">
+        <div class="top-bar">
+            Free shipping on orders over ₹999 | Shop now
+        </div>
+        <nav class="nav-container">
+            <a href="{% url 'home' %}" class="logo">BOOKSCARTZ</a>
+            <div class="nav-wrapper">
+                <ul class="nav-menu">
+                    <li><a href="{% url 'home' %}" class="nav-link">Home</a></li>
+                    <li><a href="{% url 'product_list' %}" class="nav-link">Products</a></li>
+                    <li><a href="#" class="nav-link">Best Sellers</a></li>
+                    <li><a href="#" class="nav-link">New Releases</a></li>
+                </ul>
+                <div class="user-menu" id="userMenu">
+                    <div class="user-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                        <span class="user-icon-text">{{ user.username }}</span>
+                    </div>
+                    <div class="user-dropdown">
+                        <a href="{% url 'profile' %}" class="dropdown-item">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                            Profile
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <a href="{% url 'logout' %}" class="dropdown-item">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                <polyline points="16 17 21 12 16 7"></polyline>
+                                <line x1="21" y1="12" x2="9" y2="12"></line>
+                            </svg>
+                            Logout
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="main-content">
+        <div class="container">
+            <!-- Page Header -->
+            <div class="page-header">
+                <h1 class="page-title">Explore Our Collection</h1>
+                <p class="page-description">Discover a world of knowledge through our carefully curated selection of books</p>
+            </div>
+
+            <!-- Enhanced Filters Section -->
+            <section class="filters-section">
+                <h2 class="filters-title">Filter Books</h2>
+                <div class="filters-grid">
+                    <div class="filter-group">
+                        <label class="filter-label" for="categoryFilter">Category</label>
+                        <select class="filter-select" id="categoryFilter">
+                            <option value="">All Categories</option>
+                            {% for category in categories %}
+                            <option value="{{ category.id }}">{{ category.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label class="filter-label" for="publisherFilter">Publisher</label>
+                        <select class="filter-select" id="publisherFilter">
+                            <option value="">All Publishers</option>
+                            {% for brand in brands %}
+                            <option value="{{ brand.id }}">{{ brand.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                   
+
+                    <div class="filter-group">
+                        <label class="filter-label" for="searchBox">Search</label>
+                        <input type="text" id="searchBox" class="search-box" placeholder="Search by title, author...">
+                    </div>
+                </div>
+            </section>
+
+            <!-- Products Grid -->
+            <div class="products-grid">
+                {% if products %}
+                    {% for product in products %}
+                    <div class="product-card">
+                        <a href="{% url 'product_detail' product.id %}" class="product-image">
+                            <img src="{{ product.image1.url }}" alt="{{ product.name }}">
+                        </a>
+                        <div class="product-details">
+                            <h3 class="product-title">{{ product.name }}</h3>
+                            <p class="product-publisher">By {{ product.brand.name }}</p>
+                            <p class="product-description">{{ product.description }}</p>
+                            <div class="product-footer">
+                                <p class="product-price">₹{{ product.price }}</p>
+                                <a href="#" class="add-to-cart">Add to Cart</a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="no-results">
+                        <h3>No Products Found</h3>
+                        <p>Try adjusting your filters or search criteria</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-section">
+                <h3>About Bookscartz</h3>
+                <p>Your premier destination for quality books, connecting readers with extraordinary stories and knowledge from around the world. We offer a carefully curated selection of books across various genres and languages.</p>
+            </div>
+            <div class="footer-section">
+                <h3>Quick Links</h3>
+                <ul class="footer-links">
+                    <li><a href="{% url 'home' %}">Home</a></li>
+                    <li><a href="{% url 'product_list' %}">Products</a></li>
+                    <li><a href="#">Best Sellers</a></li>
+                    <li><a href="#">New Releases</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h3>Customer Service</h3>
+                <ul class="footer-links">
+                    <li><a href="#">Contact Us</a></li>
+                    <li><a href="#">Shipping Policy</a></li>
+                    <li><a href="#">Returns Policy</a></li>
+                    <li><a href="#">FAQ</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h3>Connect With Us</h3>
+                <ul class="footer-links">
+                    <li><a href="#" target="_blank" rel="noopener noreferrer">Facebook</a></li>
+                    <li><a href="#" target="_blank" rel="noopener noreferrer">Instagram</a></li>
+                    <li><a href="#" target="_blank" rel="noopener noreferrer">Twitter</a></li>
+                    <li><a href="#" target="_blank" rel="noopener noreferrer">LinkedIn</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; {% now "Y" %} Bookscartz. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Add the user menu JavaScript -->
+    <script>
+        // User dropdown toggle functionality
+        const userMenu = document.getElementById('userMenu');
+        const userIcon = userMenu.querySelector('.user-icon');
+
+        userIcon.addEventListener('click', (e) => {
+            e.stopPropagation();
+            userMenu.classList.toggle('active');
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (event) => {
+            if (!userMenu.contains(event.target)) {
+                userMenu.classList.remove('active');
+            }
+        });
+
+        // Prevent dropdown from closing when clicking inside it
+        userMenu.querySelector('.user-dropdown').addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+
+        // Add hover effect for dropdown items
+        const dropdownItems = document.querySelectorAll('.dropdown-item');
+        dropdownItems.forEach(item => {
+            item.addEventListener('mouseenter', () => {
+                item.querySelector('svg').style.transform = 'translateX(5px)';
+            });
+            item.addEventListener('mouseleave', () => {
+                item.querySelector('svg').style.transform = 'translateX(0)';
+            });
+        });
+    </script>
+
+    <script>
+        // Add your JavaScript for filter functionality here
+        document.addEventListener('DOMContentLoaded', function() {
+            const categoryFilter = document.getElementById('categoryFilter');
+            const publisherFilter = document.getElementById('publisherFilter');
+            const languageFilter = document.getElementById('languageFilter');
+            const searchBox = document.querySelector('.search-box');
+
+            // Add event listeners for filters
+            [categoryFilter, publisherFilter, languageFilter, searchBox].forEach(filter => {
+                filter.addEventListener('change', updateProducts);
+            });
+
+            searchBox.addEventListener('input', updateProducts);
+
+            function updateProducts() {
+                // Add your filter logic here
+                // You can make an AJAX call to your backend with the filter values
+                console.log('Filters updated');
+            }
+        });
+    </script>
+</body>
+</html> 

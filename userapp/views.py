@@ -1,8 +1,8 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, authenticate, logout
 from django.contrib import messages
 from .forms import SignupForm
-from adminapp.models import CustomUser, Brand
+from adminapp.models import CustomUser, Brand, Product, Category, Language
 from django.core.exceptions import ValidationError
 from django.contrib.auth.decorators import login_required
 
@@ -78,10 +78,15 @@ def verify_otp(request):
 
 @login_required
 def home(request):
-    # Fetch all active brands to display on the home page
     brands = Brand.objects.filter(is_active=True)
+    # Get the latest 4 active products
+    latest_products = Product.objects.filter(is_active=True).order_by('-added_on')[:4]
     
-    return render(request, 'home.html', {'brands': brands})  # Pass brands to the template
+    context = {
+        'brands': brands,
+        'latest_products': latest_products,
+    }
+    return render(request, 'home.html', context)
 
 def login_view(request):
     if request.method == 'POST':
@@ -166,4 +171,46 @@ def change_password(request):
 
     # Render the profile page with the user context and messages
     return render(request, 'profile.html', {'user': request.user})
+
+@login_required
+def product_list(request):
+    # Get filter parameters from request
+    category_id = request.GET.get('category')
+    brand_id = request.GET.get('brand')
+    language_id = request.GET.get('language')
+    search_query = request.GET.get('search')
+
+    # Start with all active products
+    products = Product.objects.filter(is_active=True)
+
+    # Apply filters if they exist
+    if category_id:
+        products = products.filter(category_id=category_id)
+    if brand_id:
+        products = products.filter(brand_id=brand_id)
+    if language_id:
+        products = products.filter(language_id=language_id)
+    if search_query:
+        products = products.filter(name__icontains=search_query)
+
+    # Get all active categories, brands, and languages for filters
+    categories = Category.objects.filter(is_active=True)
+    brands = Brand.objects.filter(is_active=True)
+    languages = Language.objects.filter(is_active=True)
+
+    context = {
+        'products': products,
+        'categories': categories,
+        'brands': brands,
+        'languages': languages,
+    }
+    return render(request, 'product_list.html', context)
+
+@login_required
+def product_detail(request, product_id):
+    product = get_object_or_404(Product, id=product_id, is_active=True)
+    context = {
+        'product': product,
+    }
+    return render(request, 'product_list.html', context)
 
