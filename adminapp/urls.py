@@ -18,4 +18,9 @@ urlpatterns = [
     path('add-product/', views.add_product, name='add_product'),
     path('edit-product/<int:pk>/', views.edit_product, name='edit_product'),
     path('toggle-product-status/<int:pk>/', views.toggle_product_status, name='toggle_product_status'),
+    path('admin-variants/', views.variant_list, name='variant_list'),
+    path('add-variant/', views.add_variant, name='add_variant'),
+    path('edit-variant/<int:pk>/', views.edit_variant, name='edit_variant'),
+    path('toggle-variant-status/<int:pk>/', views.toggle_variant_status, name='toggle_variant_status'),
+    path('delete-variant/<int:pk>/', views.delete_variant, name='delete_variant'),
 ]

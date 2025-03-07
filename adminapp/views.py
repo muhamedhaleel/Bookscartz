@@ -354,7 +354,7 @@ def add_product(request):
             description = request.POST.get('description')
             category_id = request.POST.get('category')
             brand_id = request.POST.get('brand')
-            language_name = request.POST.get('language')
+            language_id = request.POST.get('language')
             price = request.POST.get('price')
             stock = request.POST.get('stock')
             image1 = request.FILES.get('image1')
@@ -362,16 +362,12 @@ def add_product(request):
             image3 = request.FILES.get('image3')
             
             # Validate required fields
-            if not all([name, description, category_id, brand_id, language_name, price, stock, image1]):
+            if not all([name, description, category_id, brand_id, language_id, price, stock, image1]):
                 messages.error(request, "Please fill all required fields")
                 return redirect('admin_products')
 
-            # Get or create language with just the name
-            
-            language, _ = Language.objects.get_or_create(
-                name=language_name.strip(),
-                defaults={'is_active': True}
-            )
+            # Get language instance
+            language = get_object_or_404(Language, id=language_id)
             
             # Create product
             product = Product.objects.create(
@@ -409,8 +405,8 @@ def edit_product(request, pk):
             product.stock = request.POST.get('stock')
             
             # Handle language
-            language_name = request.POST.get('language')
-            language, _ = Language.objects.get_or_create(name=language_name.strip())
+            language_id = request.POST.get('language')
+            language = get_object_or_404(Language, id=language_id)
             product.language = language
             
             # Handle images
@@ -458,3 +454,124 @@ def toggle_product_status(request, pk):
         messages.error(request, f"Error toggling product status: {str(e)}")
     
     return redirect('admin_products')
+
+@login_required(login_url='admin_login')
+def variant_list(request):
+    try:
+        # Get search query
+        search_query = request.GET.get('search', '')
+        
+        # Get all variants ordered by name
+        variants = Language.objects.all().order_by('name')
+        
+        # Apply search filter if search query exists
+        if search_query:
+            variants = variants.filter(name__icontains=search_query)
+        
+        context = {
+            'variants': variants,
+            'search_query': search_query
+        }
+        
+        return render(request, 'admin_varient.html', context)
+        
+    except Exception as e:
+        messages.error(request, f"Error loading variants: {str(e)}")
+        return redirect('admin_dashboard')
+
+@login_required(login_url='admin_login')
+def add_variant(request):
+    if request.method == 'POST':
+        try:
+            name = request.POST.get('name', '').strip()
+            
+            if not name:
+                messages.error(request, "Variant name cannot be empty")
+                return redirect('admin_products')
+            
+            if Language.objects.filter(name__iexact=name).exists():
+                messages.error(request, "A variant with this name already exists")
+                return redirect('admin_products')
+            
+            Language.objects.create(
+                name=name,
+                is_active=True
+            )
+            
+            messages.success(request, "Language variant added successfully!")
+            
+        except Exception as e:
+            messages.error(request, f"Error adding variant: {str(e)}")
+    
+    return redirect('admin_products')
+
+@login_required(login_url='admin_login')
+def edit_variant(request, pk):
+    if request.method == 'POST':
+        try:
+            variant = get_object_or_404(Language, pk=pk)
+            name = request.POST.get('name', '').strip()
+            
+            if not name:
+                messages.error(request, "Variant name cannot be empty")
+                return redirect('admin_products')
+            
+            if Language.objects.filter(name__iexact=name).exclude(pk=pk).exists():
+                messages.error(request, "A variant with this name already exists")
+                return redirect('admin_products')
+            
+            if variant.product_set.exists() and variant.name.lower() != name.lower():
+                messages.error(request, "Cannot change name of variant that is being used by products")
+                return redirect('admin_products')
+            
+            variant.name = name
+            variant.save()
+            
+            messages.success(request, "Language variant updated successfully!")
+            
+        except Exception as e:
+            messages.error(request, f"Error updating variant: {str(e)}")
+    
+    return redirect('admin_products')
+
+@login_required(login_url='admin_login')
+def toggle_variant_status(request, pk):
+    if request.method == 'POST':
+        try:
+            variant = get_object_or_404(Language, pk=pk)
+            
+            if variant.is_active and variant.product_set.exists():
+                messages.error(request, "Cannot deactivate variant that is being used by products")
+                return redirect('admin_products')
+            
+            variant.is_active = not variant.is_active
+            variant.save()
+            
+            status = "activated" if variant.is_active else "deactivated"
+            messages.success(request, f"Language variant {status} successfully!")
+            
+        except Exception as e:
+            messages.error(request, f"Error toggling variant status: {str(e)}")
+    
+    return redirect('admin_products')
+
+@login_required(login_url='admin_login')
+def delete_variant(request, pk):
+    if request.method == 'POST':
+        try:
+            variant = get_object_or_404(Language, pk=pk)
+            
+            # Check if variant is being used by any products
+            if variant.product_set.exists():
+                messages.error(request, "Cannot delete variant that is being used by products")
+                return redirect('variant_list')
+            
+            # Delete variant
+            variant.delete()
+            messages.success(request, "Language variant deleted successfully!")
+            
+        except Exception as e:
+            messages.error(request, f"Error deleting variant: {str(e)}")
+    
+    return redirect('variant_list')
+
