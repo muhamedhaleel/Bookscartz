@@ -31,12 +31,12 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('userapp.urls')),  # Include userapp URLs
-    path('adminapp/', include('adminapp.urls')),  # Include adminapp URLs
-]
+    path('', include('userapp.urls')),
+    path('', include('adminapp.urls')), 
+    path('social/', include('allauth.urls')),  # allauth URLs
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
-# Add this for serving media files during development
+# Add this for serving static files during development
 if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
  

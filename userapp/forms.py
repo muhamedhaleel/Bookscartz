@@ -16,7 +16,8 @@ class SignupForm(UserCreationForm):
     )
     phone_number = forms.CharField(
         required=True,
-        max_length=15,
+        max_length=10,
+        min_length=10,
         widget=forms.TextInput(attrs={
             'class': 'w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
             'placeholder': 'Enter your phone number'
