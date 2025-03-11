@@ -12,9 +12,9 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 import os
+from dotenv import load_dotenv
 
-
-
+load_dotenv()
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -25,9 +25,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-)odzakz6-v4if)15hiak3g3mxhy(f4e@fpdn)hv23k(*a5$z8+'
-
+# SECRET_KEY = 'django-insecure-)odzakz6-v4if)15hiak3g3mxhy(f4e@fpdn)hv23k(*a5$z8+'
+SECRET_KEY = os.getenv('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
+
+GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
+GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET')
+
+
+
 DEBUG = True
 
 ALLOWED_HOSTS = []
@@ -150,8 +156,11 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'muhammedhaleel88@gmail.com'  # Replace with your Gmail address
-EMAIL_HOST_PASSWORD = 'icef uumh obrx elcj'  # Replace with your Gmail App Password
+# EMAIL_HOST_USER = 'muhammedhaleel88@gmail.com'  # Replace with your Gmail address
+# EMAIL_HOST_PASSWORD = 'icef uumh obrx elcj'  # Replace with your Gmail App Password
+
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 
 # Login URL configuration
 LOGIN_URL = 'login'
