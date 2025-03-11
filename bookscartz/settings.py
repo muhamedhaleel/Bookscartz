@@ -202,23 +202,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # Site ID
 SITE_ID = 2
 
-# Provider specific settings
-# SOCIALACCOUNT_PROVIDERS = {
-#     'google': {
-#         'APP': {
-#             'client_id': '598214925116-7b70qfh468sel0s9kimg291ti8a74494.apps.googleusercontent.com',
-#             'secret': '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',
-#             'key': ''
-#         },
-#         'SCOPE': [
-#             'profile',
-#             'email',
-#         ],
-#         'AUTH_PARAMS': {
-#             'access_type': 'online',
-#         }
-#     }
-# }
+
 
 SOCIALACCOUNT_ADAPTER = 'userapp.adapters.CustomSocialAccountAdapter'
 SOCIALACCOUNT_LOGIN_ON_GET = True
