@@ -202,7 +202,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # Site ID
 SITE_ID = 2
 
-
+#a sample change
 
 SOCIALACCOUNT_ADAPTER = 'userapp.adapters.CustomSocialAccountAdapter'
 SOCIALACCOUNT_LOGIN_ON_GET = True
