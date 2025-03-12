@@ -2,6 +2,8 @@ from django.db import models
 import os
 from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
+from django.conf import settings
+
 
 # admin
 
@@ -93,4 +95,41 @@ class Product(models.Model):
 
     class Meta:
         db_table = 'adminapp_product'
+        
+        # new
+
+class Cart(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='carts')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Cart for {self.user.username}"
+
+    def get_total_items(self):
+        return sum(item.quantity for item in self.items.all())
+
+    def get_total_price(self):
+        return sum(item.quantity * item.product.price for item in self.items.all())
+
+    class Meta:
+        db_table = 'adminapp_cart'
+
+class CartItem(models.Model):
+    cart = models.ForeignKey(Cart, related_name='items', on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField(default=1)
+    added_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'adminapp_cartitem'
+        unique_together = ('cart', 'product')
+
+    def __str__(self):
+        return f"{self.quantity} x {self.product.name} in {self.cart}"
+
+    def get_total_price(self):
+        return self.quantity * self.product.price
+
 

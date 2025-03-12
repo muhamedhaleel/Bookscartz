@@ -321,7 +321,7 @@
 
         .product-meta {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: repeat(3, 1fr);
             gap: 1rem;
             margin-bottom: 2rem;
             padding: 1rem;
@@ -332,6 +332,7 @@
         .meta-item {
             display: flex;
             flex-direction: column;
+            gap: 0.5rem;
         }
 
         .meta-label {
@@ -380,6 +381,99 @@
         .out-of-stock {
             background: #ffebee;
             color: #c62828;
+        }
+
+        /* Quantity Selector Styles */
+        .quantity-selector {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 0.25rem;
+        }
+
+        .quantity-btn {
+            width: 24px;
+            height: 24px;
+            border: 1px solid var(--secondary-color);
+            background: var(--white);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+            color: var(--secondary-color);
+            padding: 0;
+        }
+
+        .quantity-btn:hover:not(:disabled) {
+            background: var(--secondary-color);
+            color: var(--white);
+        }
+
+        .quantity-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            border-color: #ccc;
+        }
+
+        .quantity-input {
+            width: 35px;
+            height: 24px;
+            border: 1px solid var(--secondary-color);
+            border-radius: 4px;
+            text-align: center;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--primary-color);
+            background: var(--white);
+            padding: 0;
+        }
+
+        .quantity-input::-webkit-inner-spin-button,
+        .quantity-input::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .quantity-limit {
+            font-size: 0.8rem;
+            color: var(--text-color);
+            opacity: 0.8;
+        }
+
+        .quantity-warning {
+            position: absolute;
+            bottom: -20px;
+            left: 0;
+            font-size: 0.8rem;
+            color: #e53935;
+            display: none;
+        }
+
+        .success-message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #4caf50;
+            color: white;
+            padding: 1rem;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            display: none;
+            z-index: 1000;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
         }
 
         @media (max-width: 1024px) {
@@ -447,6 +541,14 @@
             .product-detail {
                 margin-top: 120px;
             }
+
+            .product-meta {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .meta-item.quantity-container {
+                grid-column: 1 / -1;
+                margin-top: 0.5rem;
+            }
         }
 
         /* Footer Styles */
@@ -511,7 +613,7 @@
                 <ul class="nav-menu">
                     <li><a href="{% url 'home' %}" class="nav-link">Home</a></li>
                     <li><a href="{% url 'product_list' %}" class="nav-link">Products</a></li>
-                    <li><a href="#" class="nav-link">Best Sellers</a></li>
+                    <li><a href="#" class="nav-link">Cart</a></li>
                     <li><a href="#" class="nav-link">New Releases</a></li>
                 </ul>
                 <div class="user-menu" id="userMenu">
@@ -603,12 +705,50 @@
                         <span class="meta-label">Language</span>
                         <span class="meta-value">{{ product.language.name }}</span>
                     </div>
+                    {% if product.stock > 0 %}
+                    <div class="meta-item">
+                        <span class="meta-label">Quantity</span>
+                        <div class="quantity-selector">
+                            <button type="button" id="decreaseQuantity" class="quantity-btn">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                            </button>
+                            <input type="number" 
+                                   id="quantity" 
+                                   value="1" 
+                                   min="1" 
+                                   max="3"
+                                   class="quantity-input" 
+                                   readonly>
+                            <button type="button" id="increaseQuantity" class="quantity-btn">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                            </button>
+                            <span class="quantity-limit">(Max 3)</span>
+                        </div>
+                        <div id="quantityWarning" class="quantity-warning"></div>
+                    </div>
+                    {% endif %}
                 </div>
 
                 <p class="product-description">{{ product.description }}</p>
 
                 {% if product.stock > 0 %}
-                <a href="#" class="add-to-cart">Add to Cart</a>
+                <form id="addToCartForm" method="POST" action="{% url 'add_to_cart' product.id %}" class="add-to-cart-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="quantity" id="quantityInput" value="1">
+                    <button type="submit" class="add-to-cart">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;">
+                            <circle cx="9" cy="21" r="1"></circle>
+                            <circle cx="20" cy="21" r="1"></circle>
+                            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                        </svg>
+                        Add to Cart
+                    </button>
+                </form>
                 {% endif %}
             </div>
         </div>
@@ -653,6 +793,9 @@
             <p>&copy; {% now "Y" %} Bookscartz. All rights reserved.</p>
         </div>
     </footer>
+
+    <!-- Add success message div -->
+    <div id="successMessage" class="success-message"></div>
 
     <script>
         // User menu functionality
@@ -772,6 +915,93 @@
                 if (container.classList.contains('zoom-active')) {
                     resetZoom();
                 }
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const decreaseBtn = document.getElementById('decreaseQuantity');
+            const increaseBtn = document.getElementById('increaseQuantity');
+            const quantityInput = document.getElementById('quantity');
+            const quantityInputHidden = document.getElementById('quantityInput');
+            const quantityWarning = document.getElementById('quantityWarning');
+            const successMessage = document.getElementById('successMessage');
+            const currentStock = {{ product.stock }};
+            const maxQuantity = Math.min(3, currentStock);
+
+            function updateQuantity(newValue) {
+                const value = parseInt(newValue);
+                
+                if (value < 1) {
+                    quantityInput.value = 1;
+                    quantityInputHidden.value = 1;
+                    quantityWarning.style.display = 'none';
+                } else if (value > maxQuantity) {
+                    quantityInput.value = maxQuantity;
+                    quantityInputHidden.value = maxQuantity;
+                    quantityWarning.textContent = `Maximum ${maxQuantity} items allowed`;
+                    quantityWarning.style.display = 'block';
+                } else {
+                    quantityInput.value = value;
+                    quantityInputHidden.value = value;
+                    quantityWarning.style.display = 'none';
+                }
+
+                decreaseBtn.disabled = value <= 1;
+                increaseBtn.disabled = value >= maxQuantity;
+            }
+
+            decreaseBtn.addEventListener('click', () => {
+                updateQuantity(parseInt(quantityInput.value) - 1);
+            });
+
+            increaseBtn.addEventListener('click', () => {
+                updateQuantity(parseInt(quantityInput.value) + 1);
+            });
+
+            // Initialize quantity
+            updateQuantity(1);
+
+            // Form submission handling
+            const addToCartForm = document.getElementById('addToCartForm');
+            if (addToCartForm) {
+                addToCartForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    fetch(this.action, {
+                        method: 'POST',
+                        body: new FormData(this),
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                        },
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Show success message
+                            successMessage.textContent = data.message;
+                            successMessage.style.display = 'block';
+                            setTimeout(() => {
+                                successMessage.style.display = 'none';
+                            }, 3000);
+
+                            // Update stock display
+                            document.querySelector('.stock-status').textContent = 
+                                `In Stock (${data.new_stock} available)`;
+                            
+                            // Reset quantity
+                            updateQuantity(1);
+                        } else {
+                            quantityWarning.textContent = data.message;
+                            quantityWarning.style.display = 'block';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        quantityWarning.textContent = 'Error adding to cart';
+                        quantityWarning.style.display = 'block';
+                    });
+                });
             }
         });
     </script>

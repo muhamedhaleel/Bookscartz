@@ -1,10 +1,13 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, authenticate, logout
 from django.contrib import messages
-from .forms import SignupForm
-from adminapp.models import CustomUser, Brand, Product, Category, Language
-from django.core.exceptions import ValidationError
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
+from .forms import SignupForm
+from adminapp.models import CustomUser, Brand, Product, Category, Language, Cart, CartItem
+from django.core.exceptions import ValidationError
+import json
 
 def signup(request):
     if request.method == 'POST':
@@ -211,7 +214,168 @@ def product_detail(request, product_id):
     # Get the product or return 404 if not found
     product = get_object_or_404(Product, id=product_id, is_active=True)
     
+    # Get user's cart item quantity if it exists
+    cart_item = None
+    if request.user.is_authenticated:
+        cart = Cart.objects.filter(user=request.user).first()
+        if cart:
+            cart_item = CartItem.objects.filter(cart=cart, product=product).first()
+    
     context = {
         'product': product,
+        'cart_item': cart_item,
     }
     return render(request, 'product_detail.html', context)
+
+@require_POST
+@login_required
+def add_to_cart(request, product_id):
+    try:
+        product = get_object_or_404(Product, id=product_id, is_active=True)
+        quantity = int(request.POST.get('quantity', 1))
+        
+        # Validate quantity
+        if quantity < 1:
+            return JsonResponse({
+                'success': False,
+                'message': 'Quantity must be at least 1'
+            })
+        
+        max_allowed = min(3, product.stock)
+        if quantity > max_allowed:
+            return JsonResponse({
+                'success': False,
+                'message': f'Maximum {max_allowed} items allowed'
+            })
+        
+        # Get or create cart
+        cart, _ = Cart.objects.get_or_create(user=request.user)
+        
+        # Get or create cart item
+        cart_item, created = CartItem.objects.get_or_create(
+            cart=cart,
+            product=product,
+            defaults={'quantity': quantity}
+        )
+        
+        if not created:
+            # Update existing cart item
+            new_quantity = cart_item.quantity + quantity
+            if new_quantity > max_allowed:
+                return JsonResponse({
+                    'success': False,
+                    'message': f'Cart would exceed maximum limit of {max_allowed} items'
+                })
+            cart_item.quantity = new_quantity
+            cart_item.save()
+        
+        # Update product stock
+        product.stock -= quantity
+        product.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Added to cart successfully',
+            'new_stock': product.stock,
+            'cart_quantity': cart_item.quantity
+        })
+        
+    except Product.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'message': 'Product not found'
+        })
+    except ValueError:
+        return JsonResponse({
+            'success': False,
+            'message': 'Invalid quantity'
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': str(e)
+        })
+
+@login_required
+def cart_view(request):
+    cart = Cart.objects.filter(user=request.user).first()
+    cart_items = []
+    if cart:
+        cart_items = cart.items.select_related('product', 'product__category', 'product__language').all()
+    
+    context = {
+        'cart': cart,
+        'cart_items': cart_items,
+    }
+    return render(request, 'cart.html', context)
+
+@require_POST
+@login_required
+def update_cart(request, item_id):
+    try:
+        data = json.loads(request.body)
+        quantity = int(data.get('quantity', 1))
+        
+        cart_item = CartItem.objects.select_related('product').get(id=item_id, cart__user=request.user)
+        
+        if quantity < 1:
+            return JsonResponse({
+                'success': False,
+                'message': 'Quantity must be at least 1'
+            })
+        
+        max_allowed = min(3, cart_item.product.stock)
+        if quantity > max_allowed:
+            return JsonResponse({
+                'success': False,
+                'message': f'Maximum {max_allowed} items allowed'
+            })
+        
+        # Update quantity
+        cart_item.quantity = quantity
+        cart_item.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Cart updated successfully'
+        })
+        
+    except CartItem.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'message': 'Item not found'
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': str(e)
+        })
+
+@require_POST
+@login_required
+def remove_from_cart(request, item_id):
+    try:
+        cart_item = CartItem.objects.get(id=item_id, cart__user=request.user)
+        
+        # Update product stock
+        cart_item.product.stock += cart_item.quantity
+        cart_item.product.save()
+        
+        # Delete cart item
+        cart_item.delete()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Item removed from cart'
+        })
+        
+    except CartItem.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'message': 'Item not found'
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': str(e)
+        })
