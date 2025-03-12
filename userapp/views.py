@@ -5,7 +5,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from .forms import SignupForm
-from adminapp.models import CustomUser, Brand, Product, Category, Language, Cart, CartItem
+from adminapp.models import CustomUser, Brand, Product, Category, Language, Cart, CartItem, Address
 from django.core.exceptions import ValidationError
 import json
 
@@ -112,6 +112,7 @@ def login_view(request):
 
 @login_required
 def user_profile(request):
+    addresses = Address.objects.filter(user=request.user)
     if request.method == 'POST':
         username = request.POST.get('username')
         phone_number = request.POST.get('phone')
@@ -124,7 +125,7 @@ def user_profile(request):
             return redirect('profile')  # Redirect to the profile page
         except Exception as e:
             messages.error(request, f'Error updating profile: {str(e)}')
-    return render(request, 'profile.html', {'user': request.user})
+    return render(request, 'profile.html', {'user': request.user, 'addresses': addresses})
 
 @login_required
 def user_logout(request):
@@ -379,3 +380,56 @@ def remove_from_cart(request, item_id):
             'success': False,
             'message': str(e)
         })
+
+@login_required
+def add_address(request):
+    if request.method == 'POST':
+        try:
+            address = Address(
+                user=request.user,
+                full_name=request.POST.get('full_name'),
+                phone=request.POST.get('phone'),
+                address_line1=request.POST.get('address_line1'),
+                address_line2=request.POST.get('address_line2'),
+                city=request.POST.get('city'),
+                state=request.POST.get('state'),
+                pincode=request.POST.get('pincode'),
+                type=request.POST.get('type'),
+                is_default=request.POST.get('is_default') == 'on'
+            )
+            address.save()
+            messages.success(request, 'Address added successfully!')
+        except Exception as e:
+            messages.error(request, f'Error adding address: {str(e)}')
+    return redirect('profile')
+
+@login_required
+def edit_address(request, address_id):
+    address = get_object_or_404(Address, id=address_id, user=request.user)
+    
+    if request.method == 'POST':
+        try:
+            address.full_name = request.POST.get('full_name')
+            address.phone = request.POST.get('phone')
+            address.address_line1 = request.POST.get('address_line1')
+            address.address_line2 = request.POST.get('address_line2')
+            address.city = request.POST.get('city')
+            address.state = request.POST.get('state')
+            address.pincode = request.POST.get('pincode')
+            address.type = request.POST.get('type')
+            address.is_default = request.POST.get('is_default') == 'on'
+            address.save()
+            messages.success(request, 'Address updated successfully!')
+        except Exception as e:
+            messages.error(request, f'Error updating address: {str(e)}')
+    return redirect('profile')
+
+@login_required
+def delete_address(request, address_id):
+    address = get_object_or_404(Address, id=address_id, user=request.user)
+    try:
+        address.delete()
+        messages.success(request, 'Address deleted successfully!')
+    except Exception as e:
+        messages.error(request, f'Error deleting address: {str(e)}')
+    return redirect('profile')

@@ -132,4 +132,60 @@ class CartItem(models.Model):
     def get_total_price(self):
         return self.quantity * self.product.price
 
+class Address(models.Model):
+    ADDRESS_TYPES = (
+        ('home', 'Home'),
+        ('work', 'Work'),
+        ('other', 'Other'),
+    )
+    
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='addresses')
+    full_name = models.CharField(max_length=100)
+    phone = models.CharField(max_length=15)
+    address_line1 = models.CharField(max_length=255)
+    address_line2 = models.CharField(max_length=255, blank=True, null=True)
+    city = models.CharField(max_length=100)
+    state = models.CharField(max_length=100)
+    pincode = models.CharField(max_length=10)
+    type = models.CharField(max_length=10, choices=ADDRESS_TYPES, default='home')
+    is_default = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'adminapp_address'
+        ordering = ['-is_default', '-created_at']
+
+    def __str__(self):
+        return f"{self.full_name}'s {self.type} address"
+
+    def save(self, *args, **kwargs):
+        if self.is_default:
+            # Set all other addresses of this user to non-default
+            Address.objects.filter(user=self.user).update(is_default=False)
+        super().save(*args, **kwargs)
+
+class Offer(models.Model):
+    OFFER_TYPES = (
+        ('percentage', 'Percentage Discount'),
+        ('fixed', 'Fixed Amount'),
+        ('buyget', 'Buy X Get Y'),
+    )
+    
+    OFFER_ITEMS = (
+        ('all', 'All Products'),
+        ('category', 'Specific Category'),
+        ('product', 'Specific Product'),
+    )
+    
+    offer_type = models.CharField(max_length=20, choices=OFFER_TYPES)
+    offer_items = models.CharField(max_length=20, choices=OFFER_ITEMS)
+    discount = models.DecimalField(max_digits=5, decimal_places=2)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.get_offer_type_display()} - {self.discount}%"
+
 

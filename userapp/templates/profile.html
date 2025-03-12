@@ -138,6 +138,180 @@
                 width: 100%;
             }
         }
+        /* Modal Styles */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .close-modal {
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+        }
+
+        .form-group.half {
+            flex: 1;
+        }
+
+        /* Address List Styles */
+        .address-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .btn-add {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .btn-add:hover {
+            background: #218838;
+        }
+
+        .addresses-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .address-card {
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            position: relative;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .address-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .address-type {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 4px 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .default-badge {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            padding: 4px 8px;
+            background: #28a745;
+            color: white;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .address-content {
+            margin-top: 30px;
+        }
+
+        .address-content .name {
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .address-actions {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-edit, .btn-delete {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .btn-edit {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-edit:hover {
+            background: #218838;
+        }
+
+        .btn-delete {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background: #c82333;
+        }
+
+        .no-address {
+            text-align: center;
+            padding: 40px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .no-address p {
+            margin-bottom: 20px;
+            color: #6c757d;
+        }
     </style>
 </head>
 <body>
@@ -145,9 +319,9 @@
         <h2>Profile Menu</h2>
         <a href="{% url 'profile' %}">Profile</a>
         <a href="{% url 'home' %}">Home</a>
+        
         <a href="{% url 'logout' %}">Logout</a>
         <a href="#" id="toggleChangePassword">Change Password</a>
-        <a href="#">Add Address</a>
     </div> 
     <div class="main-content">
         <div class="profile-container">
@@ -162,7 +336,7 @@
                 </div>
             {% endif %}
             <div class="user-info">
-                <div class="user-icon">{{ user.username|slice:":1" }}</div> <!-- Display first letter of username -->
+                <div class="user-icon">{{ user.username|slice:":1" }}</div>
                 <div>
                     <p><strong>Username:</strong> {{ user.username }}</p>
                     <p><strong>Email:</strong> {{ user.email }}</p>
@@ -178,7 +352,7 @@
                     <label for="phone">Phone Number</label>
                     <input type="text" id="phone" name="phone" value="{{ user.phone_number }}" required>
                 </div>
-                <button type="submit" class="btn">Update</button>
+                <button type="submit" class="btn">Update Profile</button>
             </form>
 
             <!-- Change Password Form -->
@@ -202,26 +376,188 @@
                 </form>
             </div>
         </div>
-    </div>
-    <script>
-        // Toggle Change Password Form
-        document.getElementById('toggleChangePassword').addEventListener('click', function(event) {
-            event.preventDefault(); // Prevent the default anchor behavior
-            const changePasswordForm = document.getElementById('changePasswordForm');
-            if (changePasswordForm.style.display === 'none' || changePasswordForm.style.display === '') {
-                changePasswordForm.style.display = 'block'; // Show the form
-            } else {
-                changePasswordForm.style.display = 'none'; // Hide the form
-            }
-        });
 
-        // Automatically hide messages after 2 seconds
-        setTimeout(() => {
-            const messagesContainer = document.getElementById('messages-container');
-            if (messagesContainer) {
-                messagesContainer.remove();
+        <!-- Address Section -->
+        <div class="address-container">
+            <div class="section-header">
+                <h2>My Address</h2>
+                {% if not addresses %}
+                <button class="btn-add" onclick="openAddressModal()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    Add Address
+                </button>
+                {% endif %}
+            </div>
+
+            <div class="addresses-grid">
+                {% if addresses %}
+                    {% with address=addresses.0 %}
+                    <div class="address-card">
+                        <div class="address-type">{{ address.type|title }}</div>
+                        <div class="address-content">
+                            <p class="name">{{ address.full_name }}</p>
+                            <p>{{ address.address_line1 }}</p>
+                            {% if address.address_line2 %}
+                            <p>{{ address.address_line2 }}</p>
+                            {% endif %}
+                            <p>{{ address.city }}, {{ address.state }} - {{ address.pincode }}</p>
+                            <p>Phone: {{ address.phone }}</p>
+                        </div>
+                        <div class="address-actions">
+                            <button class="btn-edit" onclick="editAddress('{{ address.id }}', '{{ address.full_name }}', '{{ address.phone }}', '{{ address.address_line1 }}', '{{ address.address_line2|default:'' }}', '{{ address.city }}', '{{ address.state }}', '{{ address.pincode }}', '{{ address.type }}')">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M20 14.66V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5.34"></path>
+                                    <polygon points="18 2 22 6 12 16 8 16 8 12 18 2"></polygon>
+                                </svg>
+                                Edit
+                            </button>
+                            <button class="btn-delete" onclick="deleteAddress('{{ address.id }}')">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                </svg>
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                    {% endwith %}
+                {% else %}
+                    <div class="no-address">
+                        <p>No address added yet.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Simple Address Modal -->
+        <div id="addressModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="modalTitle">{% if addresses %}Edit{% else %}Add{% endif %} Address</h3>
+                    <span class="close-modal" onclick="closeAddressModal()">&times;</span>
+                </div>
+                <form id="addressForm" method="POST" action="{% if addresses %}{% url 'edit_address' addresses.0.id %}{% else %}{% url 'add_address' %}{% endif %}">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label for="full_name">Full Name*</label>
+                        <input type="text" id="full_name" name="full_name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="phone">Phone Number*</label>
+                        <input type="tel" id="phone" name="phone" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="address_line1">Address Line 1*</label>
+                        <input type="text" id="address_line1" name="address_line1" placeholder="House No, Building, Street" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="address_line2">Address Line 2</label>
+                        <input type="text" id="address_line2" name="address_line2" placeholder="Area, Colony, Landmark">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group half">
+                            <label for="city">City*</label>
+                            <input type="text" id="city" name="city" required>
+                        </div>
+                        <div class="form-group half">
+                            <label for="state">State*</label>
+                            <input type="text" id="state" name="state" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group half">
+                            <label for="pincode">Pincode*</label>
+                            <input type="text" id="pincode" name="pincode" required>
+                        </div>
+                        <div class="form-group half">
+                            <label for="type">Address Type*</label>
+                            <select id="type" name="type" required>
+                                <option value="home">Home</option>
+                                <option value="work">Work</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn">{% if addresses %}Update{% else %}Save{% endif %} Address</button>
+                </form>
+            </div>
+        </div>
+
+        <script>
+            // Toggle Change Password Form
+            document.getElementById('toggleChangePassword').addEventListener('click', function(event) {
+                event.preventDefault(); // Prevent the default anchor behavior
+                const changePasswordForm = document.getElementById('changePasswordForm');
+                if (changePasswordForm.style.display === 'none' || changePasswordForm.style.display === '') {
+                    changePasswordForm.style.display = 'block'; // Show the form
+                } else {
+                    changePasswordForm.style.display = 'none'; // Hide the form
+                }
+            });
+
+            // Automatically hide messages after 2 seconds
+            setTimeout(() => {
+                const messagesContainer = document.getElementById('messages-container');
+                if (messagesContainer) {
+                    messagesContainer.remove();
+                }
+            }, 2000); // 2000 milliseconds = 2 seconds
+
+            function openAddressModal() {
+                document.getElementById('addressModal').style.display = 'flex';
             }
-        }, 2000); // 2000 milliseconds = 2 seconds
-    </script>
+
+            function closeAddressModal() {
+                document.getElementById('addressModal').style.display = 'none';
+            }
+
+            function editAddress(id, fullName, phone, line1, line2, city, state, pincode, type) {
+                document.getElementById('full_name').value = fullName;
+                document.getElementById('phone').value = phone;
+                document.getElementById('address_line1').value = line1;
+                document.getElementById('address_line2').value = line2 || '';
+                document.getElementById('city').value = city;
+                document.getElementById('state').value = state;
+                document.getElementById('pincode').value = pincode;
+                document.getElementById('type').value = type.toLowerCase();
+                document.getElementById('addressModal').style.display = 'flex';
+            }
+
+            // Close modal when clicking outside
+            window.onclick = function(event) {
+                if (event.target == document.getElementById('addressModal')) {
+                    closeAddressModal();
+                }
+            }
+
+            // Form submission
+            document.getElementById('addressForm').addEventListener('submit', function(event) {
+                // Form will submit normally
+            });
+
+            function deleteAddress(id) {
+                if (confirm('Are you sure you want to delete this address?')) {
+                    // Create a form and submit it
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = "{% url 'delete_address' 0 %}".replace('0', id);
+                    
+                    // Add CSRF token
+                    const csrfToken = document.createElement('input');
+                    csrfToken.type = 'hidden';
+                    csrfToken.name = 'csrfmiddlewaretoken';
+                    csrfToken.value = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                    form.appendChild(csrfToken);
+                    
+                    // Add to document and submit
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            }
+        </script>
+    </div>
 </body>
 </html>

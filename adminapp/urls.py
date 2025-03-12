@@ -24,4 +24,12 @@ urlpatterns = [
     path('toggle-variant-status/<int:pk>/', views.toggle_variant_status, name='toggle_variant_status'),
     path('delete-variant/<int:pk>/', views.delete_variant, name='delete_variant'),
     path('toggle-user-status/<int:user_id>/', views.toggle_user_status, name='toggle_user_status'),
+    
+    # Offer URLs - Updated for consistency
+    path('admin-offers/', views.offer_list, name='offer_list'),
+    path('admin-offers/add/', views.add_offer, name='add_offer'),
+    path('admin-offers/edit/<int:pk>/', views.edit_offer, name='edit_offer'),
+    path('admin-offers/delete/<int:pk>/', views.delete_offer, name='delete_offer'),
+    path('admin-offers/toggle/<int:pk>/', views.toggle_offer_status, name='toggle_offer_status'),
+    path('get-offer-items/', views.get_offer_items, name='get_offer_items'),
 ]

@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .models import Category, Brand,Product, Language
+from .models import Category, Brand, Product, Language, Offer
 from .forms import CategoryForm
 from django.views import View
 from django.shortcuts import render, redirect, get_object_or_404
@@ -13,6 +13,7 @@ from django.db.models import Q
 from django.core.files.images import get_image_dimensions
 from PIL import Image
 import os
+from django.http import JsonResponse
 
 
 
@@ -630,3 +631,178 @@ def delete_variant(request, pk):
             messages.error(request, f"Error deleting variant: {str(e)}")
     
     return redirect('variant_list')
+
+@login_required(login_url='admin_login')
+def offer_list(request):
+    print("Debug: Entering offer_list view")
+    
+    if not request.user.is_staff:
+        messages.error(request, 'Unauthorized access')
+        return redirect('admin_login')
+    
+    try:
+        search_query = request.GET.get('search', '')
+        print(f"Debug: Search query: {search_query}")
+        
+        # Get all offers
+        offers_list = Offer.objects.all().order_by('-created_at')
+        
+        # Process each offer to get readable names
+        for offer in offers_list:
+            if offer.offer_type == 'product':
+                try:
+                    product = Product.objects.get(id=offer.offer_items)
+                    offer.item_name = product.name
+                except Product.DoesNotExist:
+                    offer.item_name = "Product not found"
+            elif offer.offer_type == 'category':
+                try:
+                    category = Category.objects.get(id=offer.offer_items)
+                    offer.item_name = category.name
+                except Category.DoesNotExist:
+                    offer.item_name = "Category not found"
+        
+        # Apply search filter if search query exists
+        if search_query:
+            offers_list = offers_list.filter(
+                Q(offer_type__icontains=search_query) |
+                Q(offer_items__icontains=search_query)
+            )
+        
+        # Pagination
+        paginator = Paginator(offers_list, 10)
+        page = request.GET.get('page')
+        offers = paginator.get_page(page)
+        
+        context = {
+            'offers': offers,
+            'search_query': search_query
+        }
+        
+        return render(request, 'offer.html', context)
+        
+    except Exception as e:
+        print(f"Debug: Error in offer_list view: {str(e)}")
+        messages.error(request, f'Error: {str(e)}')
+        return redirect('admin_dashboard')
+
+@login_required(login_url='admin_login')
+def add_offer(request):
+    if not request.user.is_staff:
+        messages.error(request, 'Unauthorized access')
+        return redirect('admin_login')
+    
+    if request.method == 'POST':
+        try:
+            offer_type = request.POST.get('offer_type')
+            offer_items = request.POST.get('offer_items')
+            discount = request.POST.get('discount')
+            is_active = request.POST.get('is_active') == 'on'
+            
+            # Validate required fields
+            if not all([offer_type, offer_items, discount]):
+                messages.error(request, 'Please fill all required fields')
+                return redirect('offer_list')
+            
+            # Create new offer
+            Offer.objects.create(
+                offer_type=offer_type,
+                offer_items=offer_items,
+                discount=discount,
+                is_active=is_active
+            )
+            
+            messages.success(request, 'Offer added successfully!')
+            
+        except Exception as e:
+            messages.error(request, f'Error adding offer: {str(e)}')
+        
+    return redirect('offer_list')
+
+@login_required(login_url='admin_login')
+def edit_offer(request, pk):
+    if not request.user.is_staff:
+        messages.error(request, 'Unauthorized access')
+        return redirect('admin_login')
+    
+    offer = get_object_or_404(Offer, pk=pk)
+    
+    if request.method == 'POST':
+        try:
+            offer_type = request.POST.get('offer_type')
+            offer_items = request.POST.get('offer_items')
+            discount = request.POST.get('discount')
+            is_active = request.POST.get('is_active') == 'on'
+            
+            # Validate required fields
+            if not all([offer_type, offer_items, discount]):
+                messages.error(request, 'Please fill all required fields')
+                return redirect('offer_list')
+            
+            # Update offer
+            offer.offer_type = offer_type
+            offer.offer_items = offer_items
+            offer.discount = discount
+            offer.is_active = is_active
+            offer.save()
+            
+            messages.success(request, 'Offer updated successfully!')
+            
+        except Exception as e:
+            messages.error(request, f'Error updating offer: {str(e)}')
+        
+    return redirect('offer_list')
+
+@login_required(login_url='admin_login')
+def delete_offer(request, pk):
+    if not request.user.is_staff:
+        messages.error(request, 'Unauthorized access')
+        return redirect('admin_login')
+    
+    if request.method == 'POST':
+        try:
+            offer = get_object_or_404(Offer, pk=pk)
+            offer.delete()
+            messages.success(request, 'Offer deleted successfully!')
+        except Exception as e:
+            messages.error(request, f'Error deleting offer: {str(e)}')
+    
+    return redirect('offer_list')
+
+@login_required(login_url='admin_login')
+def toggle_offer_status(request, pk):
+    if not request.user.is_staff:
+        messages.error(request, 'Unauthorized access')
+        return redirect('admin_login')
+    
+    if request.method == 'POST':
+        try:
+            offer = get_object_or_404(Offer, pk=pk)
+            offer.is_active = not offer.is_active
+            offer.save()
+            status = "activated" if offer.is_active else "deactivated"
+            messages.success(request, f'Offer {status} successfully!')
+        except Exception as e:
+            messages.error(request, f'Error updating offer status: {str(e)}')
+    
+    return redirect('offer_list')
+
+@login_required(login_url='admin_login')
+def get_offer_items(request):
+    if not request.user.is_staff:
+        return JsonResponse({'error': 'Unauthorized'}, status=403)
+    
+    offer_type = request.GET.get('type')
+    items = []
+    
+    try:
+        if offer_type == 'product':
+            products = Product.objects.filter(is_active=True).values('id', 'name')
+            items = [{'id': str(p['id']), 'name': f"{p['name']}"} for p in products]
+        elif offer_type == 'category':
+            categories = Category.objects.filter(is_active=True).values('id', 'name')
+            items = [{'id': str(c['id']), 'name': f"{c['name']}"} for c in categories]
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+    
+    return JsonResponse(items, safe=False)

@@ -28,13 +28,13 @@
                 <a href="{% url 'category_list' %}" class="flex items-center py-2 px-3 hover:bg-white rounded-lg">Category</a>
                 <a href="{% url 'brand_list' %}" class="flex items-center py-2 px-3 hover:bg-white rounded-lg">Publisher</a>
                 <a href="{% url 'admin_customer' %}" class="flex items-center py-2 px-3 hover:bg-white rounded-lg">Customers</a>
-                
+                <a href="{% url 'offer_list' %}" class="flex items-center py-2 px-3 hover:bg-white rounded-lg">Offers</a>
             </nav>
         </aside>
 
         <!-- Main Content -->
         <main class="flex-1 p-6">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <!-- Product Count Card -->
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <h2 class="text-xl font-semibold mb-2">Total Products</h2>
@@ -51,6 +51,12 @@
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <h2 class="text-xl font-semibold mb-2">Total Publishers</h2>
                     <p class="text-3xl font-bold text-purple-600">{{ brand_count|default:"0" }}</p>
+                </div>
+
+                <!-- Offers Count Card -->
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h2 class="text-xl font-semibold mb-2">Total Offers</h2>
+                    <p class="text-3xl font-bold text-orange-600">{{ offer_count|default:"0" }}</p>
                 </div>
             </div>
         </main>
