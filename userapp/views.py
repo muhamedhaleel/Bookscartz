@@ -5,9 +5,11 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from .forms import SignupForm
-from adminapp.models import CustomUser, Brand, Product, Category, Language, Cart, CartItem, Address
+from adminapp.models import CustomUser, Brand, Product, Category, Language, Cart, CartItem, Address, Offer
 from django.core.exceptions import ValidationError
 import json
+from django.db.models import Q
+from django.urls import reverse
 
 def signup(request):
     if request.method == 'POST':
@@ -202,6 +204,34 @@ def product_list(request):
     brands = Brand.objects.filter(is_active=True)
     languages = Language.objects.filter(is_active=True)
 
+    # Get all active offers
+    product_offers = Offer.objects.filter(is_active=True, offer_type='product')
+    category_offers = Offer.objects.filter(is_active=True, offer_type='category')
+    
+    # Calculate discounted prices for each product
+    for product in products:
+        max_discount = 0
+        
+        # Check product-specific offers
+        for offer in product_offers:
+            if str(product.id) == str(offer.offer_items):
+                max_discount = max(max_discount, float(offer.discount))
+        
+        # Check category offers
+        for offer in category_offers:
+            if str(product.category.id) == str(offer.offer_items):
+                max_discount = max(max_discount, float(offer.discount))
+        
+        if max_discount > 0:
+            # Calculate discounted price
+            product.discount = max_discount
+            original_price = float(str(product.price))  # Convert Decimal to float
+            discount_amount = (original_price * max_discount) / 100
+            product.offer_price = round(original_price - discount_amount, 2)
+        else:
+            product.offer_price = None
+            product.discount = None
+
     context = {
         'products': products,
         'categories': categories,
@@ -214,6 +244,33 @@ def product_list(request):
 def product_detail(request, product_id):
     # Get the product or return 404 if not found
     product = get_object_or_404(Product, id=product_id, is_active=True)
+    
+    # Get active offers
+    product_offers = Offer.objects.filter(is_active=True, offer_type='product')
+    category_offers = Offer.objects.filter(is_active=True, offer_type='category')
+    
+    # Calculate maximum discount for the product
+    max_discount = 0
+    
+    # Check product-specific offers
+    for offer in product_offers:
+        if str(product.id) == str(offer.offer_items):
+            max_discount = max(max_discount, float(offer.discount))
+    
+    # Check category offers
+    for offer in category_offers:
+        if str(product.category.id) == str(offer.offer_items):
+            max_discount = max(max_discount, float(offer.discount))
+    
+    # Calculate discounted price if there's a discount
+    if max_discount > 0:
+        product.discount = max_discount
+        original_price = float(str(product.price))
+        discount_amount = (original_price * max_discount) / 100
+        product.offer_price = round(original_price - discount_amount, 2)
+    else:
+        product.offer_price = None
+        product.discount = None
     
     # Get user's cart item quantity if it exists
     cart_item = None
@@ -301,12 +358,57 @@ def add_to_cart(request, product_id):
 def cart_view(request):
     cart = Cart.objects.filter(user=request.user).first()
     cart_items = []
+    total_price = 0
+    total_discount = 0
+
     if cart:
         cart_items = cart.items.select_related('product', 'product__category', 'product__language').all()
+        
+        # Get active offers
+        product_offers = Offer.objects.filter(is_active=True, offer_type='product')
+        category_offers = Offer.objects.filter(is_active=True, offer_type='category')
+        
+        # Calculate discounts for each cart item
+        for item in cart_items:
+            max_discount = 0
+            
+            # Check product-specific offers
+            for offer in product_offers:
+                if str(item.product.id) == str(offer.offer_items):
+                    max_discount = max(max_discount, float(offer.discount))
+            
+            # Check category offers
+            for offer in category_offers:
+                if str(item.product.category.id) == str(offer.offer_items):
+                    max_discount = max(max_discount, float(offer.discount))
+            
+            # Calculate discounted price if there's a discount
+            original_price = float(str(item.product.price))
+            item_total = original_price * item.quantity
+            item.original_total = round(item_total, 2)
+            
+            if max_discount > 0:
+                item.product.discount = max_discount
+                discount_amount = (original_price * max_discount) / 100
+                item.product.offer_price = round(original_price - discount_amount, 2)
+                discounted_total = item.product.offer_price * item.quantity
+                item.discount_amount = round(item_total - discounted_total, 2)
+                total_discount += item.discount_amount
+            else:
+                item.product.offer_price = None
+                item.product.discount = None
+                item.discount_amount = 0
+                discounted_total = item_total
+            
+            item.total_price = round(discounted_total, 2)
+            total_price += item.total_price
     
     context = {
         'cart': cart,
         'cart_items': cart_items,
+        'total_price': round(total_price, 2),
+        'total_discount': round(total_discount, 2),
+        'original_total': round(total_price + total_discount, 2)
     }
     return render(request, 'cart.html', context)
 
@@ -433,3 +535,128 @@ def delete_address(request, address_id):
     except Exception as e:
         messages.error(request, f'Error deleting address: {str(e)}')
     return redirect('profile')
+
+@login_required
+def checkout_view(request):
+    cart = Cart.objects.filter(user=request.user).first()
+    addresses = Address.objects.filter(user=request.user)
+    cart_items = []
+    total_price = 0
+    total_discount = 0
+
+    if not cart:
+        messages.warning(request, 'Your cart is empty')
+        return redirect('cart')
+
+    cart_items = cart.items.select_related('product', 'product__category', 'product__language').all()
+    
+    if not cart_items:
+        messages.warning(request, 'Your cart is empty')
+        return redirect('cart')
+
+    # Get active offers
+    product_offers = Offer.objects.filter(is_active=True, offer_type='product')
+    category_offers = Offer.objects.filter(is_active=True, offer_type='category')
+    
+    # Calculate discounts for each cart item
+    for item in cart_items:
+        max_discount = 0
+        
+        # Check product-specific offers
+        for offer in product_offers:
+            if str(item.product.id) == str(offer.offer_items):
+                max_discount = max(max_discount, float(offer.discount))
+        
+        # Check category offers
+        for offer in category_offers:
+            if str(item.product.category.id) == str(offer.offer_items):
+                max_discount = max(max_discount, float(offer.discount))
+        
+        # Calculate discounted price if there's a discount
+        original_price = float(str(item.product.price))
+        item_total = original_price * item.quantity
+        item.original_total = round(item_total, 2)
+        
+        if max_discount > 0:
+            item.product.discount = max_discount
+            discount_amount = (original_price * max_discount) / 100
+            item.product.offer_price = round(original_price - discount_amount, 2)
+            discounted_total = item.product.offer_price * item.quantity
+            item.discount_amount = round(item_total - discounted_total, 2)
+            total_discount += item.discount_amount
+        else:
+            item.product.offer_price = None
+            item.product.discount = None
+            item.discount_amount = 0
+            discounted_total = item_total
+        
+        item.total_price = round(discounted_total, 2)
+        total_price += item.total_price
+
+    if request.method == 'POST':
+        address_id = request.POST.get('address')
+        payment_method = request.POST.get('payment')
+        
+        if not address_id:
+            messages.error(request, 'Please select a delivery address')
+            return redirect('checkout')
+        
+        try:
+            address = Address.objects.get(id=address_id, user=request.user)
+            # Here you would create the order and handle payment
+            # This is where you'd integrate with Razorpay if selected
+            messages.success(request, 'Order placed successfully!')
+            return redirect('order_confirmation')  # Create this view
+        except Address.DoesNotExist:
+            messages.error(request, 'Selected address not found')
+            return redirect('checkout')
+        except Exception as e:
+            messages.error(request, f'Error placing order: {str(e)}')
+            return redirect('checkout')
+    
+    context = {
+        'cart_items': cart_items,
+        'addresses': addresses,
+        'total_price': round(total_price, 2),
+        'total_discount': round(total_discount, 2),
+        'original_total': round(total_price + total_discount, 2),
+        'shipping_cost': 0 if total_price >= 999 else 50,
+    }
+    
+    return render(request, 'checkout.html', context)
+
+@login_required
+def place_order(request):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'Invalid request method'})
+
+    try:
+        data = json.loads(request.body)
+        address_id = data.get('address_id')
+        payment_method = data.get('payment_method')
+
+        if not address_id:
+            return JsonResponse({'success': False, 'message': 'Please select a delivery address'})
+
+        address = Address.objects.get(id=address_id, user=request.user)
+        cart = Cart.objects.get(user=request.user)
+
+        # Create order logic here
+        # You would typically:
+        # 1. Create an Order object
+        # 2. Create OrderItems from CartItems
+        # 3. Clear the cart
+        # 4. Handle payment (Razorpay integration if selected)
+
+        return JsonResponse({
+            'success': True,
+            'message': 'Order placed successfully',
+            'redirect_url': reverse('order_confirmation')
+        })
+
+    except Address.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Selected address not found'})
+    except Cart.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Cart not found'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'Error placing order: {str(e)}'})

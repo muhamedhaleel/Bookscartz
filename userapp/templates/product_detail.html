@@ -305,11 +305,33 @@
             margin-bottom: 1rem;
         }
 
-        .product-price {
-            font-size: 2rem;
-            font-weight: 600;
-            color: var(--primary-color);
+        .product-price-container {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
             margin-bottom: 1.5rem;
+        }
+
+        .original-price {
+            text-decoration: line-through;
+            color: #888;
+            font-size: 1.2rem;
+        }
+
+        .discounted-price {
+            color: var(--primary-color);
+            font-weight: bold;
+            font-size: 2rem;
+        }
+
+        .discount-badge {
+            background-color: #ffeb3b;
+            color: #f57c00;
+            font-size: 0.9rem;
+            padding: 0.4rem 0.8rem;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-left: 1rem;
         }
 
         .product-description {
@@ -688,13 +710,24 @@
             <div class="product-info">
                 <h1 class="product-title">{{ product.name }}</h1>
                 <p class="product-publisher">By {{ product.brand.name }}</p>
-                <p class="product-price">₹{{ product.price }}</p>
                 
-                {% if product.stock > 0 %}
+                <div class="product-price-container">
+                    {% if product.offer_price %}
+                        <div class="price-wrapper">
+                            <span class="original-price">₹{{ product.price }}</span>
+                            <span class="discounted-price">₹{{ product.offer_price }}</span>
+                            <span class="discount-badge">{{ product.discount }}% OFF</span>
+                        </div>
+                    {% else %}
+                        <span class="discounted-price">₹{{ product.price }}</span>
+                    {% endif %}
+                </div>
+                
+                 {% if product.stock > 0 %}
                 <div class="stock-status in-stock">In Stock ({{ product.stock }} available)</div>
                 {% else %}
                 <div class="stock-status out-of-stock">Out of Stock</div>
-                {% endif %}
+                {% endif %} 
 
                 <div class="product-meta">
                     <div class="meta-item">

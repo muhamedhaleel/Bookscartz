@@ -680,7 +680,15 @@
                         <span>Language: {{ item.product.language.name }}</span>
                     </div>
                 </div>
-                <div class="item-price">₹{{ item.product.price }}</div>
+                <div class="item-price">
+                    {% if item.product.offer_price %}
+                        <span class="original-price" style="text-decoration: line-through; color: #888; font-size: 0.9rem;">₹{{ item.product.price }}</span>
+                        <span class="discounted-price" style="color: var(--primary-color); font-weight: bold; display: block;">₹{{ item.product.offer_price }}</span>
+                        <span class="discount-badge" style="background-color: #ffeb3b; color: #f57c00; font-size: 0.8rem; padding: 2px 6px; border-radius: 4px;">{{ item.product.discount }}% OFF</span>
+                    {% else %}
+                        <span class="regular-price">₹{{ item.product.price }}</span>
+                    {% endif %}
+                </div>
                 <div class="quantity-controls">
                     <button type="button" class="quantity-btn decrease-quantity" {% if item.quantity <= 1 %}disabled{% endif %}>
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -695,7 +703,14 @@
                         </svg>
                     </button>
                 </div>
-                <div class="item-subtotal">₹{{ item.get_total_price }}</div>
+                <div class="item-subtotal">
+                    {% if item.discount_amount > 0 %}
+                        <span class="original-subtotal" style="text-decoration: line-through; color: #888; font-size: 0.9rem;">₹{{ item.original_total }}</span>
+                        <span class="final-subtotal" style="color: var(--primary-color); font-weight: bold; display: block;">₹{{ item.total_price }}</span>
+                    {% else %}
+                        ₹{{ item.total_price }}
+                    {% endif %}
+                </div>
                 <div class="remove-item">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="3 6 5 6 21 6"></polyline>
@@ -708,20 +723,30 @@
 
         <div class="cart-summary">
             <div class="summary-row">
+                <span class="summary-label">Original Total</span>
+                <span class="summary-value">₹{{ original_total }}</span>
+            </div>
+            {% if total_discount > 0 %}
+            <div class="summary-row">
+                <span class="summary-label">Discount</span>
+                <span class="summary-value" style="color: #4caf50;">-₹{{ total_discount }}</span>
+            </div>
+            {% endif %}
+            <div class="summary-row">
                 <span class="summary-label">Subtotal</span>
-                <span class="summary-value">₹{{ cart.get_total_price }}</span>
+                <span class="summary-value">₹{{ total_price }}</span>
             </div>
             <div class="summary-row">
                 <span class="summary-label">Shipping</span>
-                <span class="summary-value">{% if cart.get_total_price >= 999 %}Free{% else %}₹50{% endif %}</span>
+                <span class="summary-value">{% if total_price >= 999 %}Free{% else %}₹50{% endif %}</span>
             </div>
             <div class="summary-row total-row">
-                <span class="summary-label">Total</span>
-                <span class="summary-value">₹{{ cart.get_total_price_with_shipping }}</span>
+                <span class="summary-label">Total Amount</span>
+                <span class="summary-value">₹{% if total_price >= 999 %}{{ total_price }}{% else %}{{ total_price|add:50 }}{% endif %}</span>
             </div>
-            <button type="button" class="checkout-btn">
+            <a href="{% url 'checkout' %}" class="checkout-btn">
                 Proceed to Checkout
-            </button>
+            </a>
         </div>
         {% else %}
         <div class="cart-items empty-cart">
