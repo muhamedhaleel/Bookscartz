@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Details - Bookscartz</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #2C3639;
+            --secondary-color: rgb(151, 112, 78);
+            --accent-color: #DCD7C9;
+            --text-color: #2C3639;
+            --light-bg: #F5F5F5;
+            --white: #FFFFFF;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            color: var(--text-color);
+            line-height: 1.6;
+            background-color: var(--light-bg);
+        }
+
+        .header {
+            background: var(--white);
+            position: fixed;
+            width: 100%;
+            z-index: 1000;
+            box-shadow: var(--shadow);
+            top: 0;
+            left: 0;
+        }
+
+        .top-bar {
+            background: var(--primary-color);
+            color: var(--white);
+            padding: 8px 0;
+            font-size: 0.9rem;
+            text-align: center;
+            width: 100%;
+        }
+
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0.8rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--white);
+            height: 80px;
+        }
+
+        .logo {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            text-decoration: none;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+        }
+
+        .order-container {
+            max-width: 1000px;
+            margin: 140px auto 2rem;
+            padding: 0 2rem;
+        }
+
+        .order-title {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 2rem;
+            color: var(--primary-color);
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .success-message {
+            background: #4caf50;
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .success-message svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .order-details {
+            background: var(--white);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .order-section {
+            margin-bottom: 2rem;
+        }
+
+        .order-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .section-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .order-info {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .info-label {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .info-value {
+            font-weight: 500;
+        }
+
+        .product-list {
+            margin-top: 1rem;
+        }
+
+        .product-item {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 1rem;
+            padding: 1rem 0;
+            border-bottom: 1px solid var(--light-bg);
+        }
+
+        .product-item:last-child {
+            border-bottom: none;
+        }
+
+        .product-image {
+            width: 80px;
+            height: 100px;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .product-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .product-details h3 {
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .product-meta {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .order-summary {
+            background: var(--white);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            padding: 2rem;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--light-bg);
+        }
+
+        .summary-row:last-child {
+            border-bottom: none;
+        }
+
+        .total-row {
+            font-size: 1.2rem;
+            font-weight: 600;
+            padding-top: 1rem;
+            margin-top: 1rem;
+            border-top: 2px solid var(--light-bg);
+        }
+
+        .continue-shopping {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            background: var(--secondary-color);
+            color: var(--white);
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: var(--transition);
+            text-decoration: none;
+            margin-top: 2rem;
+        }
+
+        .continue-shopping:hover {
+            background: var(--primary-color);
+        }
+
+        @media (max-width: 768px) {
+            .order-info {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="top-bar">
+            Free shipping on orders over ₹999 | Shop now
+        </div>
+        <nav class="nav-container">
+            <a href="{% url 'home' %}" class="logo">BOOKSCARTZ</a>
+            <div class="nav-wrapper">
+                <ul class="nav-menu">
+                    <li><a href="{% url 'home' %}" class="nav-link">Home</a></li>
+                    <li><a href="{% url 'product_list' %}" class="nav-link">Products</a></li>
+                    <li><a href="{% url 'cart' %}" class="nav-link">Cart</a></li>
+                    <li><a href="#" class="nav-link">New Releases</a></li>
+                </ul>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Order Details Content -->
+    <div class="order-container">
+        <h1 class="order-title">Order Details</h1>
+        
+        <div class="success-message">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 6L9 17l-5-5"></path>
+            </svg>
+            Order placed successfully!
+        </div>
+
+        <div class="order-details">
+            <div class="order-section">
+                <h2 class="section-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                    Order Information
+                </h2>
+                <div class="order-info">
+                    <div class="info-item">
+                        <span class="info-label">Order ID</span>
+                        <span class="info-value">#{{ order.id }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Order Date</span>
+                        <span class="info-value">{{ order.created_at|date:"F d, Y" }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Customer Name</span>
+                        <span class="info-value">{{ order.customer_name }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Phone Number</span>
+                        <span class="info-value">{{ order.phone }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="order-section">
+                <h2 class="section-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                        <circle cx="12" cy="10" r="3"></circle>
+                    </svg>
+                    Billing Address
+                </h2>
+                <div class="order-info">
+                    <div class="info-item">
+                        <span class="info-value">{{ order.billing_address.full_name }}</span>
+                        <span class="info-value">{{ order.billing_address.address_line1 }}</span>
+                        {% if order.billing_address.address_line2 %}
+                        <span class="info-value">{{ order.billing_address.address_line2 }}</span>
+                        {% endif %}
+                        <span class="info-value">{{ order.billing_address.city }}, {{ order.billing_address.state }} - {{ order.billing_address.pincode }}</span>
+                        <span class="info-value">Phone: {{ order.billing_address.phone }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="order-section">
+                <h2 class="section-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                        <line x1="1" y1="10" x2="23" y2="10"></line>
+                    </svg>
+                    Payment Method
+                </h2>
+                <div class="order-info">
+                    <div class="info-item">
+                        <span class="info-value">{{ order.payment_method }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="order-section">
+                <h2 class="section-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <path d="M16 10a4 4 0 0 1-8 0"></path>
+                    </svg>
+                    Product Details
+                </h2>
+                <div class="product-list">
+                    {% for item in order.items.all %}
+                    <div class="product-item">
+                        <div class="product-image">
+                            <img src="{{ item.product.image1.url }}" alt="{{ item.product.name }}">
+                        </div>
+                        <div class="product-details">
+                            <h3>{{ item.product.name }}</h3>
+                            <div class="product-meta">
+                                <p>Quantity: {{ item.quantity }}</p>
+                                {% if item.product.offer_price %}
+                                <p>Price: <span style="text-decoration: line-through;">₹{{ item.product.price }}</span> ₹{{ item.product.offer_price }}</p>
+                                {% else %}
+                                <p>Price: ₹{{ item.product.price }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="product-total">
+                            ₹{{ item.total_price }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="order-summary">
+            <div class="summary-row">
+                <span>Original Total</span>
+                <span>₹{{ order.original_total }}</span>
+            </div>
+            {% if order.total_discount > 0 %}
+            <div class="summary-row">
+                <span>Discount</span>
+                <span style="color: #4caf50;">-₹{{ order.total_discount }}</span>
+            </div>
+            {% endif %}
+            <div class="summary-row">
+                <span>Subtotal</span>
+                <span>₹{{ order.subtotal }}</span>
+            </div>
+            <div class="summary-row">
+                <span>Shipping</span>
+                <span>{% if order.subtotal >= 999 %}Free{% else %}₹50{% endif %}</span>
+            </div>
+            <div class="summary-row total-row">
+                <span>Total Amount</span>
+                <span>₹{{ order.total_amount }}</span>
+            </div>
+        </div>
+
+        <a href="{% url 'home' %}" class="continue-shopping">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 12H5M12 19l-7-7 7-7"></path>
+            </svg>
+            Continue Shopping
+        </a>
+    </div>
+</body>
+</html> 

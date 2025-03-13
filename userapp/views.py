@@ -5,11 +5,12 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from .forms import SignupForm
-from adminapp.models import CustomUser, Brand, Product, Category, Language, Cart, CartItem, Address, Offer
+from adminapp.models import CustomUser, Brand, Product, Category, Language, Cart, CartItem, Address, Offer, Order, OrderItem
 from django.core.exceptions import ValidationError
 import json
 from django.db.models import Q
 from django.urls import reverse
+from decimal import Decimal
 
 def signup(request):
     if request.method == 'POST':
@@ -627,36 +628,152 @@ def checkout_view(request):
 
 @login_required
 def place_order(request):
-    if request.method != 'POST':
-        return JsonResponse({'success': False, 'message': 'Invalid request method'})
+    if request.method == 'POST':
+        try:
+            # Get the selected address and payment method
+            address_id = request.POST.get('address')
+            payment_method = request.POST.get('payment')
+            
+            if not address_id:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Please select a delivery address'
+                })
+            
+            # Get the address
+            address = get_object_or_404(Address, id=address_id, user=request.user)
+            
+            # Get the cart
+            cart = Cart.objects.get(user=request.user)
+            cart_items = CartItem.objects.filter(cart=cart)
+            
+            if not cart_items.exists():
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Your cart is empty'
+                })
+            
+            # Get active offers
+            product_offers = Offer.objects.filter(is_active=True, offer_type='product')
+            category_offers = Offer.objects.filter(is_active=True, offer_type='category')
+            
+            # Calculate totals
+            original_total = 0
+            total_discount = 0
+            
+            for item in cart_items:
+                # Calculate price with offers
+                max_discount = 0
+                
+                # Check product-specific offers
+                for offer in product_offers:
+                    if str(item.product.id) == str(offer.offer_items):
+                        max_discount = max(max_discount, float(offer.discount))
+                
+                # Check category offers
+                for offer in category_offers:
+                    if str(item.product.category.id) == str(offer.offer_items):
+                        max_discount = max(max_discount, float(offer.discount))
+                
+                # Calculate item total
+                item_price = float(str(item.product.price))
+                item_total = item_price * item.quantity
+                original_total += item_total
+                
+                if max_discount > 0:
+                    discount_amount = (item_total * max_discount) / 100
+                    total_discount += discount_amount
+            
+            subtotal = original_total - total_discount
+            shipping_cost = 0 if subtotal >= 999 else 50
+            total_amount = subtotal + shipping_cost
+            
+            # Create the order
+            order = Order.objects.create(
+                user=request.user,
+                customer_name=address.full_name,
+                phone=address.phone,
+                billing_address=address,
+                payment_method=payment_method,
+                original_total=original_total,
+                total_discount=total_discount,
+                subtotal=subtotal,
+                shipping_cost=shipping_cost,
+                total_amount=total_amount
+            )
+            
+            # Create order items and clear cart
+            for cart_item in cart_items:
+                # Calculate final price for this item
+                max_discount = 0
+                
+                # Check product-specific offers
+                for offer in product_offers:
+                    if str(cart_item.product.id) == str(offer.offer_items):
+                        max_discount = max(max_discount, float(offer.discount))
+                
+                # Check category offers
+                for offer in category_offers:
+                    if str(cart_item.product.category.id) == str(offer.offer_items):
+                        max_discount = max(max_discount, float(offer.discount))
+                
+                # Calculate final price
+                item_price = float(str(cart_item.product.price))
+                if max_discount > 0:
+                    discount_amount = (item_price * max_discount) / 100
+                    final_price = item_price - discount_amount
+                else:
+                    final_price = item_price
+                
+                # Create order item
+                OrderItem.objects.create(
+                    order=order,
+                    product=cart_item.product,
+                    quantity=cart_item.quantity,
+                    price=final_price,
+                    total_price=final_price * cart_item.quantity
+                )
+            
+            # Clear the cart
+            cart_items.delete()
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Order placed successfully',
+                'order_id': order.id,
+                'redirect_url': f'/order-details/{order.id}/'
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'status': 'error',
+                'message': str(e)
+            })
+    
+    return JsonResponse({
+        'status': 'error',
+        'message': 'Invalid request method'
+    })
 
-    try:
-        data = json.loads(request.body)
-        address_id = data.get('address_id')
-        payment_method = data.get('payment_method')
+@login_required
+def order_details(request, order_id):
+    order = get_object_or_404(Order, id=order_id, user=request.user)
+    return render(request, 'order_details.html', {'order': order})
 
-        if not address_id:
-            return JsonResponse({'success': False, 'message': 'Please select a delivery address'})
-
-        address = Address.objects.get(id=address_id, user=request.user)
-        cart = Cart.objects.get(user=request.user)
-
-        # Create order logic here
-        # You would typically:
-        # 1. Create an Order object
-        # 2. Create OrderItems from CartItems
-        # 3. Clear the cart
-        # 4. Handle payment (Razorpay integration if selected)
-
-        return JsonResponse({
-            'success': True,
-            'message': 'Order placed successfully',
-            'redirect_url': reverse('order_confirmation')
-        })
-
-    except Address.DoesNotExist:
-        return JsonResponse({'success': False, 'message': 'Selected address not found'})
-    except Cart.DoesNotExist:
-        return JsonResponse({'success': False, 'message': 'Cart not found'})
-    except Exception as e:
-        return JsonResponse({'success': False, 'message': f'Error placing order: {str(e)}'})
+@login_required
+def user_orders(request):
+    # Get status filter from query parameters
+    status = request.GET.get('status')
+    
+    # Base queryset for user's orders
+    orders = Order.objects.filter(user=request.user).order_by('-created_at')
+    
+    # Apply status filter if provided
+    if status:
+        orders = orders.filter(status=status)
+    
+    context = {
+        'orders': orders,
+        'status': status
+    }
+    return render(request, 'user_orders.html', context)

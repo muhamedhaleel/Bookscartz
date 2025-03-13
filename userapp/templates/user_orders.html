@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Page Title -->
+    <h1 class="text-3xl font-bold text-gray-800 mb-8">My Orders</h1>
+
+    <!-- Order Status Menu -->
+    <div class="bg-white rounded-lg shadow-md p-4 mb-8">
+        <div class="flex space-x-4">
+            <a href="{% url 'user_orders' %}" class="px-4 py-2 rounded-md {% if not status %}bg-blue-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
+                All Orders
+            </a>
+            <a href="{% url 'user_orders' %}?status=delivered" class="px-4 py-2 rounded-md {% if status == 'delivered' %}bg-blue-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
+                Delivered Orders
+            </a>
+            <a href="{% url 'user_orders' %}?status=cancelled" class="px-4 py-2 rounded-md {% if status == 'cancelled' %}bg-blue-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
+                Cancelled Orders
+            </a>
+            <a href="{% url 'user_orders' %}?status=returned" class="px-4 py-2 rounded-md {% if status == 'returned' %}bg-blue-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
+                Returned Orders
+            </a>
+        </div>
+    </div>
+
+    <!-- Orders List -->
+    <div class="space-y-6">
+        {% for order in orders %}
+        <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            <!-- Order Header -->
+            <div class="p-4 border-b border-gray-200">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h2 class="text-lg font-semibold text-gray-800">Order #{{ order.id }}</h2>
+                        <p class="text-sm text-gray-600">Placed on {{ order.created_at|date:"F j, Y" }}</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="px-3 py-1 rounded-full text-sm font-medium
+                            {% if order.status == 'pending' %}bg-yellow-100 text-yellow-800
+                            {% elif order.status == 'processing' %}bg-blue-100 text-blue-800
+                            {% elif order.status == 'shipped' %}bg-purple-100 text-purple-800
+                            {% elif order.status == 'delivered' %}bg-green-100 text-green-800
+                            {% elif order.status == 'cancelled' %}bg-red-100 text-red-800
+                            {% elif order.status == 'returned' %}bg-orange-100 text-orange-800{% endif %}">
+                            {{ order.get_status_display }}
+                        </span>
+                        <p class="text-lg font-bold text-gray-900 mt-1">₹{{ order.total_amount }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Order Items -->
+            <div class="p-4">
+                <div class="space-y-4">
+                    {% for item in order.items.all %}
+                    <div class="flex items-center space-x-4">
+                        <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" class="w-20 h-20 object-cover rounded-md">
+                        <div class="flex-1">
+                            <h3 class="text-lg font-medium text-gray-800">{{ item.product.name }}</h3>
+                            <p class="text-sm text-gray-600">Quantity: {{ item.quantity }}</p>
+                            <p class="text-sm text-gray-600">Price: ₹{{ item.price }}</p>
+                            <p class="text-sm font-medium text-gray-900">Total: ₹{{ item.total_price }}</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Order Actions -->
+            <div class="p-4 bg-gray-50 border-t border-gray-200">
+                <div class="flex justify-end space-x-4">
+                    <a href="{% url 'order_details' order.id %}" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+                        View Details
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="bg-white rounded-lg shadow-md p-8 text-center">
+            <p class="text-gray-600 text-lg">No orders found.</p>
+            <a href="{% url 'product_list' %}" class="mt-4 inline-block px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+                Continue Shopping
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %} 

@@ -114,18 +114,55 @@
         .address-card {
             border: 1px solid var(--accent-color);
             border-radius: 8px;
-            padding: 1rem;
+            padding: 1.5rem;
             cursor: pointer;
             transition: var(--transition);
+            position: relative;
+            background: var(--white);
         }
 
         .address-card:hover {
             border-color: var(--secondary-color);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
         }
 
         .address-card.selected {
             border-color: var(--secondary-color);
             background-color: rgba(151, 112, 78, 0.05);
+        }
+
+        .address-radio {
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--secondary-color);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .address-radio::after {
+            content: '';
+            width: 10px;
+            height: 10px;
+            background: var(--secondary-color);
+            border-radius: 50%;
+            transform: scale(0);
+            transition: var(--transition);
+        }
+
+        .address-radio.selected::after {
+            transform: scale(1);
+        }
+
+        .address-card input[type="radio"] {
+            display: none;
         }
 
         .add-address-btn {
@@ -481,7 +518,8 @@
                 <div class="address-list">
                     {% for address in addresses %}
                     <div class="address-card {% if address.is_default %}selected{% endif %}">
-                        <input type="radio" name="address" value="{{ address.id }}" {% if address.is_default %}checked{% endif %} style="display: none;">
+                        <input type="radio" name="address" value="{{ address.id }}" {% if address.is_default %}checked{% endif %}>
+                        <div class="address-radio {% if address.is_default %}selected{% endif %}"></div>
                         <strong>{{ address.full_name }}</strong>
                         <p>{{ address.address_line1 }}</p>
                         <p>{{ address.address_line2 }}</p>
@@ -546,7 +584,7 @@
                 </h2>
                 <div class="payment-methods">
                     <label class="payment-method">
-                        <input type="radio" name="payment" value="cod" checked>
+                        <input type="radio" name="payment" value="Cash on Delivery" checked>
                         <span>Cash on Delivery</span>
                     </label>
                     {% comment %} <label class="payment-method">
@@ -626,8 +664,12 @@
             const addressCards = document.querySelectorAll('.address-card');
             addressCards.forEach(card => {
                 card.addEventListener('click', () => {
-                    addressCards.forEach(c => c.classList.remove('selected'));
+                    addressCards.forEach(c => {
+                        c.classList.remove('selected');
+                        c.querySelector('.address-radio').classList.remove('selected');
+                    });
                     card.classList.add('selected');
+                    card.querySelector('.address-radio').classList.add('selected');
                     card.querySelector('input[type="radio"]').checked = true;
                 });
             });
@@ -641,9 +683,9 @@
                 });
             });
 
-            // Place order button
+            // Place Order Button Click Handler
             const placeOrderBtn = document.getElementById('placeOrderBtn');
-            placeOrderBtn.addEventListener('click', () => {
+            placeOrderBtn.addEventListener('click', function() {
                 const selectedAddress = document.querySelector('input[name="address"]:checked');
                 const selectedPayment = document.querySelector('input[name="payment"]:checked');
 
@@ -652,9 +694,62 @@
                     return;
                 }
 
-                // Here you can add the logic to submit the order
-                // You can create a form submission or fetch request to your backend
+                if (!selectedPayment) {
+                    alert('Please select a payment method');
+                    return;
+                }
+
+                // Create form data
+                const formData = new FormData();
+                formData.append('address', selectedAddress.value);
+                formData.append('payment', selectedPayment.value);
+
+                // Disable the button and show loading state
+                placeOrderBtn.disabled = true;
+                placeOrderBtn.innerHTML = 'Processing...';
+
+                // Send the order request
+                fetch('{% url "place_order" %}', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken')
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // Redirect to order details page
+                        window.location.href = data.redirect_url;
+                    } else {
+                        alert(data.message);
+                        placeOrderBtn.disabled = false;
+                        placeOrderBtn.innerHTML = 'Place Order';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while placing your order. Please try again.');
+                    placeOrderBtn.disabled = false;
+                    placeOrderBtn.innerHTML = 'Place Order';
+                });
             });
+
+            // Function to get CSRF token
+            function getCookie(name) {
+                let cookieValue = null;
+                if (document.cookie && document.cookie !== '') {
+                    const cookies = document.cookie.split(';');
+                    for (let i = 0; i < cookies.length; i++) {
+                        const cookie = cookies[i].trim();
+                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                            break;
+                        }
+                    }
+                }
+                return cookieValue;
+            }
         });
     </script>
 </body>
