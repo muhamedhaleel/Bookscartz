@@ -1,89 +1,568 @@
-{% extends 'base.html' %}
 {% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Orders - Bookscartz</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #2C3639;
+            --secondary-color: rgb(151, 112, 78);
+            --accent-color: #DCD7C9;
+            --text-color: #2C3639;
+            --light-bg: #F5F5F5;
+            --white: #FFFFFF;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
 
-{% block content %}
-<div class="container mx-auto px-4 py-8">
-    <!-- Page Title -->
-    <h1 class="text-3xl font-bold text-gray-800 mb-8">My Orders</h1>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-    <!-- Order Status Menu -->
-    <div class="bg-white rounded-lg shadow-md p-4 mb-8">
-        <div class="flex space-x-4">
-            <a href="{% url 'user_orders' %}" class="px-4 py-2 rounded-md {% if not status %}bg-blue-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
-                All Orders
-            </a>
-            <a href="{% url 'user_orders' %}?status=delivered" class="px-4 py-2 rounded-md {% if status == 'delivered' %}bg-blue-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
-                Delivered Orders
-            </a>
-            <a href="{% url 'user_orders' %}?status=cancelled" class="px-4 py-2 rounded-md {% if status == 'cancelled' %}bg-blue-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
-                Cancelled Orders
-            </a>
-            <a href="{% url 'user_orders' %}?status=returned" class="px-4 py-2 rounded-md {% if status == 'returned' %}bg-blue-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
-                Returned Orders
-            </a>
+        body {
+            font-family: 'Montserrat', sans-serif;
+            color: var(--text-color);
+            line-height: 1.6;
+            background-color: var(--light-bg);
+        }
+
+        .header {
+            background: var(--white);
+            position: fixed;
+            width: 100%;
+            z-index: 1000;
+            box-shadow: var(--shadow);
+            top: 0;
+            left: 0;
+        }
+
+        .top-bar {
+            background: var(--primary-color);
+            color: var(--white);
+            padding: 6px 0;
+            font-size: 0.85rem;
+            text-align: center;
+            width: 100%;
+        }
+
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0.8rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--white);
+            height: 70px;
+        }
+
+        .logo {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            text-decoration: none;
+            letter-spacing: 1px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 120px auto 2rem;
+            padding: 0 1.5rem;
+        }
+
+        .page-title {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.8rem;
+            color: var(--primary-color);
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .status-menu {
+            background: var(--white);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .status-links {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+
+        .status-link {
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            text-decoration: none;
+            transition: var(--transition);
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .status-link.active {
+            background: var(--secondary-color);
+            color: var(--white);
+        }
+
+        .status-link:not(.active) {
+            background: var(--light-bg);
+            color: var(--text-color);
+        }
+
+        .status-link:hover:not(.active) {
+            background: var(--accent-color);
+        }
+
+        .order-card {
+            background: var(--white);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+
+        .order-header {
+            padding: 1rem;
+            border-bottom: 1px solid var(--light-bg);
+        }
+
+        .order-header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .order-id {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        .order-date {
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        .order-status {
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .order-total {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-top: 0.3rem;
+            color: var(--primary-color);
+        }
+
+        .order-items {
+            padding: 1rem;
+        }
+
+        .item {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 1rem;
+            padding: 0.8rem 0;
+            border-bottom: 1px solid var(--light-bg);
+        }
+
+        .item:last-child {
+            border-bottom: none;
+        }
+
+        .item-image {
+            width: 70px;
+            height: 90px;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .item-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .item-details h3 {
+            font-size: 1rem;
+            margin-bottom: 0.3rem;
+            color: var(--primary-color);
+        }
+
+        .item-meta {
+            font-size: 0.85rem;
+            color: #666;
+            line-height: 1.4;
+        }
+
+        .order-actions {
+            padding: 0.8rem 1rem;
+            background: var(--light-bg);
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .view-details-btn {
+            padding: 0.5rem 1rem;
+            background: var(--secondary-color);
+            color: var(--white);
+            text-decoration: none;
+            border-radius: 6px;
+            transition: var(--transition);
+            font-size: 0.9rem;
+        }
+
+        .view-details-btn:hover {
+            background: var(--primary-color);
+        }
+
+        .empty-orders {
+            text-align: center;
+            padding: 2rem;
+            background: var(--white);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+        }
+
+        .empty-message {
+            font-size: 1.1rem;
+            color: #666;
+            margin-bottom: 1rem;
+        }
+
+        .continue-shopping-btn {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            background: var(--secondary-color);
+            color: var(--white);
+            text-decoration: none;
+            border-radius: 6px;
+            transition: var(--transition);
+        }
+
+        .continue-shopping-btn:hover {
+            background: var(--primary-color);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: var(--text-color);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: var(--transition);
+        }
+
+        .nav-links a:hover {
+            color: var(--secondary-color);
+        }
+
+        .order-info-right {
+            text-align: right;
+        }
+
+        .order-payment-info {
+            margin-top: 0.5rem;
+        }
+
+        .payment-method {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 0.5rem;
+        }
+
+        .payment-icon {
+            color: var(--secondary-color);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+        }
+
+        .download-invoice-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--primary-color);
+            color: var(--white);
+            text-decoration: none;
+            border-radius: 6px;
+            transition: var(--transition);
+            font-size: 0.9rem;
+        }
+
+        .download-invoice-btn:hover {
+            background: var(--secondary-color);
+        }
+
+        .cancel-order-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background-color 0.3s;
+        }
+
+        .cancel-order-btn:hover {
+            background: #c82333;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 1rem;
+            }
+
+            .status-links {
+                gap: 0.5rem;
+            }
+            
+            .status-link {
+                padding: 0.4rem 0.8rem;
+                font-size: 0.85rem;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .mobile-menu-btn {
+                display: block;
+                font-size: 1.5rem;
+                color: var(--primary-color);
+                cursor: pointer;
+            }
+
+            .order-header-content {
+                gap: 0.5rem;
+            }
+
+            .item {
+                grid-template-columns: auto 1fr;
+            }
+
+            .item-image {
+                width: 60px;
+                height: 80px;
+            }
+
+            .order-info-right {
+                text-align: left;
+                margin-top: 0.5rem;
+            }
+
+            .payment-method {
+                justify-content: flex-start;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            
+            .download-invoice-btn, .view-details-btn {
+                text-align: center;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="top-bar">
+            Free shipping on orders over ₹999 | Shop now
         </div>
-    </div>
+        <nav class="nav-container">
+            <a href="{% url 'home' %}" class="logo">BOOKSCARTZ</a>
+            <div class="nav-links">
+                <a href="{% url 'home' %}">Home</a>
+                <a href="{% url 'product_list' %}">Books</a>
+                <a href="{% url 'cart' %}">Cart</a>
+                {% if user.is_authenticated %}
+                    <a href="{% url 'user_orders' %}">My Orders</a>
+                    <a href="{% url 'profile' %}">Profile</a>
+                    <a href="{% url 'logout' %}">Logout</a>
+                {% else %}
+                    <a href="{% url 'login' %}">Login</a>
+                    <a href="{% url 'register' %}">Register</a>
+                {% endif %}
+            </div>
+        </nav>
+    </header>
 
-    <!-- Orders List -->
-    <div class="space-y-6">
+    <div class="container">
+        <h1 class="page-title">My Orders</h1>
+
+        <div class="status-menu">
+            <div class="status-links">
+                <a href="{% url 'user_orders' %}" class="status-link {% if not status %}active{% endif %}">All Orders</a>
+                <a href="{% url 'user_orders' %}?status=delivered" class="status-link {% if status == 'delivered' %}active{% endif %}">Delivered</a>
+                <a href="{% url 'user_orders' %}?status=cancelled" class="status-link {% if status == 'cancelled' %}active{% endif %}">Cancelled</a>
+                <a href="{% url 'user_orders' %}?status=returned" class="status-link {% if status == 'returned' %}active{% endif %}">Returned</a>
+            </div>
+        </div>
+
         {% for order in orders %}
-        <div class="bg-white rounded-lg shadow-md overflow-hidden">
-            <!-- Order Header -->
-            <div class="p-4 border-b border-gray-200">
-                <div class="flex justify-between items-center">
+        <div class="order-card">
+            <div class="order-header">
+                <div class="order-header-content">
                     <div>
-                        <h2 class="text-lg font-semibold text-gray-800">Order #{{ order.id }}</h2>
-                        <p class="text-sm text-gray-600">Placed on {{ order.created_at|date:"F j, Y" }}</p>
+                        <h2 class="order-id">Order #{{ order.id }}</h2>
+                        <p class="order-date">{{ order.created_at|date:"F j, Y" }}</p>
                     </div>
-                    <div class="text-right">
-                        <span class="px-3 py-1 rounded-full text-sm font-medium
-                            {% if order.status == 'pending' %}bg-yellow-100 text-yellow-800
-                            {% elif order.status == 'processing' %}bg-blue-100 text-blue-800
-                            {% elif order.status == 'shipped' %}bg-purple-100 text-purple-800
-                            {% elif order.status == 'delivered' %}bg-green-100 text-green-800
-                            {% elif order.status == 'cancelled' %}bg-red-100 text-red-800
-                            {% elif order.status == 'returned' %}bg-orange-100 text-orange-800{% endif %}">
+                    <div class="order-info-right">
+                        <span class="order-status" style="
+                            background-color: {% if order.status == 'pending' %}#fff3cd
+                            {% elif order.status == 'processing' %}#cfe2ff
+                            {% elif order.status == 'shipped' %}#e2d9f3
+                            {% elif order.status == 'delivered' %}#d1e7dd
+                            {% elif order.status == 'cancelled' %}#f8d7da
+                            {% elif order.status == 'returned' %}#fff3cd{% endif %};
+                            color: {% if order.status == 'pending' %}#856404
+                            {% elif order.status == 'processing' %}#0c63e4
+                            {% elif order.status == 'shipped' %}#6f42c1
+                            {% elif order.status == 'delivered' %}#0f5132
+                            {% elif order.status == 'cancelled' %}#842029
+                            {% elif order.status == 'returned' %}#856404{% endif %};">
                             {{ order.get_status_display }}
                         </span>
-                        <p class="text-lg font-bold text-gray-900 mt-1">₹{{ order.total_amount }}</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Order Items -->
-            <div class="p-4">
-                <div class="space-y-4">
-                    {% for item in order.items.all %}
-                    <div class="flex items-center space-x-4">
-                        <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" class="w-20 h-20 object-cover rounded-md">
-                        <div class="flex-1">
-                            <h3 class="text-lg font-medium text-gray-800">{{ item.product.name }}</h3>
-                            <p class="text-sm text-gray-600">Quantity: {{ item.quantity }}</p>
-                            <p class="text-sm text-gray-600">Price: ₹{{ item.price }}</p>
-                            <p class="text-sm font-medium text-gray-900">Total: ₹{{ item.total_price }}</p>
+                        <div class="order-payment-info">
+                            <p class="payment-method">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="payment-icon">
+                                    <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                                    <line x1="1" y1="10" x2="23" y2="10"></line>
+                                </svg>
+                                {{ order.payment_method }}
+                            </p>
+                            <p class="order-total">₹{{ order.total_amount }}</p>
                         </div>
                     </div>
-                    {% endfor %}
                 </div>
             </div>
 
-            <!-- Order Actions -->
-            <div class="p-4 bg-gray-50 border-t border-gray-200">
-                <div class="flex justify-end space-x-4">
-                    <a href="{% url 'order_details' order.id %}" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
-                        View Details
+            <div class="order-items">
+                {% for item in order.items.all %}
+                <div class="item">
+                    <div class="item-image">
+                        {% if item.product.image1 %}
+                            <img src="{{ item.product.image1.url }}" alt="{{ item.product.name }}">
+                        {% elif item.product.image %}
+                            <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}">
+                        {% else %}
+                            <img src="{% static 'images/no-image.png' %}" alt="No image available">
+                        {% endif %}
+                    </div>
+                    <div class="item-details">
+                        <h3>{{ item.product.name }}</h3>
+                        <div class="item-meta">
+                            <p>Quantity: {{ item.quantity }}</p>
+                            <p>Price: ₹{{ item.price }}</p>
+                            <p>Total: ₹{{ item.total_price }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="order-actions">
+                <div class="action-buttons">
+                    <a href="{% url 'order_details' order.id %}" class="view-details-btn">View Details</a>
+                    <a href="{% url 'download_invoice' order.id %}" class="download-invoice-btn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        Invoice
                     </a>
+                    {% if order.status != 'cancelled' and order.status != 'delivered' %}
+                    <button onclick="cancelOrder({{ order.id }})" class="cancel-order-btn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="15" y1="9" x2="9" y2="15"></line>
+                            <line x1="9" y1="9" x2="15" y2="15"></line>
+                        </svg>
+                        Cancel Order
+                    </button>
+                    {% endif %}
                 </div>
             </div>
         </div>
         {% empty %}
-        <div class="bg-white rounded-lg shadow-md p-8 text-center">
-            <p class="text-gray-600 text-lg">No orders found.</p>
-            <a href="{% url 'product_list' %}" class="mt-4 inline-block px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
-                Continue Shopping
-            </a>
+        <div class="empty-orders">
+            <p class="empty-message">No orders found.</p>
+            <a href="{% url 'product_list' %}" class="continue-shopping-btn">Continue Shopping</a>
         </div>
         {% endfor %}
     </div>
-</div>
-{% endblock %} 
+
+    <script>
+    function cancelOrder(orderId) {
+        if (confirm('Are you sure you want to cancel this order?')) {
+            fetch(`/cancel-order/${orderId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    window.location.reload();
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while cancelling the order.');
+            });
+        }
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    </script>
+</body>
+</html> 

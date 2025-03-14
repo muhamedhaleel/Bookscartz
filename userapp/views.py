@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, authenticate, logout
 from django.contrib import messages
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from .forms import SignupForm
@@ -11,6 +11,8 @@ import json
 from django.db.models import Q
 from django.urls import reverse
 from decimal import Decimal
+from .utils import render_to_pdf
+from django.db import transaction
 
 def signup(request):
     if request.method == 'POST':
@@ -777,3 +779,57 @@ def user_orders(request):
         'status': status
     }
     return render(request, 'user_orders.html', context)
+
+@login_required
+def download_invoice(request, order_id):
+    order = get_object_or_404(Order, id=order_id, user=request.user)
+    
+    # Generate PDF
+    pdf = render_to_pdf('invoice_template.html', {
+        'order': order,
+    })
+    
+    if pdf:
+        response = HttpResponse(pdf, content_type='application/pdf')
+        filename = f"Invoice_{order.id}.pdf"
+        content = f"attachment; filename={filename}"
+        response['Content-Disposition'] = content
+        return response
+    
+    return HttpResponse("Error generating PDF", status=404)
+
+@require_POST
+@login_required
+def cancel_order(request, order_id):
+    try:
+        with transaction.atomic():
+            order = get_object_or_404(Order, id=order_id, user=request.user)
+            
+            # Check if order can be cancelled
+            if order.status in ['delivered', 'cancelled']:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'This order cannot be cancelled.'
+                })
+            
+            # Update order status
+            order.status = 'cancelled'
+            order.save()
+            
+            # Increment product stock
+            for item in order.items.all():
+                product = item.product
+                product.stock += item.quantity
+                product.save()
+            
+            messages.success(request, 'Order cancelled successfully.')
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Order cancelled successfully'
+            })
+            
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        })

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Invoice #{{ order.id }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .invoice-details {
+            margin-bottom: 30px;
+        }
+        .invoice-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+        .invoice-table th, .invoice-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .invoice-table th {
+            background-color: #f8f9fa;
+        }
+        .total-section {
+            text-align: right;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>BOOKSCARTZ</h1>
+        <h2>Invoice</h2>
+    </div>
+
+    <div class="invoice-details">
+        <p><strong>Order #:</strong> {{ order.id }}</p>
+        <p><strong>Date:</strong> {{ order.created_at|date:"F j, Y" }}</p>
+        <p><strong>Payment Method:</strong> {{ order.payment_method }}</p>
+    </div>
+
+    <div class="customer-details">
+        <h3>Bill To:</h3>
+        <p>{{ order.billing_address.full_name }}</p>
+        <p>{{ order.billing_address.address_line1 }}</p>
+        {% if order.billing_address.address_line2 %}
+        <p>{{ order.billing_address.address_line2 }}</p>
+        {% endif %}
+        <p>{{ order.billing_address.city }}, {{ order.billing_address.state }} - {{ order.billing_address.pincode }}</p>
+        <p>Phone: {{ order.billing_address.phone }}</p>
+    </div>
+
+    <table class="invoice-table">
+        <thead>
+            <tr>
+                <th>Item</th>
+                <th>Quantity</th>
+                <th>Price</th>
+                <th>Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in order.items.all %}
+            <tr>
+                <td>{{ item.product.name }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>₹{{ item.price }}</td>
+                <td>₹{{ item.total_price }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="total-section">
+        <p><strong>Subtotal:</strong> ₹{{ order.subtotal }}</p>
+        {% if order.total_discount > 0 %}
+        <p><strong>Discount:</strong> -₹{{ order.total_discount }}</p>
+        {% endif %}
+        <p><strong>Shipping:</strong> {% if order.subtotal >= 999 %}Free{% else %}₹50{% endif %}</p>
+        <h3>Total: ₹{{ order.total_amount }}</h3>
+    </div>
+</body>
+</html> 
