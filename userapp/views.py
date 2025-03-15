@@ -5,7 +5,7 @@ from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from .forms import SignupForm
-from adminapp.models import CustomUser, Brand, Product, Category, Language, Cart, CartItem, Address, Offer, Order, OrderItem
+from adminapp.models import CustomUser, Brand, Product, Category, Language, Cart, CartItem, Address, Offer, Order, OrderItem, ReturnRequest
 from django.core.exceptions import ValidationError
 import json
 from django.db.models import Q
@@ -762,15 +762,18 @@ def order_details(request, order_id):
     order = get_object_or_404(Order, id=order_id, user=request.user)
     return render(request, 'order_details.html', {'order': order})
 
-@login_required
+@login_required(login_url='user_login')
 def user_orders(request):
-    # Get status filter from query parameters
+    # Get user's orders with related data
+    orders = Order.objects.filter(user=request.user)\
+        .select_related('user')\
+        .prefetch_related(
+            'items__product',
+            'return_request'
+        ).order_by('-created_at')
+    
+    # Filter by status if provided
     status = request.GET.get('status')
-    
-    # Base queryset for user's orders
-    orders = Order.objects.filter(user=request.user).order_by('-created_at')
-    
-    # Apply status filter if provided
     if status:
         orders = orders.filter(status=status)
     
@@ -833,3 +836,61 @@ def cancel_order(request, order_id):
             'status': 'error',
             'message': str(e)
         })
+
+@login_required
+def request_return(request, order_id):
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=400)
+        
+    try:
+        order = get_object_or_404(Order, id=order_id, user=request.user)
+        
+        # Check if order is eligible for return
+        if order.status != 'delivered':
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Order is not eligible for return'
+            }, status=400)
+            
+        # Check if return request already exists
+        if order.return_request.exists():
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Return request already exists for this order'
+            }, status=400)
+            
+        reason = request.POST.get('reason')
+        comments = request.POST.get('comments')
+        
+        if not reason:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Return reason is required'
+            }, status=400)
+            
+        with transaction.atomic():
+            # Create return request
+            return_request = ReturnRequest.objects.create(
+                order=order,
+                reason=reason,
+                comments=comments,
+                status='pending'
+            )
+            
+            # Mark items as return requested
+            for item in order.items.all():
+                item.return_requested = True
+                item.return_status = 'requested'
+                item.save()
+            
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Return request submitted successfully'
+        })
+        
+    except Exception as e:
+        print(f"Error processing return request: {str(e)}")
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Error processing return request'
+        }, status=500)

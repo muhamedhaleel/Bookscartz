@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .models import Category, Brand, Product, Language, Offer
+from .models import Category, Brand, Product, Language, Offer, Order, ReturnRequest, OrderItem
 from .forms import CategoryForm
 from django.views import View
 from django.shortcuts import render, redirect, get_object_or_404
@@ -14,6 +14,10 @@ from django.core.files.images import get_image_dimensions
 from PIL import Image
 import os
 from django.http import JsonResponse
+from django.db.models.query import Prefetch
+from django.db import transaction
+from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import ensure_csrf_cookie
 
 
 
@@ -806,3 +810,191 @@ def get_offer_items(request):
         return JsonResponse({'error': str(e)}, status=500)
     
     return JsonResponse(items, safe=False)
+
+@login_required(login_url='admin_login')
+def admin_manage_orders(request):
+    if not request.user.is_staff:
+        messages.error(request, 'Unauthorized access')
+        return redirect('admin_login')
+        
+    # Get all orders with related data
+    orders = Order.objects.all()\
+        .select_related('user')\
+        .prefetch_related(
+            'items__product',
+            'return_request',
+            Prefetch('items', queryset=OrderItem.objects.filter(return_requested=True), to_attr='returned_items')
+        ).order_by('-created_at')
+    
+    # Filter by status if provided
+    status = request.GET.get('status')
+    if status:
+        orders = orders.filter(status=status)
+    
+    paginator = Paginator(orders, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'orders': page_obj,
+        'current_status': status,
+        'status_choices': Order.STATUS_CHOICES
+    }
+    return render(request, 'admin_mange_order.html', context)
+
+@login_required(login_url='admin_login')
+def get_return_details(request, order_id):
+    if not request.user.is_staff:
+        return JsonResponse({'status': 'error', 'message': 'Unauthorized'}, status=403)
+    
+    try:
+        # Get order and return request
+        order = get_object_or_404(Order, id=order_id)
+        return_request = order.return_request.select_related('order').first()
+        
+        if not return_request:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Return request not found'
+            }, status=404)
+            
+        # Get returned items with their details
+        returned_items = order.items.filter(return_requested=True).select_related('product')
+        
+        # Format the response data
+        response_data = {
+            'status': 'success',
+            'order_id': order.id,
+            'customer_name': f"{order.user.first_name} {order.user.last_name}",
+            'created_at': return_request.created_at.strftime('%B %d, %Y'),
+            'status': return_request.status,
+            'reason': return_request.get_reason_display(),
+            'comments': return_request.comments,
+            'items': []
+        }
+        
+        # Add item details
+        for item in returned_items:
+            try:
+                item_data = {
+                    'name': item.product.name,
+                    'quantity': item.quantity,
+                    'price': str(item.price),
+                    'image': request.build_absolute_uri(item.product.image1.url) if item.product.image1 else '',
+                    'return_status': item.return_status
+                }
+                response_data['items'].append(item_data)
+            except Exception as e:
+                print(f"Error processing item {item.id}: {str(e)}")
+                continue
+        
+        return JsonResponse(response_data)
+        
+    except Exception as e:
+        print(f"Error in get_return_details: {str(e)}")
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Failed to load return details'
+        }, status=500)
+
+@login_required(login_url='admin_login')
+@require_http_methods(["POST"])
+def admin_handle_return(request, order_id):
+    if not request.user.is_staff:
+        return JsonResponse({'status': 'error', 'message': 'Unauthorized'}, status=403)
+        
+    try:
+        with transaction.atomic():
+            order = get_object_or_404(Order, id=order_id)
+            return_request = order.return_request.first()
+            
+            if not return_request:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Return request not found'
+                }, status=404)
+            
+            status = request.POST.get('return_status')
+            admin_notes = request.POST.get('admin_notes', '')
+            
+            if status not in ['approved', 'rejected']:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Invalid status'
+                }, status=400)
+            
+            # Update return request
+            return_request.status = status
+            return_request.admin_notes = admin_notes
+            return_request.save()
+            
+            # Update order items and inventory
+            returned_items = order.items.filter(return_requested=True)
+            all_items_returned = True  # Flag to check if all items are returned
+            
+            for item in returned_items:
+                item.return_status = status
+                item.save()
+                
+                if status == 'approved':
+                    # Update inventory - add back to stock
+                    product = item.product
+                    product.stock += item.quantity
+                    product.save()
+                else:
+                    all_items_returned = False
+            
+            # Update order status if all items are approved for return
+            if status == 'approved' and all_items_returned:
+                order.status = 'returned'
+                order.save()
+            
+            # Send notification to user (you can implement this)
+            message = 'Return request approved' if status == 'approved' else 'Return request rejected'
+            if admin_notes:
+                message += f"\nAdmin Notes: {admin_notes}"
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': f'Return request has been {status} successfully'
+            })
+            
+    except Exception as e:
+        print(f"Error handling return: {str(e)}")
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Error processing return request'
+        }, status=500)
+
+@login_required(login_url='admin_login')
+def update_order_status(request, order_id):
+    if not request.user.is_staff:
+        messages.error(request, 'Unauthorized access')
+        return redirect('admin_login')
+        
+    if request.method == 'POST':
+        order = get_object_or_404(Order, id=order_id)
+        new_status = request.POST.get('status')
+        
+        # Don't allow status changes for cancelled orders
+        if order.status == 'cancelled':
+            messages.error(request, 'Cannot modify cancelled orders')
+            return redirect('admin_manage_orders')
+            
+        # Define valid status transitions
+        valid_transitions = {
+            'pending': ['conformed'],
+            'conformed': ['shipped'],
+            'shipped': ['delivered'],
+            'delivered': []  # Remove the returned option
+        }
+        
+        # Check if the transition is valid
+        if order.status in valid_transitions and new_status in valid_transitions.get(order.status, []):
+            order.status = new_status
+            order.save()
+            messages.success(request, f'Order #{order.id} status updated to {order.get_status_display()}')
+        else:
+            messages.error(request, f'Invalid status transition from {order.get_status_display()} to {new_status}')
+            
+    return redirect('admin_manage_orders')

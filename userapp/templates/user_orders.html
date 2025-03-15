@@ -336,6 +336,150 @@
             background: #c82333;
         }
 
+        .return-order-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background-color: #FEF3C7;
+            color: #92400E;
+            border: none;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .return-order-btn:hover {
+            background-color: #FDE68A;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h3 {
+            font-size: 1.5rem;
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        .close {
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--primary-color);
+        }
+
+        .form-select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        .form-textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .cancel-btn {
+            padding: 10px 20px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background: white;
+            color: #666;
+            cursor: pointer;
+        }
+
+        .submit-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            background: var(--secondary-color);
+            color: white;
+            cursor: pointer;
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        .return-btn {
+            padding: 8px 16px;
+            background: #FEF3C7;
+            color: #92400E;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .return-btn:hover {
+            background: #FDE68A;
+        }
+
+        @media (max-width: 640px) {
+            .modal-container {
+                margin: 1rem;
+                padding: 1rem;
+            }
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 0 1rem;
@@ -393,6 +537,93 @@
                 justify-content: center;
             }
         }
+
+        .success-toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            color: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            transition: all 0.3s ease;
+            transform: translateX(120%);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .success-toast.show {
+            transform: translateX(0);
+        }
+
+        .check-icon {
+            width: 1.5rem;
+            height: 1.5rem;
+            stroke: white;
+        }
+
+        /* Add animation for the loading spinner */
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+
+        .return-items-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.375rem;
+            padding: 0.5rem;
+        }
+
+        .return-item-option {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .return-item-option:last-child {
+            border-bottom: none;
+        }
+
+        .return-item-checkbox {
+            margin-right: 1rem;
+        }
+
+        .return-item-label {
+            display: flex;
+            align-items: center;
+            flex: 1;
+            cursor: pointer;
+        }
+
+        .return-item-image {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 0.25rem;
+            margin-right: 1rem;
+        }
+
+        .return-item-details {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .return-item-name {
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+
+        .return-item-qty {
+            font-size: 0.75rem;
+            color: #6b7280;
+        }
     </style>
 </head>
 <body>
@@ -428,8 +659,8 @@
                 <a href="{% url 'user_orders' %}?status=delivered" class="status-link {% if status == 'delivered' %}active{% endif %}">Delivered</a>
                 <a href="{% url 'user_orders' %}?status=cancelled" class="status-link {% if status == 'cancelled' %}active{% endif %}">Cancelled</a>
                 <a href="{% url 'user_orders' %}?status=returned" class="status-link {% if status == 'returned' %}active{% endif %}">Returned</a>
-            </div>
         </div>
+    </div>
 
         {% for order in orders %}
         <div class="order-card">
@@ -470,7 +701,7 @@
             </div>
 
             <div class="order-items">
-                {% for item in order.items.all %}
+                    {% for item in order.items.all %}
                 <div class="item">
                     <div class="item-image">
                         {% if item.product.image1 %}
@@ -504,15 +735,29 @@
                         </svg>
                         Invoice
                     </a>
+                    
+                    <!-- Debug the condition -->
+                    {% if order.status == 'delivered' %}
+                        <!-- Add this to debug -->
+                        <span style="display:none">
+                            Status: {{ order.status }}
+                            Has return request: {{ order.return_request|yesno:"yes,no" }}
+                        </span>
+                        
+                        <button type="button" onclick="openReturnModal('{{ order.id }}')" class="return-btn">
+                            Return Item
+                        </button>
+                    {% endif %}
+                    
                     {% if order.status != 'cancelled' and order.status != 'delivered' %}
-                    <button onclick="cancelOrder({{ order.id }})" class="cancel-order-btn">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <line x1="15" y1="9" x2="9" y2="15"></line>
-                            <line x1="9" y1="9" x2="15" y2="15"></line>
-                        </svg>
-                        Cancel Order
-                    </button>
+                        <button onclick="cancelOrder({{ order.id }})" class="cancel-order-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="15" y1="9" x2="9" y2="15"></line>
+                                <line x1="9" y1="9" x2="15" y2="15"></line>
+                            </svg>
+                            Cancel Order
+                        </button>
                     {% endif %}
                 </div>
             </div>
@@ -525,6 +770,48 @@
         {% endfor %}
     </div>
 
+    <!-- Return Modal -->
+    <div id="returnModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Return Request</h3>
+                <span class="close" onclick="closeReturnModal()">&times;</span>
+            </div>
+            <form id="returnForm">
+                {% csrf_token %}
+                <input type="hidden" id="order_id" name="order_id">
+                
+                <div class="form-group">
+                    <label for="complaint_type">Complaint Type *</label>
+                    <select id="complaint_type" name="reason" class="form-select" required>
+                        <option value="">Select complaint type</option>
+                        <option value="defective">Product is defective</option>
+                        <option value="wrong_item">Received wrong item</option>
+                        <option value="not_as_described">Product not as described</option>
+                        <option value="damaged">Product is damaged</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="return_comments">Reason for Return *</label>
+                    <textarea id="return_comments" 
+                             name="comments" 
+                             class="form-textarea" 
+                             rows="4"
+                             placeholder="Please describe your reason for return..."
+                             required></textarea>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" onclick="closeReturnModal()" class="cancel-btn">Cancel</button>
+                    <button type="submit" class="submit-btn">Submit Request</button>
+                </div>
+            </form>
+    </div>
+</div>
+
+    <!-- Add this JavaScript -->
     <script>
     function cancelOrder(orderId) {
         if (confirm('Are you sure you want to cancel this order?')) {
@@ -563,6 +850,62 @@
         }
         return cookieValue;
     }
+
+    function openReturnModal(orderId) {
+        document.getElementById('order_id').value = orderId;
+        document.getElementById('returnModal').classList.add('show');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeReturnModal() {
+        const modal = document.getElementById('returnModal');
+        modal.classList.remove('show');
+        document.body.style.overflow = 'auto';
+        document.getElementById('returnForm').reset();
+    }
+
+    document.getElementById('returnForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const orderId = document.getElementById('order_id').value;
+        const reason = document.getElementById('complaint_type').value;
+        const comments = document.getElementById('return_comments').value;
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
+        if (!reason || !comments) {
+            alert('Please fill in all required fields');
+            return;
+        }
+        
+        const data = new URLSearchParams();
+        data.append('reason', reason);
+        data.append('comments', comments);
+        data.append('csrfmiddlewaretoken', csrfToken);
+        
+        fetch(`/request-return/${orderId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': csrfToken,
+                'Accept': 'application/json'
+            },
+            credentials: 'same-origin',
+            body: data
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert('Return request submitted successfully');
+                window.location.reload();
+            } else {
+                throw new Error(data.message || 'Error submitting return request');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert(error.message || 'An error occurred while submitting the return request');
+        });
+    });
     </script>
 </body>
 </html> 

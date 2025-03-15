@@ -189,14 +189,14 @@ class Offer(models.Model):
         return f"{self.get_offer_type_display()} - {self.discount}%"
 
 class Order(models.Model):
-    STATUS_CHOICES = (
+    STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('processing', 'Processing'),
         ('shipped', 'Shipped'),
         ('delivered', 'Delivered'),
         ('cancelled', 'Cancelled'),
         ('returned', 'Returned'),
-    )
+    ]
 
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     customer_name = models.CharField(max_length=100)
@@ -215,15 +215,25 @@ class Order(models.Model):
         return f"Order #{self.id} by {self.customer_name}"
 
 class OrderItem(models.Model):
-    order = models.ForeignKey(Order, related_name='items', on_delete=models.CASCADE)
-    product = models.ForeignKey(Product, on_delete=models.PROTECT)
+    RETURN_STATUS_CHOICES = (
+        ('none', 'No Return'),
+        ('requested', 'Return Requested'),
+        ('approved', 'Return Approved'),
+        ('rejected', 'Return Rejected')
+    )
+    
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.PositiveIntegerField()
-    price = models.DecimalField(max_digits=10, decimal_places=2)  # Price at the time of order
+    price = models.DecimalField(max_digits=10, decimal_places=2)
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
+    return_requested = models.BooleanField(default=False)
+    return_status = models.CharField(
+        max_length=20, 
+        choices=RETURN_STATUS_CHOICES,
+        default='none'
+    )
     created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        db_table = 'adminapp_orderitem'
 
     def __str__(self):
         return f"{self.quantity} x {self.product.name} in Order #{self.order.id}"
@@ -231,5 +241,41 @@ class OrderItem(models.Model):
     def save(self, *args, **kwargs):
         self.total_price = self.quantity * self.price
         super().save(*args, **kwargs)
+
+class ReturnRequest(models.Model):
+    REASON_CHOICES = [
+        ('defective', 'Product is defective'),
+        ('wrong_item', 'Received wrong item'),
+        ('not_as_described', 'Product not as described'),
+        ('damaged', 'Product is damaged'),
+        ('other', 'Other')
+    ]
+    
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected')
+    ]
+    
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='return_request')
+    reason = models.CharField(max_length=50, choices=REASON_CHOICES)
+    comments = models.TextField(blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+    admin_notes = models.TextField(blank=True)
+
+    def __str__(self):
+        return f"Return Request for Order #{self.order.id}"
+
+    def save(self, *args, **kwargs):
+        is_new = self._state.adding
+        super().save(*args, **kwargs)
+        
+        if is_new:
+            # Update order items marked for return
+            for item in self.order.items.all():
+                item.return_requested = True
+                item.return_status = 'requested'
+                item.save()
 
 

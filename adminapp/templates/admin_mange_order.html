@@ -45,7 +45,8 @@
                 <a href="{% url 'category_list' %}" class="flex items-center py-2 px-3 hover:bg-white rounded-lg">Category</a>
                 <a href="{% url 'brand_list' %}" class="flex items-center py-2 px-3 hover:bg-white rounded-lg">Publisher</a>
                 <a href="{% url 'admin_customer' %}" class="flex items-center py-2 px-3 hover:bg-white rounded-lg">Customers</a>
-                <a href="{% url 'offer_list' %}" class="flex items-center py-2 px-3 bg-white rounded-lg">Offers</a>
+                <a href="{% url 'admin_manage_orders' %}" class="flex items-center py-2 px-3 bg-white rounded-lg">Orders</a>
+                <a href="{% url 'offer_list' %}" class="flex items-center py-2 px-3 hover:bg-white rounded-lg">Offers</a>
             </nav>
         </aside>
 
@@ -57,7 +58,24 @@
                 
             </div>
 
-            <!-- Offer Table -->
+            <!-- Add status filter -->
+            <div class="mb-6">
+                <form method="get" class="flex gap-4">
+                    <select name="status" class="rounded-lg border-gray-300 focus:border-[#A79277] focus:ring-[#A79277]">
+                        <option value="">All Orders</option>
+                        {% for status_code, status_label in status_choices %}
+                        <option value="{{ status_code }}" {% if current_status == status_code %}selected{% endif %}>
+                            {{ status_label }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="px-4 py-2 bg-[#A79277] text-white rounded-lg hover:bg-[#8B7355]">
+                        Filter
+                    </button>
+                </form>
+            </div>
+
+            <!-- Orders Table -->
             <div class="bg-white rounded-lg shadow-lg overflow-hidden">
                 <table class="w-full border-collapse">
                     <thead class="bg-[#A79277] text-white">
@@ -69,16 +87,335 @@
                             <th class="py-4 px-6 text-left">Payment Method</th>
                             <th class="py-4 px-6 text-left">Status</th>
                             <th class="py-4 px-6 text-left">Actions</th>
+                            <th class="py-4 px-6 text-left">Return Status</th>
                         </tr>
                     </thead>
-                   
-                            </div>
+                    <tbody>
+                        {% for order in orders %}
+                        <tr class="border-b hover:bg-gray-50">
+                            <td class="py-4 px-6">{{ forloop.counter|add:orders.start_index|add:"-1" }}</td>
+                            <td class="py-4 px-6">#{{ order.id }}</td>
+                            <td class="py-4 px-6">{{ order.created_at|date:"M d, Y" }}</td>
+                            <td class="py-4 px-6">₹{{ order.total_amount }}</td>
+                            <td class="py-4 px-6">{{ order.payment_method }}</td>
+                            <td class="py-4 px-6">
+                                <span class="px-3 py-1 rounded-full text-sm
+                                    {% if order.status == 'conformed' %}bg-yellow-100 text-yellow-800
+                                    {% elif order.status == 'processing' %}bg-blue-100 text-blue-800
+                                    {% elif order.status == 'shipped' %}bg-purple-100 text-purple-800
+                                    {% elif order.status == 'delivered' %}bg-green-100 text-green-800
+                                    {% elif order.status == 'cancelled' %}bg-red-100 text-red-800{% endif %}">
+                                    {{ order.get_status_display }}
+                                </span>
+                            </td>
+                            <td class="py-4 px-6">
+                                <form method="post" action="{% url 'update_order_status' order.id %}" class="flex gap-2">
+                                    {% csrf_token %}
+                                    <select name="status" class="rounded border-gray-300 text-sm">
+                                        {% for status_code, status_label in status_choices %}
+                                            {% if status_code != 'returned' %}
+                                                <option value="{{ status_code }}" {% if order.status == status_code %}selected{% endif %}>
+                                                    {{ status_label }}
+                                                </option>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </select>
+                                    <button type="submit" class="px-3 py-1 bg-[#A79277] text-white rounded hover:bg-[#8B7355] text-sm">
+                                        Update
+                                    </button>
+                                </form>
+                            </td>
+                            <td class="py-4 px-6">
+                                {% if order.status == 'delivered' %}
+                                    {% if order.return_request %}
+                                        {% with return_request=order.return_request.first %}
+                                            {% if return_request.status == 'pending' %}
+                                                <button onclick="showReturnModal('{{ order.id }}')" 
+                                                        class="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm hover:bg-yellow-200">
+                                                    Return Requested
+                                                    <span class="text-xs ml-1">({{ order.returned_items|length }} items)</span>
+                                                </button>
+                                            {% elif return_request.status == 'approved' %}
+                                                <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
+                                                    Return Approved
+                                                </span>
+                                            {% elif return_request.status == 'rejected' %}
+                                                <span class="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm">
+                                                    Return Rejected
+                                                </span>
+                                            {% endif %}
+                                        {% endwith %}
+                                    {% else %}
+                                        <span class="text-sm text-gray-500">No Return Request</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="text-sm text-gray-500">Not Eligible</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="py-8 text-center text-gray-500">
+                                No orders found
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
 
-                            
+            <!-- Add this after the table -->
+            <div class="mt-6 flex justify-center">
+                {% if orders.paginator.num_pages > 1 %}
+                <nav class="flex items-center gap-2">
+                    <!-- Previous Page -->
+                    {% if orders.has_previous %}
+                        <a href="?page={{ orders.previous_page_number }}{% if current_status %}&status={{ current_status }}{% endif %}" 
+                           class="px-3 py-1 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200">
+                            Previous
+                        </a>
+                    {% endif %}
 
-                           
-    
-    
+                    <!-- Page Numbers -->
+                    {% for num in orders.paginator.page_range %}
+                        {% if orders.number == num %}
+                            <span class="px-3 py-1 bg-[#A79277] text-white rounded-md">{{ num }}</span>
+                        {% elif num > orders.number|add:'-3' and num < orders.number|add:'3' %}
+                            <a href="?page={{ num }}{% if current_status %}&status={{ current_status }}{% endif %}" 
+                               class="px-3 py-1 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200">
+                                {{ num }}
+                            </a>
+                        {% endif %}
+                    {% endfor %}
 
+                    <!-- Next Page -->
+                    {% if orders.has_next %}
+                        <a href="?page={{ orders.next_page_number }}{% if current_status %}&status={{ current_status }}{% endif %}" 
+                           class="px-3 py-1 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200">
+                            Next
+                        </a>
+                    {% endif %}
+                </nav>
+                {% endif %}
+            </div>
+        </main>
+    </div>
+
+    <!-- Return Modal -->
+    <div id="returnModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-xl p-5 max-w-md w-full mx-4">
+            <div class="flex justify-between items-center mb-3 border-b pb-2">
+                <h3 class="text-lg font-semibold text-gray-800">Return Request Details</h3>
+                <button onclick="closeReturnModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div id="returnDetails" class="mb-3 max-h-[70vh] overflow-y-auto">
+                <!-- Return details will be populated here -->
+            </div>
+
+            <form id="returnForm" class="space-y-3">
+                {% csrf_token %}
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-gray-700">Admin Notes (Required)</label>
+                    <textarea 
+                        name="admin_notes" 
+                        class="w-full px-3 py-2 text-sm border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Please provide a reason..."
+                        rows="2"
+                        required
+                    ></textarea>
+                </div>
+
+                <div class="flex justify-end gap-2 pt-2 border-t">
+                    <button 
+                        type="button"
+                        onclick="handleReturn('approved')" 
+                        class="px-3 py-1.5 text-sm bg-green-600 text-white rounded hover:bg-green-700 focus:ring-2 focus:ring-green-500 disabled:opacity-50"
+                    >
+                        Approve
+                    </button>
+                    <button 
+                        type="button"
+                        onclick="handleReturn('rejected')" 
+                        class="px-3 py-1.5 text-sm bg-red-600 text-white rounded hover:bg-red-700 focus:ring-2 focus:ring-red-500 disabled:opacity-50"
+                    >
+                        Reject
+                    </button>
+                    <button 
+                        type="button"
+                        onclick="closeReturnModal()" 
+                        class="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200 focus:ring-2 focus:ring-gray-400"
+                    >
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- JavaScript for modal functionality -->
+    <script>
+    let currentOrderId = null;
+
+    function showReturnModal(orderId) {
+        currentOrderId = orderId;
+        const modal = document.getElementById('returnModal');
+        const detailsContainer = document.getElementById('returnDetails');
+        
+        // Show loading state
+        detailsContainer.innerHTML = '<div class="text-center py-4">Loading...</div>';
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
+        fetch(`/orders/get-return-details/${orderId}/`, {
+            method: 'GET',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'Accept': 'application/json'
+            },
+            credentials: 'same-origin'
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to load return details');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.status === 'error') {
+                throw new Error(data.message);
+            }
+            
+            detailsContainer.innerHTML = `
+                <div class="space-y-3 text-sm">
+                    <div class="flex justify-between items-center pb-2">
+                        <div>
+                            <p class="font-medium text-gray-800">Order #${data.order_id}</p>
+                            <p class="text-gray-600 text-xs">${data.customer_name}</p>
+                            <p class="text-gray-500 text-xs">Requested: ${data.created_at}</p>
+                        </div>
+                        <span class="px-2 py-1 text-xs rounded-full 
+                            ${data.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
+                              data.status === 'approved' ? 'bg-green-100 text-green-800' : 
+                              'bg-red-100 text-red-800'}">
+                            ${data.status.charAt(0).toUpperCase() + data.status.slice(1)}
+                        </span>
+                    </div>
+
+                    <div class="space-y-2 pb-2">
+                        <div>
+                            <h4 class="font-medium text-gray-700">Return Reason:</h4>
+                            <p class="text-gray-600">${data.reason}</p>
+                        </div>
+                        
+                        <div>
+                            <h4 class="font-medium text-gray-700">Comments:</h4>
+                            <p class="text-gray-600">${data.comments || 'No comments'}</p>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h4 class="font-medium text-gray-700 mb-2">Products:</h4>
+                        <div class="space-y-2">
+                            ${data.items.map(item => `
+                                <div class="flex gap-2 bg-gray-50 p-2 rounded">
+                                    <img src="${item.image}" class="w-12 h-16 object-cover rounded" alt="${item.name}">
+                                    <div class="flex-1 min-w-0">
+                                        <p class="font-medium text-gray-800 truncate">${item.name}</p>
+                                        <p class="text-gray-600 text-xs">
+                                            Qty: ${item.quantity} | ₹${item.price}
+                                        </p>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            detailsContainer.innerHTML = `
+                <div class="text-center py-4 text-red-600">
+                    ${error.message || 'Error loading return details. Please try again.'}
+                </div>
+            `;
+        });
+    }
+
+    function handleReturn(status) {
+        if (!currentOrderId) return;
+        
+        const adminNotes = document.querySelector('textarea[name="admin_notes"]').value;
+        if (!adminNotes.trim()) {
+            alert('Please add admin notes before processing the return request');
+            return;
+        }
+        
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
+        // Show confirmation dialog
+        const confirmMessage = status === 'approved' ? 
+            'Are you sure you want to approve this return request? This will update inventory and order status.' : 
+            'Are you sure you want to reject this return request?';
+        
+        if (!confirm(confirmMessage)) {
+            return;
+        }
+        
+        // Disable buttons while processing
+        const buttons = document.querySelectorAll('#returnModal button');
+        buttons.forEach(btn => btn.disabled = true);
+        
+        fetch(`/orders/handle-return/${currentOrderId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': csrfToken,
+                'Accept': 'application/json'
+            },
+            body: new URLSearchParams({
+                'return_status': status,
+                'admin_notes': adminNotes,
+                'csrfmiddlewaretoken': csrfToken
+            })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to process return request');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.status === 'success') {
+                alert(data.message);
+                window.location.reload(); // Refresh to show updated status
+            } else {
+                throw new Error(data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert(error.message || 'An error occurred while processing the return request');
+        })
+        .finally(() => {
+            // Re-enable buttons
+            buttons.forEach(btn => btn.disabled = false);
+        });
+    }
+
+    function closeReturnModal() {
+        const modal = document.getElementById('returnModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        currentOrderId = null;
+    }
+    </script>
 </body>
 </html>

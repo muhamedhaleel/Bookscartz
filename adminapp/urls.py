@@ -32,4 +32,8 @@ urlpatterns = [
     path('admin-offers/delete/<int:pk>/', views.delete_offer, name='delete_offer'),
     path('admin-offers/toggle/<int:pk>/', views.toggle_offer_status, name='toggle_offer_status'),
     path('get-offer-items/', views.get_offer_items, name='get_offer_items'),
+    path('orders/', views.admin_manage_orders, name='admin_manage_orders'),
+    path('orders/update-status/<int:order_id>/', views.update_order_status, name='update_order_status'),
+    path('orders/get-return-details/<int:order_id>/', views.get_return_details, name='get_return_details'),
+    path('orders/handle-return/<int:order_id>/', views.admin_handle_return, name='admin_handle_return'),
 ]
