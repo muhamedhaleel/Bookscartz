@@ -25,22 +25,27 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 # Admin Authentication
 # ----------------------------
 def admin_login(request):
-    # If user is already logged in and is staff, redirect to dashboard
-    if request.user.is_authenticated and request.user.is_staff:
-        return redirect('admin_dashboard')
-    
+    # Redirect if already logged in as admin
+    if request.user.is_authenticated:
+        if request.user.is_superuser:
+            return redirect('admin_dashboard')
+        else:
+            messages.error(request, 'Access denied. Admin privileges required.')
+            return redirect('home')
+
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password')
         user = authenticate(request, username=username, password=password)
-
-        if user is not None and user.is_staff:
+        
+        if user is not None and user.is_superuser:
             login(request, user)
+            messages.success(request, 'Welcome back, Admin!')
             return redirect('admin_dashboard')
         else:
-            messages.error(request, 'Invalid Credentials or Not an Admin')
-
-    return render(request, 'admin_login.html')  
+            messages.error(request, 'Invalid admin credentials')
+    
+    return render(request, 'admin_login.html')
 
 @login_required(login_url='admin_login')
 def admin_logout(request):
@@ -968,33 +973,37 @@ def admin_handle_return(request, order_id):
 
 @login_required(login_url='admin_login')
 def update_order_status(request, order_id):
-    if not request.user.is_staff:
-        messages.error(request, 'Unauthorized access')
-        return redirect('admin_login')
-        
-    if request.method == 'POST':
-        order = get_object_or_404(Order, id=order_id)
+    if not request.user.is_superuser:
+        return JsonResponse({'status': 'error', 'message': 'Unauthorized'}, status=403)
+
+    try:
+        order = Order.objects.get(id=order_id)
         new_status = request.POST.get('status')
-        
-        # Don't allow status changes for cancelled orders
-        if order.status == 'cancelled':
-            messages.error(request, 'Cannot modify cancelled orders')
-            return redirect('admin_manage_orders')
-            
-        # Define valid status transitions
-        valid_transitions = {
-            'pending': ['conformed'],
-            'conformed': ['shipped'],
-            'shipped': ['delivered'],
-            'delivered': []  # Remove the returned option
-        }
-        
-        # Check if the transition is valid
-        if order.status in valid_transitions and new_status in valid_transitions.get(order.status, []):
-            order.status = new_status
-            order.save()
-            messages.success(request, f'Order #{order.id} status updated to {order.get_status_display()}')
+
+        if not new_status:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Status is required'
+            }, status=400)
+
+        if order.update_status(new_status):
+            return JsonResponse({
+                'status': 'success',
+                'message': f'Order status updated to {new_status}'
+            })
         else:
-            messages.error(request, f'Invalid status transition from {order.get_status_display()} to {new_status}')
-            
-    return redirect('admin_manage_orders')
+            return JsonResponse({
+                'status': 'error',
+                'message': f'Cannot change status from {order.status} to {new_status}'
+            }, status=400)
+
+    except Order.DoesNotExist:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Order not found'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        }, status=500)

@@ -528,7 +528,7 @@
                 <ul class="nav-menu">
                     <li><a href="{% url 'home' %}" class="nav-link">Home</a></li>
                     <li><a href="{% url 'product_list' %}" class="nav-link">Products</a></li>
-                    <li><a href="#" class="nav-link">Cart</a></li>
+                    <li><a href="{% url 'cart' %}" class="nav-link">Cart</a></li>
                     <li><a href="#" class="nav-link">New Releases</a></li>
                 </ul>
                 <div class="user-menu" id="userMenu">
@@ -579,7 +579,9 @@
                         <select class="filter-select" id="categoryFilter">
                             <option value="">All Categories</option>
                             {% for category in categories %}
-                            <option value="{{ category.id }}">{{ category.name }}</option>
+                            <option value="{{ category.id }}" {% if selected_category == category.id|stringformat:"s" %}selected{% endif %}>
+                                {{ category.name }}
+                            </option>
                             {% endfor %}
                         </select>
                     </div>
@@ -589,16 +591,20 @@
                         <select class="filter-select" id="publisherFilter">
                             <option value="">All Publishers</option>
                             {% for brand in brands %}
-                            <option value="{{ brand.id }}">{{ brand.name }}</option>
+                            <option value="{{ brand.id }}" {% if selected_brand == brand.id|stringformat:"s" %}selected{% endif %}>
+                                {{ brand.name }}
+                            </option>
                             {% endfor %}
                         </select>
                     </div>
 
-                   
-
                     <div class="filter-group">
                         <label class="filter-label" for="searchBox">Search</label>
-                        <input type="text" id="searchBox" class="search-box" placeholder="Search by title, author...">
+                        <input type="text" 
+                               id="searchBox" 
+                               class="search-box" 
+                               placeholder="Search by title, author..."
+                               value="{{ search_query|default:'' }}">
                     </div>
                 </div>
             </section>
@@ -720,24 +726,51 @@
     </script>
 
     <script>
-        // Add your JavaScript for filter functionality here
         document.addEventListener('DOMContentLoaded', function() {
             const categoryFilter = document.getElementById('categoryFilter');
             const publisherFilter = document.getElementById('publisherFilter');
-            const languageFilter = document.getElementById('languageFilter');
-            const searchBox = document.querySelector('.search-box');
+        const searchBox = document.getElementById('searchBox');
 
-            // Add event listeners for filters
-            [categoryFilter, publisherFilter, languageFilter, searchBox].forEach(filter => {
-                filter.addEventListener('change', updateProducts);
-            });
+        // Function to update URL parameters and reload page
+        function updateFilters() {
+            const params = new URLSearchParams();
+            
+            // Add filter values to URL parameters if they are selected
+            if (categoryFilter.value) {
+                params.append('category', categoryFilter.value);
+            }
+            if (publisherFilter.value) {
+                params.append('brand', publisherFilter.value);
+            }
+            if (searchBox.value.trim()) {
+                params.append('search', searchBox.value.trim());
+            }
 
-            searchBox.addEventListener('input', updateProducts);
+            // Redirect to the new URL with filters
+            window.location.href = `${window.location.pathname}?${params.toString()}`;
+        }
 
-            function updateProducts() {
-                // Add your filter logic here
-                // You can make an AJAX call to your backend with the filter values
-                console.log('Filters updated');
+        // Add event listeners for filters
+        categoryFilter.addEventListener('change', updateFilters);
+        publisherFilter.addEventListener('change', updateFilters);
+
+        // Add debounced search functionality
+        let searchTimeout;
+        searchBox.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(updateFilters, 500); // Wait 500ms after user stops typing
+        });
+
+        // Set initial filter values from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('category')) {
+            categoryFilter.value = urlParams.get('category');
+        }
+        if (urlParams.has('brand')) {
+            publisherFilter.value = urlParams.get('brand');
+        }
+        if (urlParams.has('search')) {
+            searchBox.value = urlParams.get('search');
             }
         });
     </script>

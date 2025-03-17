@@ -13,6 +13,7 @@ from django.urls import reverse
 from decimal import Decimal
 from .utils import render_to_pdf
 from django.db import transaction
+from django.core.paginator import Paginator
 
 def signup(request):
     if request.method == 'POST':
@@ -97,21 +98,24 @@ def home(request):
     return render(request, 'home.html', context)
 
 def login_view(request):
+    # Redirect if already logged in
+    if request.user.is_authenticated:
+        if request.user.is_superuser:
+            messages.error(request, 'Admin users cannot access customer login')
+            return redirect('admin_dashboard')
+        return redirect('home')
+
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password')
-        
-        # Authenticate the user
         user = authenticate(request, username=username, password=password)
         
-        if user is not None:
-            # Log the user in
+        if user is not None and not user.is_superuser:
             login(request, user)
             messages.success(request, f'Welcome back, {user.username}!')
-            return redirect('home')  # Replace 'home' with the name of your desired URL pattern
+            return redirect('home')
         else:
-            # Add error message for invalid credentials
-            messages.error(request, "Invalid username or password. Please try again.")
+            messages.error(request, 'Invalid username or password')
     
     return render(request, 'login.html')
 
@@ -764,22 +768,20 @@ def order_details(request, order_id):
 
 @login_required(login_url='user_login')
 def user_orders(request):
-    # Get user's orders with related data
-    orders = Order.objects.filter(user=request.user)\
-        .select_related('user')\
-        .prefetch_related(
-            'items__product',
-            'return_request'
-        ).order_by('-created_at')
-    
-    # Filter by status if provided
     status = request.GET.get('status')
+    orders = Order.objects.filter(user=request.user).order_by('-created_at')
+    
     if status:
         orders = orders.filter(status=status)
     
+    # Add pagination - 10 orders per page
+    paginator = Paginator(orders, 10)
+    page_number = request.GET.get('page')
+    orders = paginator.get_page(page_number)
+    
     context = {
         'orders': orders,
-        'status': status
+        'status': status,
     }
     return render(request, 'user_orders.html', context)
 

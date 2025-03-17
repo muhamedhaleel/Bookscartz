@@ -195,8 +195,17 @@ class Order(models.Model):
         ('shipped', 'Shipped'),
         ('delivered', 'Delivered'),
         ('cancelled', 'Cancelled'),
-        ('returned', 'Returned'),
+        ('returned', 'Returned')
     ]
+
+    VALID_STATUS_TRANSITIONS = {
+        'pending': ['processing', 'cancelled'],
+        'processing': ['shipped', 'cancelled'],
+        'shipped': ['delivered', 'cancelled'],
+        'delivered': ['returned'],
+        'cancelled': [],
+        'returned': []
+    }
 
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     customer_name = models.CharField(max_length=100)
@@ -213,6 +222,18 @@ class Order(models.Model):
 
     def __str__(self):
         return f"Order #{self.id} by {self.customer_name}"
+
+    def can_transition_to(self, new_status):
+        """Check if the status transition is valid"""
+        return new_status in self.VALID_STATUS_TRANSITIONS.get(self.status, [])
+
+    def update_status(self, new_status):
+        """Update order status with validation"""
+        if self.can_transition_to(new_status):
+            self.status = new_status
+            self.save()
+            return True
+        return False
 
 class OrderItem(models.Model):
     RETURN_STATUS_CHOICES = (

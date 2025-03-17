@@ -568,7 +568,7 @@
                             </svg>
                             Profile
                         </a>
-                          <a href="#" class="dropdown-item">
+                          <a href="{% url 'user_orders' %}" class="dropdown-item">
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
                             </svg>
@@ -640,8 +640,8 @@
                 <div class="book-details">
                     <h3 class="book-title">{{ product.name }}</h3>
                     <p class="book-author">By {{ product.brand.name }}</p>
-                    <p class="book-price">₹{{ product.price }}</p>
-                    <a href="#" class="add-to-cart">Add to Cart</a>
+                    {% comment %} <p class="book-price">₹{{ product.price }}</p> {% endcomment %}
+                    {% comment %} <a href="#" class="add-to-cart">Add to Cart</a> {% endcomment %}
                 </div>
             </div>
             {% endfor %}

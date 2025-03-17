@@ -66,6 +66,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     "allauth.account.middleware.AccountMiddleware",
+    'adminapp.middleware.RoleBasedAccessMiddleware',
 ]
 
 ROOT_URLCONF = 'bookscartz.urls'

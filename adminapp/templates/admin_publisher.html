@@ -125,31 +125,38 @@
             
 
             <!-- Pagination -->
-            <div class="pagination-controls flex justify-center mt-10 mb-6">
-                <ul class="flex space-x-2">
+            <div class="mt-6 flex justify-center">
+                {% if page_obj.paginator.num_pages > 1 %}
+                <nav class="flex items-center gap-2">
+                    <!-- Previous Page -->
                     {% if page_obj.has_previous %}
-                        <li>
-                            <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}" 
-                               class="px-4 py-2 bg-[#D2691E] text-white rounded hover:bg-[#A0522D]">Previous</a>
-                        </li>
+                        <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}" 
+                           class="px-3 py-1 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200">
+                            Previous
+                        </a>
                     {% endif %}
 
+                    <!-- Page Numbers -->
                     {% for num in page_obj.paginator.page_range %}
-                        <li>
+                        {% if page_obj.number == num %}
+                            <span class="px-3 py-1 bg-[#A79277] text-white rounded-md">{{ num }}</span>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
                             <a href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}" 
-                               class="px-4 py-2 {% if page_obj.number == num %}bg-[#4E2C0A]{% else %}bg-[#D2691E]{% endif %} text-white rounded hover:bg-[#A0522D]">
+                               class="px-3 py-1 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200">
                                 {{ num }}
                             </a>
-                        </li>
+                        {% endif %}
                     {% endfor %}
 
+                    <!-- Next Page -->
                     {% if page_obj.has_next %}
-                        <li>
-                            <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}" 
-                               class="px-4 py-2 bg-[#D2691E] text-white rounded hover:bg-[#A0522D]">Next</a>
-                        </li>
+                        <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}" 
+                           class="px-3 py-1 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200">
+                            Next
+                        </a>
                     {% endif %}
-                </ul>
+                </nav>
+                {% endif %}
             </div>
         </main>
     </div>
