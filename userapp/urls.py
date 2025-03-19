@@ -40,4 +40,7 @@ urlpatterns = [
     path('download-invoice/<int:order_id>/', views.download_invoice, name='download_invoice'),
     path('cancel-order/<int:order_id>/', views.cancel_order, name='cancel_order'),
     path('request-return/<int:order_id>/', views.request_return, name='request_return'),
+    path('wishlist/', views.wishlist_view, name='wishlist'),
+    path('add-to-wishlist/<int:product_id>/', views.add_to_wishlist, name='add_to_wishlist'),
+    path('remove-from-wishlist/<int:product_id>/', views.remove_from_wishlist, name='remove_from_wishlist'),
 ]

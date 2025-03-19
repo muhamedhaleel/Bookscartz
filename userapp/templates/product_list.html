@@ -514,6 +514,57 @@
                 padding: 4rem 0 2rem;
             }
         }
+
+        .wishlist-btn {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background-color: white;
+            border-radius: 50%;
+            width: 35px;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .wishlist-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 3px 7px rgba(0,0,0,0.3);
+        }
+
+        .wishlist-btn svg {
+            width: 20px;
+            height: 20px;
+            fill: none;
+            stroke: #666;
+            transition: all 0.3s ease;
+        }
+
+        .wishlist-btn svg.filled {
+            fill: #ff4b4b;
+            stroke: #ff4b4b;
+        }
+
+        .wishlist-btn:hover svg {
+            stroke: #ff4b4b;
+        }
+
+        @keyframes heartBeat {
+            0% { transform: scale(1); }
+            25% { transform: scale(1.2); }
+            50% { transform: scale(1); }
+            75% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        .heart-beat {
+            animation: heartBeat 0.5s ease-in-out;
+        }
     </style>
 </head>
 <body>
@@ -529,7 +580,7 @@
                     <li><a href="{% url 'home' %}" class="nav-link">Home</a></li>
                     <li><a href="{% url 'product_list' %}" class="nav-link">Products</a></li>
                     <li><a href="{% url 'cart' %}" class="nav-link">Cart</a></li>
-                    <li><a href="#" class="nav-link">New Releases</a></li>
+                    <li><a href="{% url 'wishlist'%}" class="nav-link">Wishlist</a></li>
                 </ul>
                 <div class="user-menu" id="userMenu">
                     <div class="user-icon">
@@ -614,14 +665,25 @@
                 {% if products %}
                     {% for product in products %}
                     <div class="product-card">
-                        <a href="{% url 'product_detail' product.id %}" class="product-image">
-                            <img src="{{ product.image1.url }}" alt="{{ product.name }}">
+                        <div class="product-image relative">
+                            <a href="{% url 'product_detail' product.id %}">
+                                <img src="{{ product.image1.url }}" alt="{{ product.name }}" class="w-full h-full object-cover">
+                            </a>
                             {% if product.offer_price %}
                                 <span class="discount-badge">
                                     {{ product.discount }}% OFF
                                 </span>
                             {% endif %}
-                        </a>
+                            <button onclick="toggleWishlist({{ product.id }}, this)" 
+                                    class="wishlist-btn"
+                                    data-in-wishlist="{% if product.id in wishlist_product_ids %}true{% else %}false{% endif %}">
+                                <svg xmlns="http://www.w3.org/2000/svg" 
+                                     class="{% if product.id in wishlist_product_ids %}filled{% endif %}"
+                                     viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                                </svg>
+                            </button>
+                        </div>
                         <div class="product-details">
                             <h3 class="product-title">{{ product.name }}</h3>
                             <p class="product-publisher">By {{ product.brand.name }}</p>
@@ -649,6 +711,8 @@
             </div>
         </div>
     </main>
+
+    
 
     <!-- Footer -->
     <footer class="footer">
@@ -773,6 +837,65 @@
             searchBox.value = urlParams.get('search');
             }
         });
+    </script>
+
+    <script>
+    function toggleWishlist(productId, button) {
+        const isInWishlist = button.getAttribute('data-in-wishlist') === 'true';
+        const url = isInWishlist ? 
+            `/remove-from-wishlist/${productId}/` : 
+            `/add-to-wishlist/${productId}/`;
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                const icon = button.querySelector('svg');
+                button.classList.add('heart-beat');
+                
+                if (isInWishlist) {
+                    icon.classList.remove('filled');
+                    button.setAttribute('data-in-wishlist', 'false');
+                    showToast('Removed from wishlist');
+                } else {
+                    icon.classList.add('filled');
+                    button.setAttribute('data-in-wishlist', 'true');
+                    showToast('Added to wishlist');
+                }
+
+                setTimeout(() => {
+                    button.classList.remove('heart-beat');
+                }, 500);
+            } else {
+                showToast(data.message || 'Something went wrong', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('Error updating wishlist', 'error');
+        });
+    }
+
+    // Add toast notification function
+    function showToast(message, type = 'success') {
+        const toast = document.createElement('div');
+        toast.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 transition-all duration-300 transform translate-y-0 
+            ${type === 'success' ? 'bg-green-500' : 'bg-red-500'} text-white`;
+        toast.textContent = message;
+        document.body.appendChild(toast);
+
+        // Remove toast after 3 seconds
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
     </script>
 </body>
 </html> 

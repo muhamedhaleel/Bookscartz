@@ -427,7 +427,7 @@ def add_product(request):
             image2 = request.FILES.get('image2')
             image3 = request.FILES.get('image3')
             
-            # Validate required fields
+            
             if not all([name, description, category_id, brand_id, language_id, price, stock, image1]):
                 messages.error(request, "Please fill all required fields")
                 return redirect('admin_products')

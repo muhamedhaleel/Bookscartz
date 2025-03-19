@@ -5,7 +5,7 @@ from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from .forms import SignupForm
-from adminapp.models import CustomUser, Brand, Product, Category, Language, Cart, CartItem, Address, Offer, Order, OrderItem, ReturnRequest
+from adminapp.models import CustomUser, Brand, Product, Category, Language, Cart, CartItem, Address, Offer, Order, OrderItem, ReturnRequest, Wishlist
 from django.core.exceptions import ValidationError
 import json
 from django.db.models import Q
@@ -13,7 +13,7 @@ from django.urls import reverse
 from decimal import Decimal
 from .utils import render_to_pdf
 from django.db import transaction
-from django.core.paginator import Paginator
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 def signup(request):
     if request.method == 'POST':
@@ -239,11 +239,22 @@ def product_list(request):
             product.offer_price = None
             product.discount = None
 
+    # Get wishlist products
+    wishlist_product_ids = []
+    if request.user.is_authenticated:
+        wishlist_product_ids = list(Wishlist.objects.filter(
+            user=request.user
+        ).values_list('product_id', flat=True))
+
     context = {
         'products': products,
         'categories': categories,
         'brands': brands,
         'languages': languages,
+        'wishlist_product_ids': wishlist_product_ids,
+        'search_query': search_query,
+        'selected_category': category_id,
+        'selected_brand': brand_id,
     }
     return render(request, 'product_list.html', context)
 
@@ -295,71 +306,77 @@ def product_detail(request, product_id):
 @require_POST
 @login_required
 def add_to_cart(request, product_id):
-    try:
-        product = get_object_or_404(Product, id=product_id, is_active=True)
-        quantity = int(request.POST.get('quantity', 1))
-        
-        # Validate quantity
-        if quantity < 1:
-            return JsonResponse({
-                'success': False,
-                'message': 'Quantity must be at least 1'
-            })
-        
-        max_allowed = min(3, product.stock)
-        if quantity > max_allowed:
-            return JsonResponse({
-                'success': False,
-                'message': f'Maximum {max_allowed} items allowed'
-            })
-        
-        # Get or create cart
-        cart, _ = Cart.objects.get_or_create(user=request.user)
-        
-        # Get or create cart item
-        cart_item, created = CartItem.objects.get_or_create(
-            cart=cart,
-            product=product,
-            defaults={'quantity': quantity}
-        )
-        
-        if not created:
-            # Update existing cart item
-            new_quantity = cart_item.quantity + quantity
-            if new_quantity > max_allowed:
+    if request.method == 'POST':
+        try:
+            product = Product.objects.get(id=product_id)
+            
+            # Remove from wishlist if exists
+            Wishlist.objects.filter(user=request.user, product=product).delete()
+            
+            quantity = int(request.POST.get('quantity', 1))
+            
+            # Validate quantity
+            if quantity < 1:
                 return JsonResponse({
                     'success': False,
-                    'message': f'Cart would exceed maximum limit of {max_allowed} items'
+                    'message': 'Quantity must be at least 1'
                 })
-            cart_item.quantity = new_quantity
-            cart_item.save()
-        
-        # Update product stock
-        product.stock -= quantity
-        product.save()
-        
-        return JsonResponse({
-            'success': True,
-            'message': 'Added to cart successfully',
-            'new_stock': product.stock,
-            'cart_quantity': cart_item.quantity
-        })
-        
-    except Product.DoesNotExist:
-        return JsonResponse({
-            'success': False,
-            'message': 'Product not found'
-        })
-    except ValueError:
-        return JsonResponse({
-            'success': False,
-            'message': 'Invalid quantity'
-        })
-    except Exception as e:
-        return JsonResponse({
-            'success': False,
-            'message': str(e)
-        })
+            
+            max_allowed = min(3, product.stock)
+            if quantity > max_allowed:
+                return JsonResponse({
+                    'success': False,
+                    'message': f'Maximum {max_allowed} items allowed'
+                })
+            
+            # Get or create cart
+            cart, _ = Cart.objects.get_or_create(user=request.user)
+            
+            # Get or create cart item
+            cart_item, created = CartItem.objects.get_or_create(
+                cart=cart,
+                product=product,
+                defaults={'quantity': quantity}
+            )
+            
+            if not created:
+                # Update existing cart item
+                new_quantity = cart_item.quantity + quantity
+                if new_quantity > max_allowed:
+                    return JsonResponse({
+                        'success': False,
+                        'message': f'Cart would exceed maximum limit of {max_allowed} items'
+                    })
+                cart_item.quantity = new_quantity
+                cart_item.save()
+            
+            # Update product stock
+            product.stock -= quantity
+            product.save()
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Added to cart successfully',
+                'new_stock': product.stock,
+                'cart_quantity': cart_item.quantity
+            })
+            
+        except Product.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'message': 'Product not found'
+            })
+        except ValueError:
+            return JsonResponse({
+                'success': False,
+                'message': 'Invalid quantity'
+            })
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'message': str(e)
+            })
+    return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
 
 @login_required
 def cart_view(request):
@@ -896,3 +913,92 @@ def request_return(request, order_id):
             'status': 'error',
             'message': 'Error processing return request'
         }, status=500)
+
+@login_required
+def wishlist_view(request):
+    # Get all wishlist items with related product data
+    wishlist_items_list = Wishlist.objects.filter(user=request.user).select_related(
+        'product', 
+        'product__brand'
+    ).order_by('-added_at')
+
+    # Get active offers
+    product_offers = Offer.objects.filter(is_active=True, offer_type='product')
+    category_offers = Offer.objects.filter(is_active=True, offer_type='category')
+    
+    # Calculate discounts for each product in wishlist
+    for item in wishlist_items_list:
+        max_discount = 0
+        product = item.product
+        
+        # Check product-specific offers
+        for offer in product_offers:
+            if str(product.id) == str(offer.offer_items):
+                max_discount = max(max_discount, float(offer.discount))
+        
+        # Check category offers
+        for offer in category_offers:
+            if str(product.category.id) == str(offer.offer_items):
+                max_discount = max(max_discount, float(offer.discount))
+        
+        # Calculate discounted price if there's a discount
+        if max_discount > 0:
+            product.discount_percentage = max_discount
+            original_price = float(str(product.price))
+            discount_amount = (original_price * max_discount) / 100
+            product.offer_price = round(original_price - discount_amount, 2)
+        else:
+            product.offer_price = None
+            product.discount_percentage = None
+
+    # Pagination
+    page = request.GET.get('page', 1)
+    paginator = Paginator(wishlist_items_list, 8)  # 8 items per page
+    
+    try:
+        wishlist_items = paginator.page(page)
+    except PageNotAnInteger:
+        wishlist_items = paginator.page(1)
+    except EmptyPage:
+        wishlist_items = paginator.page(paginator.num_pages)
+
+    context = {
+        'wishlist_items': wishlist_items,
+    }
+    return render(request, 'wishlist.html', context)
+
+@login_required
+def add_to_wishlist(request, product_id):
+    try:
+        product = Product.objects.get(id=product_id)
+        wishlist_item, created = Wishlist.objects.get_or_create(
+            user=request.user,
+            product=product
+        )
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Added to wishlist'
+        })
+    except Product.DoesNotExist:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Product not found'
+        })
+
+@login_required
+def remove_from_wishlist(request, product_id):
+    try:
+        wishlist_item = Wishlist.objects.get(
+            user=request.user,
+            product_id=product_id
+        )
+        wishlist_item.delete()
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Removed from wishlist'
+        })
+    except Wishlist.DoesNotExist:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Item not found in wishlist'
+        })
