@@ -13,7 +13,7 @@ from django.urls import reverse
 from decimal import Decimal
 from .utils import render_to_pdf
 from django.db import transaction
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.core.paginator import Paginator
 
 def signup(request):
     if request.method == 'POST':
@@ -917,7 +917,7 @@ def request_return(request, order_id):
 @login_required
 def wishlist_view(request):
     # Get all wishlist items with related product data
-    wishlist_items_list = Wishlist.objects.filter(user=request.user).select_related(
+    wishlist_items = Wishlist.objects.filter(user=request.user).select_related(
         'product', 
         'product__brand'
     ).order_by('-added_at')
@@ -927,7 +927,7 @@ def wishlist_view(request):
     category_offers = Offer.objects.filter(is_active=True, offer_type='category')
     
     # Calculate discounts for each product in wishlist
-    for item in wishlist_items_list:
+    for item in wishlist_items:
         max_discount = 0
         product = item.product
         
@@ -950,17 +950,6 @@ def wishlist_view(request):
         else:
             product.offer_price = None
             product.discount_percentage = None
-
-    # Pagination
-    page = request.GET.get('page', 1)
-    paginator = Paginator(wishlist_items_list, 8)  # 8 items per page
-    
-    try:
-        wishlist_items = paginator.page(page)
-    except PageNotAnInteger:
-        wishlist_items = paginator.page(1)
-    except EmptyPage:
-        wishlist_items = paginator.page(paginator.num_pages)
 
     context = {
         'wishlist_items': wishlist_items,

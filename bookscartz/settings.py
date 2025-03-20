@@ -208,6 +208,8 @@ SITE_ID = 2
 SOCIALACCOUNT_ADAPTER = 'userapp.adapters.CustomSocialAccountAdapter'
 SOCIALACCOUNT_LOGIN_ON_GET = True
 
+SILENCED_SYSTEM_CHECKS = ['models.W036']
+
 
 
 

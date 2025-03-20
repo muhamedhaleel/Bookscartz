@@ -197,76 +197,97 @@ def brand_list(request):
 
 @login_required(login_url='admin_login')
 def add_brand(request):
+    if not request.user.is_staff:
+        messages.error(request, 'Unauthorized access')
+        return redirect('admin_login')
+
     if request.method == 'POST':
         name = request.POST.get('name', '').strip()
         image = request.FILES.get('image')
 
-        if not name or len(name) < 3:
-            messages.error(request, "Brand name must be at least 3 characters.")
+        # Validate brand name
+        if not name:
+            messages.error(request, "Brand name is required.")
             return redirect('brand_list')
 
-        if Brand.objects.filter(name=name).exists():
-            messages.error(request, "Brand already exists.")
+        if Brand.objects.filter(name__iexact=name).exists():
+            messages.error(request, "A brand with this name already exists.")
             return redirect('brand_list')
 
-        if image:
-            # Validate file size
-            if image.size > 1 * 1024 * 1024:  # 1 MB
-                messages.error(request, "Image file size must be less than 1 MB.")
-                return redirect('brand_list')
+        # Validate image
+        if not image:
+            messages.error(request, "Brand image is required.")
+            return redirect('brand_list')
 
-            # Validate file type
-            try:
-                img = Image.open(image)
-                img.verify()
-                img_format = img.format.lower()
-                if img_format not in ['jpeg', 'png', 'gif']:
-                    messages.error(request, "Unsupported file type. Only JPEG, PNG, and GIF are allowed.")
-                    return redirect('brand_list')
-            except Exception as e:
-                messages.error(request, "Invalid image file.")
+        # Validate file size (max 2MB)
+        if image.size > 2 * 1024 * 1024:
+            messages.error(request, "Image file size must be less than 2MB.")
+            return redirect('brand_list')
+
+        # Validate file type
+        allowed_types = ['image/jpeg', 'image/png', 'image/gif']
+        if image.content_type not in allowed_types:
+            messages.error(request, "Only JPEG, PNG, and GIF images are allowed.")
             return redirect('brand_list')
 
         try:
-            brand = Brand.objects.create(name=name, image=image)
-            messages.success(request, "Publisher added successfully!")
+            brand = Brand.objects.create(
+                name=name,
+                image=image
+            )
+            messages.success(request, f'Brand "{name}" added successfully!')
         except Exception as e:
-            messages.error(request, f"Error adding publisher: {str(e)}")
-        
+            messages.error(request, f'Error adding brand: {str(e)}')
+
         return redirect('brand_list')
 
-    return render(request, 'add_brand.html')
+    return redirect('brand_list')
 
 @login_required(login_url='admin_login')
 def edit_brand(request, pk):
+    if not request.user.is_staff:
+        messages.error(request, 'Unauthorized access')
+        return redirect('admin_login')
+
     brand = get_object_or_404(Brand, pk=pk)
-    
+
     if request.method == 'POST':
-        name = request.POST.get('name')
+        name = request.POST.get('name', '').strip()
         image = request.FILES.get('image')
-        
-        if not name or len(name) < 3:
-            messages.error(request, "Publisher name must be at least 3 characters.")
+
+        # Validate brand name
+        if not name:
+            messages.error(request, "Brand name is required.")
             return redirect('brand_list')
 
-        # Check if the new name already exists for other brands
-        if Brand.objects.filter(name=name).exclude(pk=pk).exists():
-            messages.error(request, "A publisher with this name already exists.")
+        # Check if name exists for other brands
+        if Brand.objects.filter(name__iexact=name).exclude(pk=pk).exists():
+            messages.error(request, "A brand with this name already exists.")
             return redirect('brand_list')
 
         try:
             brand.name = name
             if image:
-                # Delete old image if it exists
-                if brand.image:
-                    if os.path.isfile(brand.image.path):
-                        os.remove(brand.image.path)
+                # Validate file size
+                if image.size > 2 * 1024 * 1024:
+                    messages.error(request, "Image file size must be less than 2MB.")
+                    return redirect('brand_list')
+
+                # Validate file type
+                allowed_types = ['image/jpeg', 'image/png', 'image/gif']
+                if image.content_type not in allowed_types:
+                    messages.error(request, "Only JPEG, PNG, and GIF images are allowed.")
+                    return redirect('brand_list')
+
                 brand.image = image
+
             brand.save()
-            messages.success(request, "Publisher updated successfully!")
+            messages.success(request, f'Brand "{name}" updated successfully!')
         except Exception as e:
-            messages.error(request, f"Error updating publisher: {str(e)}")
-        
+            messages.error(request, f'Error updating brand: {str(e)}')
+
+        return redirect('brand_list')
+
     return redirect('brand_list')
 
 # Toggle Brand Status View

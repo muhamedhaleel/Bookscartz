@@ -225,15 +225,15 @@ class Order(models.Model):
     }
 
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
-    customer_name = models.CharField(max_length=100)
-    phone = models.CharField(max_length=15)
+    customer_name = models.CharField(max_length=100, null=True, blank=True)
+    phone = models.CharField(max_length=15, null=True, blank=True)
     billing_address = models.ForeignKey(Address, on_delete=models.SET_NULL, null=True)
     payment_method = models.CharField(max_length=50)
     original_total = models.DecimalField(max_digits=10, decimal_places=2)
     total_discount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    subtotal = models.DecimalField(max_digits=10, decimal_places=2)
+    subtotal = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     shipping_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    total_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
 
@@ -338,5 +338,18 @@ class Wishlist(models.Model):
             'discount': self.product.get_discount_percentage(),
             'stock': self.product.stock,
         }
+
+class Coupon(models.Model):
+    code = models.CharField(max_length=50, unique=True)
+    discount = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    min_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    valid_from = models.DateTimeField(null=True, blank=True)
+    valid_to = models.DateTimeField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.code
 
 
