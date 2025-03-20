@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .models import Category, Brand, Product, Language, Offer, Order, ReturnRequest, OrderItem
+from .models import Category, Brand, Product, Language, Offer, Order, ReturnRequest, OrderItem, Coupon
 from .forms import CategoryForm
 from django.views import View
 from django.shortcuts import render, redirect, get_object_or_404
@@ -18,6 +18,7 @@ from django.db.models.query import Prefetch
 from django.db import transaction
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import ensure_csrf_cookie
+from django.utils import timezone
 
 
 
@@ -287,8 +288,6 @@ def edit_brand(request, pk):
             messages.error(request, f'Error updating brand: {str(e)}')
 
         return redirect('brand_list')
-
-    return redirect('brand_list')
 
 # Toggle Brand Status View
 def toggle_brand_status(request, pk):
@@ -860,11 +859,11 @@ def admin_manage_orders(request):
     paginator = Paginator(orders, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    
+
     context = {
         'orders': page_obj,
         'current_status': status,
-        'status_choices': Order.STATUS_CHOICES
+        'status_choices': Order._meta.get_field('status').choices
     }
     return render(request, 'admin_mange_order.html', context)
 
@@ -1028,3 +1027,151 @@ def update_order_status(request, order_id):
             'status': 'error',
             'message': str(e)
         }, status=500)
+
+@login_required(login_url='admin_login')
+def coupon_list(request):
+    search_query = request.GET.get('search', '')
+    
+    if search_query:
+        coupons = Coupon.objects.filter(
+            Q(code__icontains=search_query) |
+            Q(type__icontains=search_query)
+        ).order_by('-created_at')
+    else:
+        coupons = Coupon.objects.all().order_by('-created_at')
+    
+    paginator = Paginator(coupons, 10)
+    page = request.GET.get('page')
+    coupons = paginator.get_page(page)
+    
+    # Get current date and default valid_to
+    current_date = timezone.now().date()
+    default_valid_to = current_date + timezone.timedelta(days=30)
+    
+    context = {
+        'coupons': coupons,
+        'search_query': search_query,
+        'default_valid_to': default_valid_to,
+        'now': current_date
+    }
+    return render(request, 'coupon.html', context)
+
+@login_required(login_url='admin_login')
+def add_coupon(request):
+    if request.method == 'POST':
+        try:
+            code = request.POST.get('code')
+            type = request.POST.get('type')
+            value = request.POST.get('value')
+            min_amount = request.POST.get('min_amount')
+            valid_from = request.POST.get('valid_from')
+            valid_to = request.POST.get('valid_to')
+            is_active = request.POST.get('is_active') == 'on'
+            
+            # Basic validation
+            if not code:
+                messages.error(request, 'Coupon code is required')
+                return redirect('coupon_list')
+            
+            # Handle dates
+            current_date = timezone.now().date()
+            
+            # Set valid_from to current date if not provided
+            if not valid_from:
+                valid_from = current_date
+            else:
+                valid_from = timezone.datetime.strptime(valid_from, '%Y-%m-%d').date()
+            
+            # Set valid_to to 30 days from now if not provided
+            if not valid_to:
+                valid_to = current_date + timezone.timedelta(days=30)
+            else:
+                valid_to = timezone.datetime.strptime(valid_to, '%Y-%m-%d').date()
+                
+            # Validate dates
+            if valid_from > valid_to:
+                messages.error(request, 'Valid from date must be before valid to date')
+                return redirect('coupon_list')
+                
+            # Validate coupon code uniqueness
+            if Coupon.objects.filter(code__iexact=code).exists():
+                messages.error(request, 'A coupon with this code already exists')
+                return redirect('coupon_list')
+            
+            # Create coupon
+            coupon = Coupon.objects.create(
+                code=code,
+                type=type,
+                value=value,
+                min_amount=min_amount,
+                valid_from=valid_from,
+                valid_to=valid_to,
+                is_active=is_active
+            )
+            
+            messages.success(request, f'Coupon "{code}" added successfully!')
+            
+        except Exception as e:
+            messages.error(request, f'Error adding coupon: {str(e)}')
+            
+    return redirect('coupon_list')
+
+@login_required(login_url='admin_login')
+def edit_coupon(request, pk):
+    coupon = get_object_or_404(Coupon, pk=pk)
+    
+    if request.method == 'POST':
+        try:
+            code = request.POST.get('code')
+            type = request.POST.get('type')
+            value = request.POST.get('value')
+            min_amount = request.POST.get('min_amount')
+            valid_from = request.POST.get('valid_from')
+            valid_to = request.POST.get('valid_to')
+            is_active = request.POST.get('is_active') == 'on'
+            
+            # Validate coupon code uniqueness
+            if Coupon.objects.filter(code__iexact=code).exclude(pk=pk).exists():
+                messages.error(request, 'A coupon with this code already exists')
+                return redirect('coupon_list')
+            
+            # Update coupon
+            coupon.code = code
+            coupon.type = type
+            coupon.value = value
+            coupon.min_amount = min_amount
+            coupon.valid_from = valid_from
+            coupon.valid_to = valid_to
+            coupon.is_active = is_active
+            coupon.save()
+            
+            messages.success(request, 'Coupon updated successfully!')
+            
+        except Exception as e:
+            messages.error(request, f'Error updating coupon: {str(e)}')
+            
+    return redirect('coupon_list')
+
+@login_required(login_url='admin_login')
+def delete_coupon(request, pk):
+    try:
+        coupon = get_object_or_404(Coupon, pk=pk)
+        coupon.delete()
+        messages.success(request, 'Coupon deleted successfully!')
+    except Exception as e:
+        messages.error(request, f'Error deleting coupon: {str(e)}')
+    
+    return redirect('coupon_list')
+
+@login_required(login_url='admin_login')
+def toggle_coupon_status(request, pk):
+    try:
+        coupon = get_object_or_404(Coupon, pk=pk)
+        coupon.is_active = not coupon.is_active
+        coupon.save()
+        status = "activated" if coupon.is_active else "deactivated"
+        messages.success(request, f'Coupon {status} successfully!')
+    except Exception as e:
+        messages.error(request, f'Error toggling coupon status: {str(e)}')
+    
+    return redirect('coupon_list')

@@ -257,11 +257,59 @@
             top: 140px;
         }
 
+        .summary-details {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 1rem;
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .item-details {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .item-details img {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+
+        .item-details h4 {
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+        }
+
+        .item-details p {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .item-price {
+            font-weight: 500;
+        }
+
+        .price-summary {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 2px solid #eee;
+        }
+
         .summary-row {
             display: flex;
             justify-content: space-between;
             padding: 0.75rem 0;
-            border-bottom: 1px solid var(--light-bg);
+            border-bottom: 1px solid #eee;
         }
 
         .summary-row:last-child {
@@ -273,7 +321,7 @@
             font-weight: 600;
             padding-top: 1rem;
             margin-top: 1rem;
-            border-top: 2px solid var(--light-bg);
+            border-top: 2px solid #eee;
         }
 
         .place-order-btn {
@@ -451,6 +499,97 @@
                 margin-top: 120px;
             }
         }
+
+        #couponDropdown {
+            scrollbar-width: thin;
+            scrollbar-color: #A79277 #f3f4f6;
+        }
+        
+        #couponDropdown::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        #couponDropdown::-webkit-scrollbar-track {
+            background: #f3f4f6;
+        }
+        
+        #couponDropdown::-webkit-scrollbar-thumb {
+            background-color: #A79277;
+            border-radius: 3px;
+        }
+        
+        .coupon-option:hover .text-[#A79277] {
+            background-color: #A79277;
+            color: white;
+        }
+
+        .coupon-card {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .coupon-card::before {
+            content: '';
+            position: absolute;
+            left: -4px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 8px;
+            height: 8px;
+            background-color: #f3f4f6;
+            border-radius: 50%;
+            box-shadow: 
+                0 -12px 0 #f3f4f6,
+                0 12px 0 #f3f4f6;
+        }
+
+        .coupon-card::after {
+            content: '';
+            position: absolute;
+            right: -4px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 8px;
+            height: 8px;
+            background-color: #f3f4f6;
+            border-radius: 50%;
+            box-shadow: 
+                0 -12px 0 #f3f4f6,
+                0 12px 0 #f3f4f6;
+        }
+
+        .coupon-code {
+            font-family: monospace;
+            letter-spacing: 1px;
+        }
+
+        .group:hover svg {
+            transform: translateX(3px);
+            transition: transform 0.2s ease;
+        }
+
+        .group svg {
+            transition: transform 0.2s ease;
+        }
+
+        .group:active {
+            transform: scale(0.98) translateY(0);
+        }
+
+        /* Add shimmer effect */
+        @keyframes shimmer {
+            0% {
+                background-position: -100% 0;
+            }
+            100% {
+                background-position: 100% 0;
+            }
+        }
+
+        .group:hover {
+            background-size: 200% 100%;
+            animation: shimmer 1s infinite;
+        }
     </style>
 </head>
 <body>
@@ -504,8 +643,8 @@
         <h1 class="checkout-title">Checkout</h1>
 
         <!-- Left Column -->
-        <div class="main-content">
-            <!-- Shipping Address Section -->
+        <div class="checkout-left">
+            <!-- Address Section First -->
             <div class="checkout-section">
                 <h2 class="section-title">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -540,34 +679,18 @@
 
             <!-- Order Items Section -->
             <div class="checkout-section">
-                <h2 class="section-title">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
-                        <line x1="3" y1="6" x2="21" y2="6"></line>
-                        <path d="M16 10a4 4 0 0 1-8 0"></path>
-                    </svg>
-                    Order Items
-                </h2>
-                <div class="product-list">
-                    {% for item in cart_items %}
-                    <div class="product-item">
-                        <div class="product-image">
+                <h2 class="section-title">Order Items</h2>
+                <div class="summary-details">
+                    {% for item in cart.items.all %}
+                    <div class="summary-item">
+                        <div class="item-details">
                             <img src="{{ item.product.image1.url }}" alt="{{ item.product.name }}">
-                        </div>
-                        <div class="product-details">
-                            <h3>{{ item.product.name }}</h3>
-                            <div class="product-meta">
+                            <div>
+                                <h4>{{ item.product.name }}</h4>
                                 <p>Quantity: {{ item.quantity }}</p>
-                                {% if item.product.offer_price %}
-                                <p>Price: <span style="text-decoration: line-through;">₹{{ item.product.price }}</span> ₹{{ item.product.offer_price }}</p>
-                                {% else %}
-                                <p>Price: ₹{{ item.product.price }}</p>
-                                {% endif %}
                             </div>
                         </div>
-                        <div class="product-total">
-                            ₹{{ item.total_price }}
-                        </div>
+                        <div class="item-price">₹{{ item.get_total_price }}</div>
                     </div>
                     {% endfor %}
                 </div>
@@ -587,10 +710,6 @@
                         <input type="radio" name="payment" value="Cash on Delivery" checked>
                         <span>Cash on Delivery</span>
                     </label>
-                    {% comment %} <label class="payment-method">
-                        <input type="radio" name="payment" value="razorpay">
-                        <span>Razorpay (Credit/Debit Card, UPI, Netbanking)</span>
-                    </label> {% endcomment %}
                 </div>
             </div>
         </div>
@@ -598,28 +717,109 @@
         <!-- Right Column - Order Summary -->
         <div class="order-summary checkout-section">
             <h2 class="section-title">Order Summary</h2>
-            <div class="summary-row">
-                <span>Original Total</span>
-                <span>₹{{ original_total }}</span>
+            
+            <!-- Coupon Section -->
+            <div class="bg-white p-6 rounded-lg shadow-md mb-4">
+                <h3 class="text-lg font-semibold mb-4">Apply Coupon</h3>
+                
+                {% if coupon_code %}
+                <!-- Applied coupon display -->
+                <div class="flex items-center justify-between p-3 bg-green-50 rounded-lg mb-3">
+                    <div>
+                        <span class="font-medium text-green-700">Applied Coupon:</span>
+                        <span class="ml-2">{{ coupon_code }}</span>
+                    </div>
+                    <form method="POST" action="{% url 'remove_coupon' %}" class="inline">
+                        {% csrf_token %}
+                        <button type="submit" class="text-red-600 hover:text-red-800">
+                            Remove
+                        </button>
+                    </form>
+                </div>
+                {% else %}
+                <!-- Available Coupons Display -->
+                {% if valid_coupons %}
+                <div class="mb-6">
+                    <div class="text-sm font-medium text-gray-700 mb-3">Available Coupons</div>
+                    <div class="grid gap-3">
+                        {% for coupon in valid_coupons %}
+                        <div class="relative border border-gray-200 rounded-lg p-4 hover:border-[#A79277] transition-all">
+                            <div class="flex justify-between items-start">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <span class="text-lg font-bold text-[#A79277]">{{ coupon.code }}</span>
+                                        {% if coupon.type == 'percentage' %}
+                                        <span class="bg-[#A79277] text-white text-xs px-2 py-1 rounded">{{ coupon.value }}% OFF</span>
+                                        {% else %}
+                                        <span class="bg-[#A79277] text-white text-xs px-2 py-1 rounded">₹{{ coupon.value }} OFF</span>
+                                        {% endif %}
+                                    </div>
+                                    <p class="text-sm text-gray-600 mb-3">Min. order: ₹{{ coupon.min_amount }}</p>
+                                    <button onclick="applyCoupon('{{ coupon.code }}')" 
+                                            class="inline-flex items-center px-4 py-2 bg-[#2C3639] text-white text-sm font-medium rounded-md hover:bg-[#3F4E4F] transform hover:-translate-y-0.5 transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#2C3639] focus:ring-offset-2 group w-28 justify-center shadow-sm">
+                                        <span class="flex items-center gap-2">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                            </svg>
+                                            Apply
+                                        </span>
+                                    </button>
+                                </div>
+                                <!-- Decorative elements -->
+                                <div class="absolute -left-[2px] top-1/2 -translate-y-1/2 w-1 h-8 bg-[#A79277] rounded-r"></div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Manual Coupon Input -->
+                <div class="relative">
+                    <div class="text-sm font-medium text-gray-700 mb-2">Have another coupon?</div>
+                    <form id="couponForm" class="flex gap-2">
+                        {% csrf_token %}
+                        <input type="text" 
+                               name="coupon_code" 
+                               placeholder="Enter coupon code" 
+                               class="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#A79277] uppercase"
+                               style="letter-spacing: 1px;">
+                        <button type="submit" 
+                                class="px-4 py-2 bg-[#A79277] text-white rounded-lg hover:bg-[#8B7355] transition-colors">
+                            Apply
+                        </button>
+                    </form>
+                </div>
+                {% endif %}
+                <div id="couponMessage" class="mt-2 text-sm"></div>
             </div>
-            {% if total_discount > 0 %}
+
+            <!-- Price Summary -->
+            <div class="summary-details">
+                <div class="price-summary">
             <div class="summary-row">
-                <span>Discount</span>
-                <span style="color: #4caf50;">-₹{{ total_discount }}</span>
+                        <span>Original Total</span>
+                        <span>₹<span id="subtotal">{{ cart.get_subtotal }}</span></span>
             </div>
-            {% endif %}
-            <div class="summary-row">
-                <span>Subtotal</span>
-                <span>₹{{ total_price }}</span>
+
+                    <div id="couponDiscount" class="summary-row {% if not request.session.coupon_id %}hidden{% endif %}">
+                        <span>Coupon Discount</span>
+                        <span class="text-green-600">-₹<span id="discountAmount">{{ discount }}</span></span>
             </div>
+
             <div class="summary-row">
                 <span>Shipping</span>
-                <span>{% if total_price >= 999 %}Free{% else %}₹50{% endif %}</span>
+                        <span>{% if cart.get_subtotal >= 999 %}Free{% else %}₹50{% endif %}</span>
             </div>
+
             <div class="summary-row total-row">
-                <span>Total Amount</span>
-                <span>₹{% if total_price >= 999 %}{{ total_price }}{% else %}{{ total_price|add:50 }}{% endif %}</span>
+                        <span>Amount to Pay</span>
+                        <span>₹<span id="finalTotal">{{ cart.get_total }}</span></span>
+                    </div>
+                </div>
             </div>
+
+            <!-- Place Order Button -->
             <button type="button" class="place-order-btn" id="placeOrderBtn">
                 Place Order
             </button>
@@ -627,6 +827,31 @@
     </div>
 
     <script>
+        // Add this function outside the DOMContentLoaded event listener
+        function removeCoupon() {
+            const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            
+            fetch('/remove-coupon/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    location.reload();
+                } else {
+                    alert('Error removing coupon');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while removing the coupon');
+            });
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             // User dropdown toggle functionality
             const userMenu = document.getElementById('userMenu');
@@ -684,8 +909,7 @@
             });
 
             // Place Order Button Click Handler
-            const placeOrderBtn = document.getElementById('placeOrderBtn');
-            placeOrderBtn.addEventListener('click', function() {
+            document.getElementById('placeOrderBtn').addEventListener('click', function() {
                 const selectedAddress = document.querySelector('input[name="address"]:checked');
                 const selectedPayment = document.querySelector('input[name="payment"]:checked');
 
@@ -699,58 +923,98 @@
                     return;
                 }
 
-                // Create form data
-                const formData = new FormData();
-                formData.append('address', selectedAddress.value);
-                formData.append('payment', selectedPayment.value);
-
-                // Disable the button and show loading state
-                placeOrderBtn.disabled = true;
-                placeOrderBtn.innerHTML = 'Processing...';
-
-                // Send the order request
+                // Get CSRF token
+                const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                
+                // Send order data to server
                 fetch('{% url "place_order" %}', {
                     method: 'POST',
-                    body: formData,
                     headers: {
-                        'X-CSRFToken': getCookie('csrftoken')
-                    }
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrftoken
+                    },
+                    body: JSON.stringify({
+                        address: selectedAddress.value,
+                        payment: selectedPayment.value
+                    })
                 })
                 .then(response => response.json())
                 .then(data => {
                     if (data.status === 'success') {
                         // Redirect to order details page
-                        window.location.href = data.redirect_url;
+                        window.location.href = `/order-details/${data.order_id}/`;
                     } else {
                         alert(data.message);
-                        placeOrderBtn.disabled = false;
-                        placeOrderBtn.innerHTML = 'Place Order';
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('An error occurred while placing your order. Please try again.');
-                    placeOrderBtn.disabled = false;
-                    placeOrderBtn.innerHTML = 'Place Order';
+                    alert('An error occurred while placing your order');
                 });
             });
 
-            // Function to get CSRF token
-            function getCookie(name) {
-                let cookieValue = null;
-                if (document.cookie && document.cookie !== '') {
-                    const cookies = document.cookie.split(';');
-                    for (let i = 0; i < cookies.length; i++) {
-                        const cookie = cookies[i].trim();
-                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                            break;
-                        }
+            document.getElementById('couponForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                const code = this.querySelector('input[name="coupon_code"]').value;
+                
+                fetch('/apply-coupon/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    },
+                    body: JSON.stringify({ code: code })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    const messageDiv = document.getElementById('couponMessage');
+                    const discountDiv = document.getElementById('couponDiscount');
+                    
+                    if (data.status === 'success') {
+                        messageDiv.className = 'mt-2 text-sm text-green-600';
+                        messageDiv.textContent = data.message;
+                        discountDiv.classList.remove('hidden');
+                        
+                        // Update price details
+                        document.getElementById('subtotal').textContent = data.subtotal;
+                        document.getElementById('discountAmount').textContent = data.discount;
+                        document.getElementById('finalTotal').textContent = data.final_total;
+                    } else {
+                        messageDiv.className = 'mt-2 text-sm text-red-600';
+                        messageDiv.textContent = data.message;
+                        discountDiv.classList.add('hidden');
                     }
-                }
-                return cookieValue;
-            }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+            });
         });
+
+        function applyCoupon(code) {
+            const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            
+            fetch('/apply-coupon/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken
+                },
+                body: JSON.stringify({ code: code })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    location.reload();
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while applying the coupon');
+            });
+        }
     </script>
 </body>
 </html> 

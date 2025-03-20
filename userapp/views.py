@@ -5,7 +5,7 @@ from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from .forms import SignupForm
-from adminapp.models import CustomUser, Brand, Product, Category, Language, Cart, CartItem, Address, Offer, Order, OrderItem, ReturnRequest, Wishlist
+from adminapp.models import CustomUser, Brand, Product, Category, Language, Cart, CartItem, Address, Offer, Order, OrderItem, ReturnRequest, Wishlist, Coupon
 from django.core.exceptions import ValidationError
 import json
 from django.db.models import Q
@@ -14,6 +14,7 @@ from decimal import Decimal
 from .utils import render_to_pdf
 from django.db import transaction
 from django.core.paginator import Paginator
+from django.utils import timezone
 
 def signup(request):
     if request.method == 'POST':
@@ -563,99 +564,48 @@ def delete_address(request, address_id):
 @login_required
 def checkout_view(request):
     cart = Cart.objects.filter(user=request.user).first()
-    addresses = Address.objects.filter(user=request.user)
-    cart_items = []
-    total_price = 0
-    total_discount = 0
-
-    if not cart:
-        messages.warning(request, 'Your cart is empty')
-        return redirect('cart')
-
-    cart_items = cart.items.select_related('product', 'product__category', 'product__language').all()
+    subtotal = cart.get_subtotal()
     
-    if not cart_items:
-        messages.warning(request, 'Your cart is empty')
-        return redirect('cart')
-
-    # Get active offers
-    product_offers = Offer.objects.filter(is_active=True, offer_type='product')
-    category_offers = Offer.objects.filter(is_active=True, offer_type='category')
+    # Get coupon details from session
+    coupon_discount = Decimal(request.session.get('coupon_discount', '0'))
+    coupon_code = request.session.get('coupon_code')
     
-    # Calculate discounts for each cart item
-    for item in cart_items:
-        max_discount = 0
-        
-        # Check product-specific offers
-        for offer in product_offers:
-            if str(item.product.id) == str(offer.offer_items):
-                max_discount = max(max_discount, float(offer.discount))
-        
-        # Check category offers
-        for offer in category_offers:
-            if str(item.product.category.id) == str(offer.offer_items):
-                max_discount = max(max_discount, float(offer.discount))
-        
-        # Calculate discounted price if there's a discount
-        original_price = float(str(item.product.price))
-        item_total = original_price * item.quantity
-        item.original_total = round(item_total, 2)
-        
-        if max_discount > 0:
-            item.product.discount = max_discount
-            discount_amount = (original_price * max_discount) / 100
-            item.product.offer_price = round(original_price - discount_amount, 2)
-            discounted_total = item.product.offer_price * item.quantity
-            item.discount_amount = round(item_total - discounted_total, 2)
-            total_discount += item.discount_amount
-        else:
-            item.product.offer_price = None
-            item.product.discount = None
-            item.discount_amount = 0
-            discounted_total = item_total
-        
-        item.total_price = round(discounted_total, 2)
-        total_price += item.total_price
-
-    if request.method == 'POST':
-        address_id = request.POST.get('address')
-        payment_method = request.POST.get('payment')
-        
-        if not address_id:
-            messages.error(request, 'Please select a delivery address')
-            return redirect('checkout')
-        
-        try:
-            address = Address.objects.get(id=address_id, user=request.user)
-            # Here you would create the order and handle payment
-            # This is where you'd integrate with Razorpay if selected
-            messages.success(request, 'Order placed successfully!')
-            return redirect('order_confirmation')  # Create this view
-        except Address.DoesNotExist:
-            messages.error(request, 'Selected address not found')
-            return redirect('checkout')
-        except Exception as e:
-            messages.error(request, f'Error placing order: {str(e)}')
-            return redirect('checkout')
+    # Get valid coupons
+    valid_coupons = Coupon.objects.filter(
+        is_active=True,
+        min_amount__lte=subtotal  # Only show coupons that can be applied
+    )
+    
+    # Calculate final total
+    final_total = subtotal - coupon_discount
+    if final_total < 999:
+        final_total += 50  # Add shipping if total is less than 999
     
     context = {
-        'cart_items': cart_items,
-        'addresses': addresses,
-        'total_price': round(total_price, 2),
-        'total_discount': round(total_discount, 2),
-        'original_total': round(total_price + total_discount, 2),
-        'shipping_cost': 0 if total_price >= 999 else 50,
+        'cart': cart,
+        'addresses': Address.objects.filter(user=request.user),
+        'subtotal': subtotal,
+        'discount': coupon_discount,
+        'coupon_code': coupon_code,
+        'final_total': final_total,
+        'shipping_cost': 0 if final_total >= 999 else 50,
+        'valid_coupons': valid_coupons,  # Add valid coupons to context
     }
-    
     return render(request, 'checkout.html', context)
 
 @login_required
 def place_order(request):
     if request.method == 'POST':
         try:
-            # Get the selected address and payment method
-            address_id = request.POST.get('address')
-            payment_method = request.POST.get('payment')
+            # Parse JSON data if it's JSON request
+            if request.content_type == 'application/json':
+                data = json.loads(request.body)
+                address_id = data.get('address')
+                payment_method = data.get('payment')
+            else:
+                # Handle form data
+                address_id = request.POST.get('address')
+                payment_method = request.POST.get('payment')
             
             if not address_id:
                 return JsonResponse({
@@ -676,95 +626,51 @@ def place_order(request):
                     'message': 'Your cart is empty'
                 })
             
-            # Get active offers
-            product_offers = Offer.objects.filter(is_active=True, offer_type='product')
-            category_offers = Offer.objects.filter(is_active=True, offer_type='category')
-            
             # Calculate totals
-            original_total = 0
-            total_discount = 0
+            subtotal = cart.get_subtotal()
             
-            for item in cart_items:
-                # Calculate price with offers
-                max_discount = 0
-                
-                # Check product-specific offers
-                for offer in product_offers:
-                    if str(item.product.id) == str(offer.offer_items):
-                        max_discount = max(max_discount, float(offer.discount))
-                
-                # Check category offers
-                for offer in category_offers:
-                    if str(item.product.category.id) == str(offer.offer_items):
-                        max_discount = max(max_discount, float(offer.discount))
-                
-                # Calculate item total
-                item_price = float(str(item.product.price))
-                item_total = item_price * item.quantity
-                original_total += item_total
-                
-                if max_discount > 0:
-                    discount_amount = (item_total * max_discount) / 100
-                    total_discount += discount_amount
+            # Get coupon details from session
+            coupon_id = request.session.get('coupon_id')
+            coupon_discount = Decimal(request.session.get('coupon_discount', '0'))
             
-            subtotal = original_total - total_discount
-            shipping_cost = 0 if subtotal >= 999 else 50
-            total_amount = subtotal + shipping_cost
+            # Calculate shipping
+            final_total = subtotal - coupon_discount
+            shipping_cost = Decimal('50') if final_total < 999 else Decimal('0')
+            total_amount = final_total + shipping_cost
             
             # Create the order
-            order = Order.objects.create(
+            with transaction.atomic():
+                order = Order.objects.create(
                 user=request.user,
-                customer_name=address.full_name,
-                phone=address.phone,
                 billing_address=address,
                 payment_method=payment_method,
-                original_total=original_total,
-                total_discount=total_discount,
+                    total_amount=total_amount,
                 subtotal=subtotal,
                 shipping_cost=shipping_cost,
-                total_amount=total_amount
-            )
-            
-            # Create order items and clear cart
-            for cart_item in cart_items:
-                # Calculate final price for this item
-                max_discount = 0
-                
-                # Check product-specific offers
-                for offer in product_offers:
-                    if str(cart_item.product.id) == str(offer.offer_items):
-                        max_discount = max(max_discount, float(offer.discount))
-                
-                # Check category offers
-                for offer in category_offers:
-                    if str(cart_item.product.category.id) == str(offer.offer_items):
-                        max_discount = max(max_discount, float(offer.discount))
-                
-                # Calculate final price
-                item_price = float(str(cart_item.product.price))
-                if max_discount > 0:
-                    discount_amount = (item_price * max_discount) / 100
-                    final_price = item_price - discount_amount
-                else:
-                    final_price = item_price
-                
-                # Create order item
-                OrderItem.objects.create(
-                    order=order,
-                    product=cart_item.product,
-                    quantity=cart_item.quantity,
-                    price=final_price,
-                    total_price=final_price * cart_item.quantity
+                    coupon_id=coupon_id,
+                    coupon_discount=coupon_discount
                 )
-            
-            # Clear the cart
-            cart_items.delete()
+                
+                # Create order items with correct field name
+                for item in cart_items:
+                    OrderItem.objects.create(
+                    order=order,
+                        product=item.product,
+                        quantity=item.quantity,
+                        price=item.product.price,
+                        total_price=item.get_total_price()
+                    )
+                
+                # Clear cart and coupon
+                cart.items.all().delete()
+                request.session.pop('coupon_id', None)
+                request.session.pop('coupon_discount', None)
+                request.session.pop('coupon_code', None)
             
             return JsonResponse({
                 'status': 'success',
-                'message': 'Order placed successfully',
-                'order_id': order.id,
-                'redirect_url': f'/order-details/{order.id}/'
+                    'message': 'Order placed successfully!',
+                    'order_id': order.id
             })
             
         except Exception as e:
@@ -958,36 +864,127 @@ def wishlist_view(request):
 
 @login_required
 def add_to_wishlist(request, product_id):
-    try:
-        product = Product.objects.get(id=product_id)
-        wishlist_item, created = Wishlist.objects.get_or_create(
-            user=request.user,
-            product=product
-        )
-        return JsonResponse({
-            'status': 'success',
-            'message': 'Added to wishlist'
-        })
-    except Product.DoesNotExist:
-        return JsonResponse({
-            'status': 'error',
-            'message': 'Product not found'
+        try:
+            product = Product.objects.get(id=product_id)
+            wishlist_item, created = Wishlist.objects.get_or_create(
+                user=request.user,
+                product=product
+            )
+            return JsonResponse({
+                    'status': 'success',
+                    'message': 'Added to wishlist'
+            })
+        except Product.DoesNotExist:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Product not found'
         })
 
 @login_required
 def remove_from_wishlist(request, product_id):
-    try:
-        wishlist_item = Wishlist.objects.get(
-            user=request.user,
-            product_id=product_id
-        )
-        wishlist_item.delete()
-        return JsonResponse({
-            'status': 'success',
-            'message': 'Removed from wishlist'
-        })
-    except Wishlist.DoesNotExist:
-        return JsonResponse({
-            'status': 'error',
+        try:
+            wishlist_item = Wishlist.objects.get(
+                user=request.user,
+                product_id=product_id
+            )
+            wishlist_item.delete()
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Removed from wishlist'
+            })
+        except Wishlist.DoesNotExist:
+            return JsonResponse({
+                'status': 'error',
             'message': 'Item not found in wishlist'
         })
+
+@require_POST
+def apply_coupon(request):
+    try:
+        data = json.loads(request.body)
+        code = data.get('code')
+        
+        if not code:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Please enter a coupon code'
+            })
+            
+        try:
+            coupon = Coupon.objects.get(
+                code__iexact=code,
+                is_active=True
+            )
+            
+            # Get cart and calculate totals
+            cart = Cart.objects.get(user=request.user)
+            subtotal = cart.get_subtotal()
+            
+            # Check minimum amount
+            if subtotal < coupon.min_amount:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': f'Minimum order amount of ₹{coupon.min_amount} required'
+                })
+                
+            # Calculate discount
+            if coupon.type == 'percentage':
+                discount = (subtotal * Decimal(coupon.value)) / 100
+            else:
+                discount = min(Decimal(coupon.value), subtotal)
+                
+            # Store coupon details in session
+            request.session['coupon_id'] = coupon.id
+            request.session['coupon_discount'] = str(discount)
+            request.session['coupon_code'] = code
+            
+            final_total = subtotal - discount
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Coupon applied successfully!',
+                'subtotal': str(subtotal),
+                'discount': str(discount),
+                'final_total': str(final_total)
+            })
+            
+        except Coupon.DoesNotExist:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Invalid coupon code'
+            })
+            
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        })
+
+@require_POST
+def remove_coupon(request):
+    try:
+        # Remove coupon details from session
+        request.session.pop('coupon_id', None)
+        request.session.pop('coupon_discount', None)
+        request.session.pop('coupon_code', None)
+        
+        # Check if it's an AJAX request
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Coupon removed successfully'
+            })
+        else:
+            # Redirect back to checkout page for normal form submission
+            messages.success(request, 'Coupon removed successfully')
+            return redirect('checkout')
+            
+    except Exception as e:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                'status': 'error',
+                'message': str(e)
+            })
+        else:
+            messages.error(request, f'Error removing coupon: {str(e)}')
+            return redirect('checkout')

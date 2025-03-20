@@ -13,15 +13,39 @@
 
     <div class="flex flex-grow">
         <!-- Sidebar -->
-        {% comment %} {% include 'adminapp/includes/sidebar.html' %} {% endcomment %}
+        <aside class="bg-gradient-to-r from-[#E5E7EB] to-[#d2b69b] text-black w-64 py-6 px-4 hidden lg:block">
+            <nav class="space-y-6">
+                <a href="{% url 'admin_dashboard' %}" class="flex items-center py-2 px-3 hover:bg-white rounded-lg">Dashboard</a>
+                <a href="{% url 'admin_products' %}" class="flex items-center py-2 px-3 hover:bg-white rounded-lg">Products</a>
+                <a href="{% url 'category_list' %}" class="flex items-center py-2 px-3 hover:bg-white rounded-lg">Category</a>
+                <a href="{% url 'brand_list' %}" class="flex items-center py-2 px-3 hover:bg-white rounded-lg">Publisher</a>
+                <a href="{% url 'admin_customer' %}" class="flex items-center py-2 px-3 hover:bg-white rounded-lg">Customers</a>
+                <a href="{% url 'admin_manage_orders' %}" class="flex items-center py-2 px-3 hover:bg-white rounded-lg">Orders</a>
+                <a href="{% url 'offer_list' %}" class="flex items-center py-2 px-3 hover:bg-white rounded-lg">Offers</a>
+                <a href="{% url 'coupon_list' %}" class="flex items-center py-2 px-3 bg-white rounded-lg">Coupons</a>
+            </nav>
+        </aside>
 
         <!-- Main Content -->
         <main class="flex-1 p-6">
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-2xl font-bold">Coupons Management</h2>
-                <button onclick="openAddModal()" class="bg-[#A79277] text-white px-4 py-2 rounded-lg shadow-md hover:bg-[#8B7355]">
-                    Add Coupon
-                </button>
+                <div class="flex gap-4">
+                    <!-- Search Bar -->
+                    <form method="GET" class="flex items-center">
+                        <input type="text" name="search" placeholder="Search coupons..." 
+                               value="{{ search_query }}"
+                               class="px-4 py-2 border rounded-l-lg focus:outline-none focus:ring-2 focus:ring-[#A79277]">
+                        <button type="submit" class="px-4 py-2 bg-[#A79277] text-white rounded-r-lg hover:bg-[#8B7355]">
+                            Search
+                        </button>
+                    </form>
+                    <!-- Add Coupon Button -->
+                    <button onclick="openAddModal()" 
+                            class="bg-[#A79277] text-white px-4 py-2 rounded-lg shadow-md hover:bg-[#8B7355]">
+                        Add Coupon
+                    </button>
+                </div>
             </div>
 
             <!-- Coupons Table -->
@@ -29,9 +53,11 @@
                 <table class="w-full border-collapse">
                     <thead class="bg-[#A79277] text-white">
                         <tr>
+                            <th class="py-4 px-6 text-left">SL.No</th>
                             <th class="py-4 px-6 text-left">Code</th>
-                            <th class="py-4 px-6 text-left">Discount</th>
-                            <th class="py-4 px-6 text-left">Min Amount</th>
+                            <th class="py-4 px-6 text-left">Type</th>
+                            <th class="py-4 px-6 text-left">Value</th>
+                            <th class="py-4 px-6 text-left">Min Price</th>
                             <th class="py-4 px-6 text-left">Valid From</th>
                             <th class="py-4 px-6 text-left">Valid To</th>
                             <th class="py-4 px-6 text-left">Status</th>
@@ -41,15 +67,25 @@
                     <tbody>
                         {% for coupon in coupons %}
                         <tr class="border-b hover:bg-gray-50">
+                            <td class="py-4 px-6">{{ forloop.counter }}</td>
                             <td class="py-4 px-6">{{ coupon.code }}</td>
-                            <td class="py-4 px-6">{{ coupon.discount }}%</td>
+                            <td class="py-4 px-6">{{ coupon.get_type_display }}</td>
+                            <td class="py-4 px-6">{{ coupon.value }}{% if coupon.type == 'percentage' %}%{% else %}₹{% endif %}</td>
                             <td class="py-4 px-6">₹{{ coupon.min_amount }}</td>
-                            <td class="py-4 px-6">{{ coupon.valid_from|date:"Y-m-d H:i" }}</td>
-                            <td class="py-4 px-6">{{ coupon.valid_to|date:"Y-m-d H:i" }}</td>
                             <td class="py-4 px-6">
-                                <span class="px-2 py-1 rounded-full text-sm {% if coupon.is_active %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
-                                    {{ coupon.is_active|yesno:"Active,Inactive" }}
+                                <span class="text-sm">
+                                    Valid from: {{ coupon.valid_from|date:"Y-m-d" }}<br>
+                                    Valid to: {{ coupon.valid_to|date:"Y-m-d" }}
                                 </span>
+                                {% if coupon.is_active %}
+                                    {% if now < coupon.valid_from %}
+                                        <span class="text-yellow-600 text-sm block">(Not yet active)</span>
+                                    {% elif now > coupon.valid_to %}
+                                        <span class="text-red-600 text-sm block">(Expired)</span>
+                                    {% else %}
+                                        <span class="text-green-600 text-sm block">(Currently active)</span>
+                                    {% endif %}
+                                {% endif %}
                             </td>
                             <td class="py-4 px-6">
                                 <div class="flex items-center space-x-3">
@@ -69,13 +105,142 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="7" class="py-8 text-center text-gray-500">No coupons found</td>
+                            <td colspan="9" class="py-8 text-center text-gray-500">No coupons found</td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
+
+            <!-- Add/Edit Coupon Modal -->
+            <div id="couponModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex justify-center items-center">
+                <div class="bg-white rounded-lg p-6 w-[500px] max-w-full">
+                    <h3 id="modalTitle" class="text-xl font-bold mb-4">Add New Coupon</h3>
+                    <form id="couponForm" method="post" action="{% url 'add_coupon' %}">
+                        {% csrf_token %}
+                        <div class="space-y-4">
+                            <!-- Coupon Code -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Coupon Code</label>
+                                <input type="text" name="code" required
+                                       class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#A79277]">
+                            </div>
+
+                            <!-- Coupon Type -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Coupon Type</label>
+                                <select name="type" required
+                                        class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#A79277]">
+                                    <option value="percentage">Percentage</option>
+                                    <option value="fixed">Fixed Amount</option>
+                                </select>
+                            </div>
+
+                            <!-- Value -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Value</label>
+                                <input type="number" name="value" required min="0" step="0.01"
+                                       class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#A79277]">
+                            </div>
+
+                            <!-- Minimum Amount -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Minimum Amount</label>
+                                <input type="number" name="min_amount" required min="0" step="0.01"
+                                       class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#A79277]">
+                            </div>
+
+                            <!-- Valid From -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Valid From</label>
+                                <input type="date" name="valid_from" 
+                                       value="{{ now|date:'Y-m-d' }}"
+                                       class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#A79277]">
+                            </div>
+
+                            <!-- Valid To -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Valid To</label>
+                                <input type="date" name="valid_to" 
+                                       value="{{ default_valid_to|date:'Y-m-d' }}"
+                                       class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#A79277]">
+                            </div>
+
+                            <!-- Active Status -->
+                            <div class="flex items-center">
+                                <input type="checkbox" name="is_active" id="isActive" checked
+                                       class="rounded text-[#A79277] focus:ring-[#A79277]">
+                                <label for="isActive" class="ml-2 text-sm text-gray-700">Active</label>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-end space-x-4 mt-6">
+                            <button type="button" onclick="closeModal()" 
+                                    class="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300">
+                                Cancel
+                            </button>
+                            <button type="submit" 
+                                    class="px-4 py-2 bg-[#A79277] text-white rounded-lg hover:bg-[#8B7355]">
+                                Save Coupon
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </main>
     </div>
+
+    <script>
+        function openAddModal() {
+            document.getElementById('modalTitle').textContent = 'Add New Coupon';
+            document.getElementById('couponForm').action = "{% url 'add_coupon' %}";
+            document.getElementById('couponModal').classList.remove('hidden');
+        }
+
+        function openEditModal(couponId) {
+            document.getElementById('modalTitle').textContent = 'Edit Coupon';
+            document.getElementById('couponForm').action = `/edit-coupon/${couponId}/`;
+            document.getElementById('couponModal').classList.remove('hidden');
+            // Fetch and populate coupon data
+            fetchCouponData(couponId);
+        }
+
+        function closeModal() {
+            document.getElementById('couponModal').classList.add('hidden');
+            document.getElementById('couponForm').reset();
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('couponModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        // Show success/error messages
+        {% if messages %}
+            {% for message in messages %}
+                alert("{{ message }}");
+            {% endfor %}
+        {% endif %}
+
+        function fetchCouponData(couponId) {
+            fetch(`/api/coupons/${couponId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    document.querySelector('input[name="code"]').value = data.code;
+                    document.querySelector('select[name="type"]').value = data.type;
+                    document.querySelector('input[name="value"]').value = data.value;
+                    document.querySelector('input[name="min_amount"]').value = data.min_amount;
+                    document.querySelector('input[name="valid_from"]').value = data.valid_from;
+                    document.querySelector('input[name="valid_to"]').value = data.valid_to;
+                    document.querySelector('input[name="is_active"]').checked = data.is_active;
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error fetching coupon data');
+                });
+        }
+    </script>
 </body>
 </html> 

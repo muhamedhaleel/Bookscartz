@@ -3,6 +3,7 @@ import os
 from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
 from django.conf import settings
+from decimal import Decimal
 
 
 # admin
@@ -123,11 +124,50 @@ class Cart(models.Model):
     def __str__(self):
         return f"Cart for {self.user.username}"
 
-    def get_total_items(self):
+    def get_subtotal(self):
+        """Calculate subtotal before coupon"""
+        total = 0
+        for item in self.items.all():
+            if item.product.offer_price:
+                price = item.product.offer_price
+            else:
+                price = item.product.price
+            total += price * item.quantity
+        return total
+
+    def get_total(self):
+        """Calculate final total after coupon"""
+        subtotal = self.get_subtotal()
+        
+        # Get coupon from session if exists
+        from django.contrib.sessions.backends.db import SessionStore
+        session = SessionStore()
+        coupon_id = session.get('coupon_id')
+        
+        if coupon_id:
+            try:
+                coupon = Coupon.objects.get(id=coupon_id)
+                if coupon.type == 'percentage':
+                    # Calculate percentage discount
+                    discount = (subtotal * Decimal(coupon.value)) / 100
+                else:
+                    # Fixed amount discount
+                    discount = min(Decimal(coupon.value), subtotal)  # Don't allow discount > subtotal
+                
+                # Return subtotal minus discount, ensuring it doesn't go below 0
+                return max(subtotal - discount, 0)
+            except Coupon.DoesNotExist:
+                pass
+        
+        return subtotal
+
+    def get_items_count(self):
+        """Get total number of items in cart"""
         return sum(item.quantity for item in self.items.all())
 
-    def get_total_price(self):
-        return sum(item.quantity * item.product.price for item in self.items.all())
+    def clear(self):
+        """Remove all items from cart"""
+        self.items.all().delete()
 
     class Meta:
         db_table = 'adminapp_cart'
@@ -139,15 +179,18 @@ class CartItem(models.Model):
     added_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    def __str__(self):
+        return f"{self.quantity} x {self.product.name}"
+
+    def get_total_price(self):
+        """Calculate total price for this item"""
+        if self.product.offer_price:
+            return self.product.offer_price * self.quantity
+        return self.product.price * self.quantity
+
     class Meta:
         db_table = 'adminapp_cartitem'
         unique_together = ('cart', 'product')
-
-    def __str__(self):
-        return f"{self.quantity} x {self.product.name} in {self.cart}"
-
-    def get_total_price(self):
-        return self.quantity * self.product.price
 
 class Address(models.Model):
     ADDRESS_TYPES = (
@@ -206,47 +249,34 @@ class Offer(models.Model):
         return f"{self.get_offer_type_display()} - {self.discount}%"
 
 class Order(models.Model):
-    STATUS_CHOICES = [
+    STATUS_CHOICES = (
         ('pending', 'Pending'),
         ('processing', 'Processing'),
         ('shipped', 'Shipped'),
         ('delivered', 'Delivered'),
-        ('cancelled', 'Cancelled'),
-        ('returned', 'Returned')
-    ]
+        ('cancelled', 'Cancelled')
+    )
 
-    VALID_STATUS_TRANSITIONS = {
-        'pending': ['processing', 'cancelled'],
-        'processing': ['shipped', 'cancelled'],
-        'shipped': ['delivered', 'cancelled'],
-        'delivered': ['returned'],
-        'cancelled': [],
-        'returned': []
-    }
-
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
-    customer_name = models.CharField(max_length=100, null=True, blank=True)
-    phone = models.CharField(max_length=15, null=True, blank=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     billing_address = models.ForeignKey(Address, on_delete=models.SET_NULL, null=True)
     payment_method = models.CharField(max_length=50)
-    original_total = models.DecimalField(max_digits=10, decimal_places=2)
-    total_discount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    subtotal = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    subtotal = models.DecimalField(max_digits=10, decimal_places=2)
     shipping_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    total_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+    coupon = models.ForeignKey('Coupon', on_delete=models.SET_NULL, null=True, blank=True)
+    coupon_discount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"Order #{self.id} by {self.customer_name}"
+        return f"Order #{self.id} by {self.user.username}"
 
-    def can_transition_to(self, new_status):
-        """Check if the status transition is valid"""
-        return new_status in self.VALID_STATUS_TRANSITIONS.get(self.status, [])
+    def get_total(self):
+        return self.total_amount
 
     def update_status(self, new_status):
-        """Update order status with validation"""
-        if self.can_transition_to(new_status):
+        if new_status in dict(self.STATUS_CHOICES):
             self.status = new_status
             self.save()
             return True
@@ -254,27 +284,22 @@ class Order(models.Model):
 
 class OrderItem(models.Model):
     RETURN_STATUS_CHOICES = (
-        ('none', 'No Return'),
-        ('requested', 'Return Requested'),
-        ('approved', 'Return Approved'),
-        ('rejected', 'Return Rejected')
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected')
     )
-    
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
+
+    order = models.ForeignKey(Order, related_name='items', on_delete=models.CASCADE)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.PositiveIntegerField()
     price = models.DecimalField(max_digits=10, decimal_places=2)
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
+    return_status = models.CharField(max_length=20, choices=RETURN_STATUS_CHOICES, null=True, blank=True)
+    return_reason = models.TextField(null=True, blank=True)
     return_requested = models.BooleanField(default=False)
-    return_status = models.CharField(
-        max_length=20, 
-        choices=RETURN_STATUS_CHOICES,
-        default='none'
-    )
-    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.quantity} x {self.product.name} in Order #{self.order.id}"
+        return f"{self.quantity} x {self.product.name}"
 
     def save(self, *args, **kwargs):
         self.total_price = self.quantity * self.price
@@ -340,16 +365,25 @@ class Wishlist(models.Model):
         }
 
 class Coupon(models.Model):
+    COUPON_TYPES = (
+        ('percentage', 'Percentage'),
+        ('fixed', 'Fixed Amount'),
+    )
+    
     code = models.CharField(max_length=50, unique=True)
-    discount = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
-    min_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    valid_from = models.DateTimeField(null=True, blank=True)
-    valid_to = models.DateTimeField(null=True, blank=True)
+    type = models.CharField(max_length=10, choices=COUPON_TYPES, default='percentage')
+    value = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    min_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    valid_from = models.DateField(null=True, blank=True)
+    valid_to = models.DateField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.code
+
+    class Meta:
+        ordering = ['-created_at']
 
 

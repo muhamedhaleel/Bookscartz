@@ -196,23 +196,78 @@
             padding: 2rem;
         }
 
-        .summary-row {
+        .order-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .item-details {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            flex: 1;
+        }
+
+        .item-details img {
+            width: 100px;
+            height: 130px;
+            object-fit: contain;
+            border-radius: 8px;
+            background: #f8f8f8;
+            padding: 0.5rem;
+            border: 1px solid #eee;
+        }
+
+        .item-info {
+            flex: 1;
+        }
+
+        .item-info h4 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .item-info p {
+            color: #666;
+            font-size: 0.95rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .item-total {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: var(--primary-color);
+            margin-left: 2rem;
+        }
+
+        .price-details {
+            margin-top: 2rem;
+            border-top: 2px solid #eee;
+            padding-top: 1.5rem;
+        }
+
+        .price-row {
             display: flex;
             justify-content: space-between;
             padding: 0.75rem 0;
-            border-bottom: 1px solid var(--light-bg);
+            font-size: 1rem;
         }
 
-        .summary-row:last-child {
-            border-bottom: none;
+        .price-row.discount {
+            color: #4caf50;
         }
 
-        .total-row {
+        .price-row.total {
             font-size: 1.2rem;
             font-weight: 600;
-            padding-top: 1rem;
+            border-top: 2px solid #eee;
             margin-top: 1rem;
-            border-top: 2px solid var(--light-bg);
+            padding-top: 1rem;
         }
 
         .continue-shopping {
@@ -335,64 +390,49 @@
                     </div>
                 </div>
             </div>
-
-            <div class="order-section">
-                <h2 class="section-title">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
-                        <line x1="3" y1="6" x2="21" y2="6"></line>
-                        <path d="M16 10a4 4 0 0 1-8 0"></path>
-                    </svg>
-                    Product Details
-                </h2>
-                <div class="product-list">
-                    {% for item in order.items.all %}
-                    <div class="product-item">
-                        <div class="product-image">
-                            <img src="{{ item.product.image1.url }}" alt="{{ item.product.name }}">
-                        </div>
-                        <div class="product-details">
-                            <h3>{{ item.product.name }}</h3>
-                            <div class="product-meta">
-                                <p>Quantity: {{ item.quantity }}</p>
-                                {% if item.product.offer_price %}
-                                <p>Price: <span style="text-decoration: line-through;">₹{{ item.product.price }}</span> ₹{{ item.product.offer_price }}</p>
-                                {% else %}
-                                <p>Price: ₹{{ item.product.price }}</p>
-                                {% endif %}
-                            </div>
-                        </div>
-                        <div class="product-total">
-                            ₹{{ item.total_price }}
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
         </div>
 
         <div class="order-summary">
-            <div class="summary-row">
-                <span>Original Total</span>
-                <span>₹{{ order.original_total }}</span>
+            <h3>Order Summary</h3>
+            
+            <!-- Order Items -->
+            {% for item in order.items.all %}
+            <div class="order-item">
+                <div class="item-details">
+                    <img src="{{ item.product.image1.url }}" alt="{{ item.product.name }}">
+                    <div class="item-info">
+                        <h4>{{ item.product.name }}</h4>
+                        <p>Quantity: {{ item.quantity }}</p>
+                        <p>Price: ₹{{ item.price }}</p>
+                    </div>
+                </div>
+                <div class="item-total">₹{{ item.total_price }}</div>
             </div>
-            {% if order.total_discount > 0 %}
-            <div class="summary-row">
-                <span>Discount</span>
-                <span style="color: #4caf50;">-₹{{ order.total_discount }}</span>
-            </div>
-            {% endif %}
-            <div class="summary-row">
-                <span>Subtotal</span>
-                <span>₹{{ order.subtotal }}</span>
-            </div>
-            <div class="summary-row">
-                <span>Shipping</span>
-                <span>{% if order.subtotal >= 999 %}Free{% else %}₹50{% endif %}</span>
-            </div>
-            <div class="summary-row total-row">
-                <span>Total Amount</span>
-                <span>₹{{ order.total_amount }}</span>
+            {% endfor %}
+            
+            <!-- Price Details -->
+            <div class="price-details">
+                <div class="price-row">
+                    <span>Subtotal</span>
+                    <span>₹{{ order.subtotal }}</span>
+                </div>
+                
+                {% if order.coupon %}
+                <div class="price-row discount">
+                    <span>Coupon Discount ({{ order.coupon.code }})</span>
+                    <span>-₹{{ order.coupon_discount }}</span>
+                </div>
+                {% endif %}
+                
+                <div class="price-row">
+                    <span>Shipping</span>
+                    <span>{% if order.shipping_cost == 0 %}Free{% else %}₹{{ order.shipping_cost }}{% endif %}</span>
+                </div>
+                
+                <div class="price-row total">
+                    <span>Total Amount</span>
+                    <span>₹{{ order.total_amount }}</span>
+                </div>
             </div>
         </div>
 
