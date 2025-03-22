@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Wallet - Bookscartz</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        /* Include the same base styles from profile.html */
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: #f0f4f8;
+            margin: 0;
+            display: flex;
+        }
+        
+        /* Copy sidebar styles from profile.html */
+        .sidebar {
+            width: 200px;
+            background-color: #343a40;
+            color: white;
+            padding: 15px;
+            height: 100vh;
+            position: fixed;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            border-radius: 0 10px 10px 0;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .main-content {
+            margin-left: 220px;
+            padding: 20px;
+            width: calc(100% - 220px);
+        }
+
+        /* Wallet specific styles */
+        .wallet-container {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .balance-card {
+            background: linear-gradient(135deg, #28a745, #218838);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .balance-title {
+            font-size: 1.1em;
+            margin-bottom: 10px;
+        }
+
+        .balance-amount {
+            font-size: 2em;
+            font-weight: bold;
+        }
+
+        .transactions-container {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .transaction-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .transaction-table th,
+        .transaction-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .transaction-table th {
+            background-color: #f8f9fa;
+            font-weight: 500;
+        }
+
+        .transaction-type {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        .credit {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .debit {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .no-transactions {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 600px) {
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: relative;
+                border-radius: 0;
+            }
+            .main-content {
+                margin-left: 0;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h2>Profile Menu</h2>
+        <a href="{% url 'profile' %}">Profile</a>
+        <a href="{% url 'home' %}">Home</a>
+        <a href="{% url 'user_orders' %}">My Orders</a>
+        <a href="{% url 'wallet' %}">Wallet</a>
+        <a href="{% url 'logout' %}">Logout</a>
+        <a href="#" id="toggleChangePassword">Change Password</a>
+    </div>
+
+    <div class="main-content">
+        <div class="wallet-container">
+            <h2>My Wallet</h2>
+            <div class="balance-card">
+                <div class="balance-title">Current Balance</div>
+                <div class="balance-amount">₹{{ wallet.balance }}</div>
+            </div>
+        </div>
+
+        <div class="transactions-container">
+            <h3>Transaction History</h3>
+            {% if transactions %}
+                <table class="transaction-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Amount</th>
+                            <th>Order ID</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for transaction in transactions %}
+                        <tr>
+                            <td>{{ transaction.date|date:"M d, Y H:i" }}</td>
+                            <td>
+                                <span class="transaction-type {% if transaction.type == 'credit' %}credit{% else %}debit{% endif %}">
+                                    {{ transaction.type|title }}
+                                </span>
+                            </td>
+                            <td>₹{{ transaction.amount }}</td>
+                            <td>{{ transaction.order_id|default:"-" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="no-transactions">
+                    <p>No transactions found</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html> 

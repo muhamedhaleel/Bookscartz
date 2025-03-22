@@ -5,7 +5,11 @@ from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from .forms import SignupForm
-from adminapp.models import CustomUser, Brand, Product, Category, Language, Cart, CartItem, Address, Offer, Order, OrderItem, ReturnRequest, Wishlist, Coupon
+from adminapp.models import (
+    CustomUser, Brand, Product, Category, Language, Cart, CartItem, 
+    Address, Offer, Order, OrderItem, ReturnRequest, Wishlist, 
+    Coupon, CouponUsage, Wallet, WalletTransaction
+)
 from django.core.exceptions import ValidationError
 import json
 from django.db.models import Q
@@ -564,32 +568,39 @@ def delete_address(request, address_id):
 @login_required
 def checkout_view(request):
     cart = Cart.objects.filter(user=request.user).first()
-    subtotal = cart.get_subtotal()
+    
+    # Calculate totals using the same method as cart
+    original_total = sum(item.get_original_total() for item in cart.items.all())
+    total_discount = sum(item.get_discount_amount() for item in cart.items.all())
+    total_price = sum(item.get_total_price() for item in cart.items.all())
+    
+    # Get wallet
+    wallet, _ = Wallet.objects.get_or_create(user=request.user)
     
     # Get coupon details from session
     coupon_discount = Decimal(request.session.get('coupon_discount', '0'))
     coupon_code = request.session.get('coupon_code')
     
-    # Get valid coupons
-    valid_coupons = Coupon.objects.filter(
-        is_active=True,
-        min_amount__lte=subtotal  # Only show coupons that can be applied
-    )
-    
     # Calculate final total
-    final_total = subtotal - coupon_discount
-    if final_total < 999:
-        final_total += 50  # Add shipping if total is less than 999
+    final_total = total_price - coupon_discount
+    shipping_cost = Decimal('50') if final_total < 999 else Decimal('0')
+    final_total += shipping_cost
     
     context = {
         'cart': cart,
         'addresses': Address.objects.filter(user=request.user),
-        'subtotal': subtotal,
+        'original_total': original_total,
+        'total_discount': total_discount,
+        'total_price': total_price,
         'discount': coupon_discount,
         'coupon_code': coupon_code,
         'final_total': final_total,
-        'shipping_cost': 0 if final_total >= 999 else 50,
-        'valid_coupons': valid_coupons,  # Add valid coupons to context
+        'shipping_cost': shipping_cost,
+        'valid_coupons': Coupon.objects.filter(
+            is_active=True,
+            min_amount__lte=total_price
+        ),
+        'wallet': wallet,
     }
     return render(request, 'checkout.html', context)
 
@@ -633,52 +644,137 @@ def place_order(request):
             coupon_id = request.session.get('coupon_id')
             coupon_discount = Decimal(request.session.get('coupon_discount', '0'))
             
-            # Calculate shipping
+            # Calculate final total with shipping
             final_total = subtotal - coupon_discount
             shipping_cost = Decimal('50') if final_total < 999 else Decimal('0')
             total_amount = final_total + shipping_cost
-            
-            # Create the order
-            with transaction.atomic():
-                order = Order.objects.create(
-                user=request.user,
-                billing_address=address,
-                payment_method=payment_method,
-                    total_amount=total_amount,
-                subtotal=subtotal,
-                shipping_cost=shipping_cost,
-                    coupon_id=coupon_id,
-                    coupon_discount=coupon_discount
-                )
+
+            # Handle wallet payment
+            if payment_method == 'wallet':
+                wallet = Wallet.objects.get(user=request.user)
+                if wallet.balance < total_amount:
+                    return JsonResponse({
+                        'status': 'error',
+                        'message': f'Insufficient wallet balance. Required: ₹{total_amount}, Available: ₹{wallet.balance}'
+                    })
                 
-                # Create order items with correct field name
-                for item in cart_items:
-                    OrderItem.objects.create(
-                    order=order,
-                        product=item.product,
-                        quantity=item.quantity,
-                        price=item.product.price,
-                        total_price=item.get_total_price()
+                # Create order first to get the order ID
+                with transaction.atomic():
+                    # Create order
+                    order = Order.objects.create(
+                        user=request.user,
+                        billing_address=address,
+                        payment_method=payment_method,
+                        total_amount=total_amount,
+                        subtotal=subtotal,
+                        shipping_cost=shipping_cost,
+                        coupon_id=coupon_id,
+                        coupon_discount=coupon_discount
                     )
-                
-                # Clear cart and coupon
-                cart.items.all().delete()
-                request.session.pop('coupon_id', None)
-                request.session.pop('coupon_discount', None)
-                request.session.pop('coupon_code', None)
-            
-            return JsonResponse({
-                'status': 'success',
-                    'message': 'Order placed successfully!',
-                    'order_id': order.id
-            })
-            
+
+                    # Create order items
+                    for item in cart_items:
+                        OrderItem.objects.create(
+                            order=order,
+                            product=item.product,
+                            quantity=item.quantity,
+                            price=item.product.price,
+                            total_price=item.get_total_price()
+                        )
+                        
+                        # Update product stock
+                        product = item.product
+                        product.stock -= item.quantity
+                        product.save()
+
+                    # Deduct amount from wallet
+                    wallet.balance -= total_amount
+                    wallet.save()
+
+                    # Create wallet transaction
+                    WalletTransaction.objects.create(
+                        wallet=wallet,
+                        amount=total_amount,
+                        type='debit',
+                        order_id=str(order.id)
+                    )
+
+                    # Record coupon usage if coupon was used
+                    if coupon_id:
+                        CouponUsage.objects.create(
+                            user=request.user,
+                            coupon_id=coupon_id,
+                            order=order
+                        )
+
+                    # Clear cart and coupon
+                    cart.items.all().delete()
+                    request.session.pop('coupon_id', None)
+                    request.session.pop('coupon_discount', None)
+                    request.session.pop('coupon_code', None)
+
+                    return JsonResponse({
+                        'status': 'success',
+                        'message': 'Order placed successfully!',
+                        'order_id': order.id
+                    })
+            else:
+                # Handle other payment methods (COD, etc.)
+                with transaction.atomic():
+                    # Create order
+                    order = Order.objects.create(
+                        user=request.user,
+                        billing_address=address,
+                        payment_method=payment_method,
+                        total_amount=total_amount,
+                        subtotal=subtotal,
+                        shipping_cost=shipping_cost,
+                        coupon_id=coupon_id,
+                        coupon_discount=coupon_discount
+                    )
+
+                    # Create order items
+                    for item in cart_items:
+                        OrderItem.objects.create(
+                            order=order,
+                            product=item.product,
+                            quantity=item.quantity,
+                            price=item.product.price,
+                            total_price=item.get_total_price()
+                        )
+                        
+                        # Update product stock
+                        product = item.product
+                        product.stock -= item.quantity
+                        product.save()
+
+                    # Record coupon usage if coupon was used
+                    if coupon_id:
+                        CouponUsage.objects.create(
+                            user=request.user,
+                            coupon_id=coupon_id,
+                            order=order
+                        )
+
+                    # Clear cart and coupon
+                    cart.items.all().delete()
+                    request.session.pop('coupon_id', None)
+                    request.session.pop('coupon_discount', None)
+                    request.session.pop('coupon_code', None)
+
+                    return JsonResponse({
+                        'status': 'success',
+                        'message': 'Order placed successfully!',
+                        'order_id': order.id
+                    })
+
         except Exception as e:
+            print(f"Error in place_order: {str(e)}")
             return JsonResponse({
                 'status': 'error',
-                'message': str(e)
+                'message': 'Error processing your order'
             })
-    
+
     return JsonResponse({
         'status': 'error',
         'message': 'Invalid request method'
@@ -822,27 +918,30 @@ def request_return(request, order_id):
 
 @login_required
 def wishlist_view(request):
-    # Get all wishlist items with related product data
+    # Get all wishlist items
     wishlist_items = Wishlist.objects.filter(user=request.user).select_related(
         'product', 
         'product__brand'
     ).order_by('-added_at')
 
-    # Get active offers
-    product_offers = Offer.objects.filter(is_active=True, offer_type='product')
-    category_offers = Offer.objects.filter(is_active=True, offer_type='category')
-    
-    # Calculate discounts for each product in wishlist
-    for item in wishlist_items:
+    # Add pagination - 8 items per page
+    paginator = Paginator(wishlist_items, 8)  # Show 8 items per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    # Calculate discounts for each product
+    for item in page_obj:
         max_discount = 0
         product = item.product
         
         # Check product-specific offers
+        product_offers = Offer.objects.filter(is_active=True, offer_type='product')
         for offer in product_offers:
             if str(product.id) == str(offer.offer_items):
                 max_discount = max(max_discount, float(offer.discount))
         
         # Check category offers
+        category_offers = Offer.objects.filter(is_active=True, offer_type='category')
         for offer in category_offers:
             if str(product.category.id) == str(offer.offer_items):
                 max_discount = max(max_discount, float(offer.discount))
@@ -858,7 +957,8 @@ def wishlist_view(request):
             product.discount_percentage = None
 
     context = {
-        'wishlist_items': wishlist_items,
+        'wishlist_items': page_obj,  # Use page_obj instead of wishlist_items
+        'page_obj': page_obj,  # Add this for pagination template
     }
     return render(request, 'wishlist.html', context)
 
@@ -898,67 +998,68 @@ def remove_from_wishlist(request, product_id):
             'message': 'Item not found in wishlist'
         })
 
-@require_POST
+@login_required
 def apply_coupon(request):
-    try:
-        data = json.loads(request.body)
-        code = data.get('code')
-        
-        if not code:
-            return JsonResponse({
-                'status': 'error',
-                'message': 'Please enter a coupon code'
-            })
-            
+    if request.method == 'POST':
         try:
-            coupon = Coupon.objects.get(
-                code__iexact=code,
-                is_active=True
-            )
+            data = json.loads(request.body) if request.body else request.POST
+            coupon_code = data.get('code')
             
-            # Get cart and calculate totals
+            if not coupon_code:
+                raise ValidationError('Coupon code is required')
+
+            # Get the coupon
+            coupon = get_object_or_404(Coupon, code=coupon_code, is_active=True)
+            
+            # Check if coupon is expired
+            if coupon.valid_to and coupon.valid_to < timezone.now().date():
+                raise ValidationError('This coupon has expired')
+
+            # Check usage limit per user
+            usage_count = CouponUsage.objects.filter(user=request.user, coupon=coupon).count()
+            if usage_count >= 2:
+                raise ValidationError('You have already used this coupon the maximum number of times')
+
+            # Get cart and calculate total
             cart = Cart.objects.get(user=request.user)
-            subtotal = cart.get_subtotal()
-            
-            # Check minimum amount
-            if subtotal < coupon.min_amount:
-                return JsonResponse({
-                    'status': 'error',
-                    'message': f'Minimum order amount of ₹{coupon.min_amount} required'
-                })
-                
+            cart_total = cart.get_subtotal()
+
+            # Check minimum purchase amount
+            if cart_total < coupon.min_amount:
+                raise ValidationError(f'Minimum purchase amount of ₹{coupon.min_amount} required')
+
             # Calculate discount
             if coupon.type == 'percentage':
-                discount = (subtotal * Decimal(coupon.value)) / 100
+                discount = (cart_total * Decimal(coupon.value)) / 100
             else:
-                discount = min(Decimal(coupon.value), subtotal)
-                
-            # Store coupon details in session
+                discount = Decimal(coupon.value)
+
+            # Store coupon info in session
             request.session['coupon_id'] = coupon.id
+            request.session['coupon_code'] = coupon.code
             request.session['coupon_discount'] = str(discount)
-            request.session['coupon_code'] = code
-            
-            final_total = subtotal - discount
-            
+
             return JsonResponse({
                 'status': 'success',
-                'message': 'Coupon applied successfully!',
-                'subtotal': str(subtotal),
-                'discount': str(discount),
-                'final_total': str(final_total)
+                'message': 'Coupon applied successfully',
+                'discount': float(discount)
             })
-            
-        except Coupon.DoesNotExist:
+
+        except ValidationError as e:
             return JsonResponse({
                 'status': 'error',
-                'message': 'Invalid coupon code'
+                'message': str(e)
             })
-            
-    except Exception as e:
-        return JsonResponse({
-            'status': 'error',
-            'message': str(e)
-        })
+        except Exception as e:
+            return JsonResponse({
+                'status': 'error',
+                'message': str(e)
+            })
+
+    return JsonResponse({
+        'status': 'error',
+        'message': 'Invalid request method'
+    })
 
 @require_POST
 def remove_coupon(request):
@@ -988,3 +1089,17 @@ def remove_coupon(request):
         else:
             messages.error(request, f'Error removing coupon: {str(e)}')
             return redirect('checkout')
+
+@login_required
+def wallet_view(request):
+    # Get or create wallet for the user
+    wallet, created = Wallet.objects.get_or_create(user=request.user)
+    
+    # Get all transactions for this wallet
+    transactions = WalletTransaction.objects.filter(wallet=wallet)
+    
+    context = {
+        'wallet': wallet,
+        'transactions': transactions
+    }
+    return render(request, 'wallet.html', context)

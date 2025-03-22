@@ -45,4 +45,5 @@ urlpatterns = [
     path('remove-from-wishlist/<int:product_id>/', views.remove_from_wishlist, name='remove_from_wishlist'),
     path('apply-coupon/', views.apply_coupon, name='apply_coupon'),
     path('remove-coupon/', views.remove_coupon, name='remove_coupon'),
+    path('wallet/', views.wallet_view, name='wallet'),
 ]

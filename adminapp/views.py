@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .models import Category, Brand, Product, Language, Offer, Order, ReturnRequest, OrderItem, Coupon
+from .models import Category, Brand, Product, Language, Offer, Order, ReturnRequest, OrderItem, Coupon, Wallet, WalletTransaction
 from .forms import CategoryForm
 from django.views import View
 from django.shortcuts import render, redirect, get_object_or_404
@@ -19,6 +19,7 @@ from django.db import transaction
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.utils import timezone
+from decimal import Decimal
 
 
 
@@ -873,7 +874,6 @@ def get_return_details(request, order_id):
         return JsonResponse({'status': 'error', 'message': 'Unauthorized'}, status=403)
     
     try:
-        # Get order and return request
         order = get_object_or_404(Order, id=order_id)
         return_request = order.return_request.select_related('order').first()
         
@@ -883,10 +883,9 @@ def get_return_details(request, order_id):
                 'message': 'Return request not found'
             }, status=404)
             
-        # Get returned items with their details
-        returned_items = order.items.filter(return_requested=True).select_related('product')
+        # Calculate refund amount
+        refund_amount = order.calculate_return_refund_amount()
         
-        # Format the response data
         response_data = {
             'status': 'success',
             'order_id': order.id,
@@ -895,23 +894,21 @@ def get_return_details(request, order_id):
             'status': return_request.status,
             'reason': return_request.get_reason_display(),
             'comments': return_request.comments,
+            'refund_amount': float(refund_amount),
             'items': []
         }
         
         # Add item details
-        for item in returned_items:
-            try:
-                item_data = {
-                    'name': item.product.name,
-                    'quantity': item.quantity,
-                    'price': str(item.price),
-                    'image': request.build_absolute_uri(item.product.image1.url) if item.product.image1 else '',
-                    'return_status': item.return_status
-                }
-                response_data['items'].append(item_data)
-            except Exception as e:
-                print(f"Error processing item {item.id}: {str(e)}")
-                continue
+        for item in order.items.filter(return_requested=True).select_related('product'):
+            item_data = {
+                'name': item.product.name,
+                'quantity': item.quantity,
+                'price': str(item.price),
+                'total': str(item.total_price),
+                'image': request.build_absolute_uri(item.product.image1.url) if item.product.image1 else '',
+                'return_status': item.return_status
+            }
+            response_data['items'].append(item_data)
         
         return JsonResponse(response_data)
         
@@ -953,35 +950,50 @@ def admin_handle_return(request, order_id):
             return_request.admin_notes = admin_notes
             return_request.save()
             
-            # Update order items and inventory
+            # Calculate total refund amount first
+            total_refund_amount = Decimal('0.00')
+            
+            # Get all items that were requested for return
             returned_items = order.items.filter(return_requested=True)
-            all_items_returned = True  # Flag to check if all items are returned
             
             for item in returned_items:
-                item.return_status = status
-                item.save()
-                
                 if status == 'approved':
-                    # Update inventory - add back to stock
+                    # Calculate refund amount for this item
+                    total_refund_amount += item.total_price
+                    
+                    # Update inventory
                     product = item.product
                     product.stock += item.quantity
                     product.save()
-                else:
-                    all_items_returned = False
+                
+                # Update item return status
+                item.return_status = status
+                item.save()
             
-            # Update order status if all items are approved for return
-            if status == 'approved' and all_items_returned:
+            # If approved, add refund amount to user's wallet
+            if status == 'approved' and total_refund_amount > 0:
+                # Get or create user's wallet
+                wallet, created = Wallet.objects.get_or_create(user=order.user)
+                
+                # Add refund amount to wallet
+                wallet.balance += total_refund_amount
+                wallet.save()
+                
+                # Create wallet transaction record
+                WalletTransaction.objects.create(
+                    wallet=wallet,
+                    amount=total_refund_amount,
+                    type='credit',
+                    order_id=str(order.id)
+                )
+                
+                # Update order status to 'returned' when return is approved
                 order.status = 'returned'
                 order.save()
             
-            # Send notification to user (you can implement this)
-            message = 'Return request approved' if status == 'approved' else 'Return request rejected'
-            if admin_notes:
-                message += f"\nAdmin Notes: {admin_notes}"
-            
             return JsonResponse({
                 'status': 'success',
-                'message': f'Return request has been {status} successfully'
+                'message': f'Return request has been {status} successfully. Refund amount of ₹{total_refund_amount} has been added to wallet.'
             })
             
     except Exception as e:

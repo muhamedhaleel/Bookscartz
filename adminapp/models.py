@@ -124,16 +124,17 @@ class Cart(models.Model):
     def __str__(self):
         return f"Cart for {self.user.username}"
 
+    def get_original_total(self):
+        """Calculate total without any discounts"""
+        return sum(item.get_original_total() for item in self.items.all())
+
+    def get_total_discount(self):
+        """Calculate total discount from product offers"""
+        return sum(item.get_discount_amount() for item in self.items.all())
+
     def get_subtotal(self):
-        """Calculate subtotal before coupon"""
-        total = 0
-        for item in self.items.all():
-            if item.product.offer_price:
-                price = item.product.offer_price
-            else:
-                price = item.product.price
-            total += price * item.quantity
-        return total
+        """Calculate total after product discounts but before coupon"""
+        return sum(item.get_total_price() for item in self.items.all())
 
     def get_total(self):
         """Calculate final total after coupon"""
@@ -179,14 +180,24 @@ class CartItem(models.Model):
     added_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    def __str__(self):
-        return f"{self.quantity} x {self.product.name}"
-
     def get_total_price(self):
         """Calculate total price for this item"""
         if self.product.offer_price:
             return self.product.offer_price * self.quantity
         return self.product.price * self.quantity
+
+    def get_original_total(self):
+        """Calculate original price without discount"""
+        return self.product.price * self.quantity
+
+    def get_discount_amount(self):
+        """Calculate discount amount"""
+        if self.product.offer_price:
+            return (self.product.price - self.product.offer_price) * self.quantity
+        return Decimal('0.00')
+
+    def __str__(self):
+        return f"{self.quantity} x {self.product.name}"
 
     class Meta:
         db_table = 'adminapp_cartitem'
@@ -282,6 +293,13 @@ class Order(models.Model):
             return True
         return False
 
+    def calculate_return_refund_amount(self):
+        """Calculate total refund amount for returned items"""
+        return sum(
+            item.total_price 
+            for item in self.items.filter(return_requested=True)
+        )
+
 class OrderItem(models.Model):
     RETURN_STATUS_CHOICES = (
         ('pending', 'Pending'),
@@ -302,8 +320,12 @@ class OrderItem(models.Model):
         return f"{self.quantity} x {self.product.name}"
 
     def save(self, *args, **kwargs):
+        # Calculate total price before saving
         self.total_price = self.quantity * self.price
         super().save(*args, **kwargs)
+
+    def get_total_price(self):
+        return self.total_price
 
 class ReturnRequest(models.Model):
     REASON_CHOICES = [
@@ -322,10 +344,11 @@ class ReturnRequest(models.Model):
     
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='return_request')
     reason = models.CharField(max_length=50, choices=REASON_CHOICES)
-    comments = models.TextField(blank=True)
+    comments = models.TextField(blank=True, null=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     created_at = models.DateTimeField(auto_now_add=True)
-    admin_notes = models.TextField(blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    admin_notes = models.TextField(null=True, blank=True)
 
     def __str__(self):
         return f"Return Request for Order #{self.order.id}"
@@ -385,5 +408,39 @@ class Coupon(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+
+class CouponUsage(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    coupon = models.ForeignKey(Coupon, on_delete=models.CASCADE)
+    used_at = models.DateTimeField(auto_now_add=True)
+    order = models.ForeignKey('Order', on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = ('user', 'coupon', 'order')
+
+class Wallet(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='user_wallet')
+    balance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
+    def __str__(self):
+        return f"{self.user.username}'s Wallet"
+
+class WalletTransaction(models.Model):
+    TRANSACTION_TYPES = (
+        ('credit', 'Credit'),
+        ('debit', 'Debit'),
+    )
+
+    wallet = models.ForeignKey(Wallet, on_delete=models.CASCADE, related_name='transactions')
+    date = models.DateTimeField(auto_now_add=True)
+    type = models.CharField(max_length=10, choices=TRANSACTION_TYPES)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    order_id = models.CharField(max_length=100, null=True, blank=True)
+
+    class Meta:
+        ordering = ['-date']
+
+    def __str__(self):
+        return f"{self.type} - {self.amount} - {self.date}"
 
 

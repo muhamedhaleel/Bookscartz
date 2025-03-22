@@ -813,10 +813,10 @@
                 <span class="summary-label">Subtotal</span>
                 <span class="summary-value">₹{{ total_price }}</span>
             </div>
-            <div class="summary-row">
+            {% comment %} <div class="summary-row">
                 <span class="summary-label">Shipping</span>
                 <span class="summary-value">{% if total_price >= 999 %}Free{% else %}₹50{% endif %}</span>
-            </div>
+            </div> {% endcomment %}
             <div class="summary-row total-row">
                 <span class="summary-label">Total Amount</span>
                 <span class="summary-value">₹{% if total_price >= 999 %}{{ total_price }}{% else %}{{ total_price|add:50 }}{% endif %}</span>

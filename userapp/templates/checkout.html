@@ -97,13 +97,19 @@
         }
 
         .section-title {
-            font-size: 1.2rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            color: var(--primary-color);
             display: flex;
             align-items: center;
             gap: 0.5rem;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-color);
+            margin-bottom: 1rem;
+        }
+
+        .section-title svg {
+            width: 24px;
+            height: 24px;
+            color: var(--secondary-color);
         }
 
         .address-list {
@@ -190,10 +196,10 @@
 
         .product-item {
             display: grid;
-            grid-template-columns: auto 1fr auto;
+            grid-template-columns: auto 1fr;
             gap: 1rem;
-            padding: 1rem 0;
-            border-bottom: 1px solid var(--light-bg);
+            padding: 1rem;
+            border-bottom: 1px solid var(--accent-color);
         }
 
         .product-item:last-child {
@@ -203,8 +209,9 @@
         .product-image {
             width: 80px;
             height: 100px;
-            border-radius: 8px;
+            border-radius: 4px;
             overflow: hidden;
+            background-color: #f8f8f8;
         }
 
         .product-image img {
@@ -215,32 +222,87 @@
 
         .product-details h3 {
             font-size: 1rem;
+            font-weight: 500;
             margin-bottom: 0.5rem;
+            color: var(--text-color);
         }
 
         .product-meta {
-            font-size: 0.9rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .price-details {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 0.25rem 0;
+        }
+
+        .price-row {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .original-price {
             color: #666;
+            text-decoration: line-through;
+            font-size: 0.9rem;
+        }
+
+        .discounted-price {
+            color: var(--text-color);
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .regular-price {
+            color: var(--text-color);
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .discount-badge {
+            background-color: #059669;
+            color: white;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .item-total {
+            font-weight: 500;
+            color: var(--text-color);
+            margin-top: 0.25rem;
         }
 
         .payment-methods {
-            display: grid;
-            gap: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-top: 0.75rem;
         }
 
         .payment-method {
             display: flex;
             align-items: center;
-            gap: 1rem;
-            padding: 1rem;
+            padding: 0.75rem 1rem;
             border: 1px solid var(--accent-color);
-            border-radius: 8px;
+            border-radius: 6px;
             cursor: pointer;
-            transition: var(--transition);
+            transition: all 0.3s ease;
+            background: white;
+            height: 48px;
+            width: 100%;
         }
 
         .payment-method:hover {
             border-color: var(--secondary-color);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
         }
 
         .payment-method.selected {
@@ -249,7 +311,30 @@
         }
 
         .payment-method input[type="radio"] {
+            margin-right: 0.75rem;
+            width: 16px;
+            height: 16px;
             accent-color: var(--secondary-color);
+            flex-shrink: 0;
+        }
+
+        .payment-method span {
+            font-size: 0.9rem;
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            gap: 0.1rem;
+            line-height: 1.2;
+        }
+
+        .payment-method input[type="radio"]:disabled + span {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .payment-method small {
+            font-size: 0.75rem;
+            color: #dc2626;
         }
 
         .order-summary {
@@ -590,6 +675,50 @@
             background-size: 200% 100%;
             animation: shimmer 1s infinite;
         }
+
+        /* Update section title for payment method */
+        .payment-method-section .section-title {
+            font-size: 1.1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .section-title svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .summary-details {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--accent-color);
+        }
+
+        .summary-row.discount {
+            background-color: #f0fff4;
+            padding: 0.5rem;
+            border-radius: 4px;
+            margin: 0.25rem 0;
+        }
+
+        .summary-row.total {
+            border-top: 2px solid var(--accent-color);
+            border-bottom: none;
+            margin-top: 0.5rem;
+            padding-top: 1rem;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .text-green-600 {
+            color: #059669;
+        }
     </style>
 </head>
 <body>
@@ -680,28 +809,46 @@
             <!-- Order Items Section -->
             <div class="checkout-section">
                 <h2 class="section-title">Order Items</h2>
-                <div class="summary-details">
+                <div class="product-list">
                     {% for item in cart.items.all %}
-                    <div class="summary-item">
-                        <div class="item-details">
+                    <div class="product-item">
+                        <div class="product-image">
                             <img src="{{ item.product.image1.url }}" alt="{{ item.product.name }}">
-                            <div>
-                                <h4>{{ item.product.name }}</h4>
+                        </div>
+                        <div class="product-details">
+                            <h3>{{ item.product.name }}</h3>
+                            <div class="product-meta">
                                 <p>Quantity: {{ item.quantity }}</p>
+                                <div class="price-details">
+                                    {% if item.product.offer_price %}
+                                        <span class="original-price" style="text-decoration: line-through; color: #888; font-size: 0.9rem;">₹{{ item.product.price }}</span>
+                                        <span class="discounted-price" style="color: var(--primary-color); font-weight: bold; display: block;">₹{{ item.product.offer_price }}</span>
+                                        <span class="discount-badge" style="background-color: #ffeb3b; color: #f57c00; font-size: 0.8rem; padding: 2px 6px; border-radius: 4px;">{{ item.product.get_discount_percentage }}% OFF</span>
+                                    {% else %}
+                                        <span class="regular-price">₹{{ item.product.price }}</span>
+                                    {% endif %}
+                                </div>
+                                <div class="item-subtotal">
+                                    {% if item.product.offer_price %}
+                                        <span class="original-subtotal" style="text-decoration: line-through; color: #888; font-size: 0.9rem;">₹{{ item.get_original_total }}</span>
+                                        <span class="final-subtotal" style="color: var(--primary-color); font-weight: bold; display: block;">₹{{ item.get_total_price }}</span>
+                                    {% else %}
+                                        ₹{{ item.get_total_price }}
+                                    {% endif %}
+                                </div>
                             </div>
                         </div>
-                        <div class="item-price">₹{{ item.get_total_price }}</div>
                     </div>
                     {% endfor %}
                 </div>
             </div>
 
             <!-- Payment Method Section -->
-            <div class="checkout-section">
+            <div class="checkout-section payment-method-section">
                 <h2 class="section-title">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
-                        <line x1="1" y1="10" x2="23" y2="10"></line>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"/>
+                        <path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd"/>
                     </svg>
                     Payment Method
                 </h2>
@@ -709,6 +856,15 @@
                     <label class="payment-method">
                         <input type="radio" name="payment" value="Cash on Delivery" checked>
                         <span>Cash on Delivery</span>
+                    </label>
+                    <label class="payment-method">
+                        <input type="radio" name="payment" value="wallet" {% if wallet.balance < final_total %}disabled{% endif %}>
+                        <span>
+                            Wallet Balance (₹{{ wallet.balance|default:"0.00" }})
+                            {% if wallet.balance < final_total %}
+                            <small>Insufficient balance (Required: ₹{{ final_total }})</small>
+                            {% endif %}
+                        </span>
                     </label>
                 </div>
             </div>
@@ -796,26 +952,33 @@
 
             <!-- Price Summary -->
             <div class="summary-details">
-                <div class="price-summary">
-            <div class="summary-row">
-                        <span>Original Total</span>
-                        <span>₹<span id="subtotal">{{ cart.get_subtotal }}</span></span>
-            </div>
-
-                    <div id="couponDiscount" class="summary-row {% if not request.session.coupon_id %}hidden{% endif %}">
-                        <span>Coupon Discount</span>
-                        <span class="text-green-600">-₹<span id="discountAmount">{{ discount }}</span></span>
-            </div>
-
-            <div class="summary-row">
-                <span>Shipping</span>
-                        <span>{% if cart.get_subtotal >= 999 %}Free{% else %}₹50{% endif %}</span>
-            </div>
-
-            <div class="summary-row total-row">
-                        <span>Amount to Pay</span>
-                        <span>₹<span id="finalTotal">{{ cart.get_total }}</span></span>
-                    </div>
+                <div class="summary-row">
+                    <span class="summary-label">Original Total</span>
+                    <span class="summary-value">₹{{ original_total }}</span>
+                </div>
+                {% if total_discount > 0 %}
+                <div class="summary-row">
+                    <span class="summary-label">Discount</span>
+                    <span class="summary-value" style="color: #4caf50;">-₹{{ total_discount }}</span>
+                </div>
+                {% endif %}
+                <div class="summary-row">
+                    <span class="summary-label">Subtotal</span>
+                    <span class="summary-value">₹{{ total_price }}</span>
+                </div>
+                {% if discount > 0 %}
+                <div class="summary-row">
+                    <span class="summary-label">Coupon Discount</span>
+                    <span class="summary-value" style="color: #4caf50;">-₹{{ discount }}</span>
+                </div>
+                {% endif %}
+                <div class="summary-row">
+                    <span class="summary-label">Shipping</span>
+                    <span class="summary-value">{% if total_price >= 999 %}Free{% else %}₹50{% endif %}</span>
+                </div>
+                <div class="summary-row total-row">
+                    <span class="summary-label">Total Amount</span>
+                    <span class="summary-value">₹{% if total_price >= 999 %}{{ total_price }}{% else %}{{ total_price|add:50 }}{% endif %}</span>
                 </div>
             </div>
 
@@ -899,12 +1062,15 @@
                 });
             });
 
-            // Payment method selection
-            const paymentMethods = document.querySelectorAll('.payment-method');
-            paymentMethods.forEach(method => {
-                method.addEventListener('click', () => {
-                    paymentMethods.forEach(m => m.classList.remove('selected'));
-                    method.classList.add('selected');
+            // Payment method selection with animation
+            document.querySelectorAll('.payment-method').forEach(method => {
+                method.addEventListener('click', function(e) {
+                    if (!this.querySelector('input[type="radio"]').disabled) {
+                        document.querySelectorAll('.payment-method').forEach(m => {
+                            m.classList.remove('selected');
+                        });
+                        this.classList.add('selected');
+                    }
                 });
             });
 
@@ -921,6 +1087,17 @@
                 if (!selectedPayment) {
                     alert('Please select a payment method');
                     return;
+                }
+
+                // Check wallet balance if wallet payment is selected
+                if (selectedPayment.value === 'wallet') {
+                    const walletBalance = parseFloat('{{ wallet.balance|default:"0" }}');
+                    const finalTotal = parseFloat('{{ final_total }}');
+                    
+                    if (walletBalance < finalTotal) {
+                        alert(`Insufficient wallet balance. Required: ₹${finalTotal}, Available: ₹${walletBalance}`);
+                        return;
+                    }
                 }
 
                 // Get CSRF token
@@ -941,7 +1118,6 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.status === 'success') {
-                        // Redirect to order details page
                         window.location.href = `/order-details/${data.order_id}/`;
                     } else {
                         alert(data.message);
