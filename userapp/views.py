@@ -19,47 +19,50 @@ from .utils import render_to_pdf
 from django.db import transaction
 from django.core.paginator import Paginator
 from django.utils import timezone
+import random
+from .userotp import generateAndSendOtp  # Add this import
+
+def generate_otp():
+    """Generate a 6-digit OTP"""
+    return str(random.randint(100000, 999999))
 
 def signup(request):
     if request.method == 'POST':
         form = SignupForm(request.POST)
-        try:
-            if form.is_valid():
-                user = form.save()
-                request.session['email'] = user.email
-                messages.success(request, 'Please check your email for OTP verification.')
-                return redirect('verify_otp')
-            else:
-                # Handle form errors more explicitly
-                for field, errors in form.errors.items():
-                    for error in errors:
-                        if field == '__all__':
-                            messages.error(request, f"Error: {error}")
-                        else:
-                            messages.error(request, f"{field.replace('_', ' ').title()}: {error}")
-                
-                # If there are non-field errors, display them as well
-                if form.non_field_errors():
-                    for error in form.non_field_errors():
-                        messages.error(request, f"Error: {error}")
-                        
-        except ValidationError as e:
-            if hasattr(e, 'message_dict'):
-                for field, errors in e.message_dict.items():
-                    for error in errors:
-                        messages.error(request, f"{field}: {error}")
-            else:
-                messages.error(request, str(e))
-        except Exception as e:
-            messages.error(request, f'An unexpected error occurred: {str(e)}')
+        if form.is_valid():
+            # Don't save the user yet, store the form data in session
+            user_data = {
+                'username': form.cleaned_data['username'],
+                'email': form.cleaned_data['email'],
+                'phone_number': form.cleaned_data['phone_number'],
+                'password': form.cleaned_data['password1']
+            }
+            request.session['user_data'] = user_data
+            
+            # Generate and send OTP using the existing function
+            email = user_data['email']
+            otp = generateAndSendOtp(email, length=6)  # This will also print OTP to console
+            
+            # Store OTP in session
+            request.session['otp'] = otp
+            
+            messages.success(request, f'Please check your email ({email}) for OTP verification.')
+            return redirect('verify_otp')
+        else:
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field}: {error}")
     else:
         form = SignupForm()
     
     return render(request, 'signup.html', {'form': form})
 
 def verify_otp(request):
-    email = request.session.get('email')
-    if not email:
+    # Check if we have user data in session
+    user_data = request.session.get('user_data')
+    stored_otp = request.session.get('otp')
+    
+    if not user_data or not stored_otp:
         messages.error(request, 'Please sign up first.')
         return redirect('signup')
 
@@ -70,25 +73,34 @@ def verify_otp(request):
             messages.error(request, 'Please enter the OTP.')
             return render(request, 'verify_otp.html')
 
-        try:
-            user = CustomUser.objects.get(email=email)
-            if user.otp == otp_input:
+        if otp_input == stored_otp:
+            try:
+                # Create the user only after OTP verification
+                user = CustomUser.objects.create_user(
+                    username=user_data['username'],
+                    email=user_data['email'],
+                    phone_number=user_data['phone_number'],
+                    password=user_data['password']
+                )
                 user.is_active = True
                 user.is_verified = True
-                user.otp = None  # Clear OTP after verification
                 user.save()
-                login(request, user)
-                messages.success(request, 'Email verified successfully! Welcome to Bookscartz.')
-                return redirect('home')
-            else:
-                messages.error(request, 'Invalid OTP. Please try again.')
-        except CustomUser.DoesNotExist:
-            messages.error(request, 'User not found. Please sign up again.')
-            return redirect('signup')
-        except Exception as e:
-            messages.error(request, 'An error occurred during verification. Please try again.')
+                
+                # Clear session data
+                del request.session['user_data']
+                del request.session['otp']
+                
+                messages.success(request, 'Account created successfully! Please login.')
+                return redirect('login')
+            except Exception as e:
+                messages.error(request, f'Error creating account: {str(e)}')
+                return redirect('signup')
+        else:
+            messages.error(request, 'Invalid OTP. Please try again.')
     
-    return render(request, 'verify_otp.html')
+    # Show email in template for better UX
+    email = user_data.get('email') if user_data else ''
+    return render(request, 'verify_otp.html', {'email': email})
 
 @login_required
 def home(request):
@@ -1103,3 +1115,69 @@ def wallet_view(request):
         'transactions': transactions
     }
     return render(request, 'wallet.html', context)
+
+def password_reset(request):
+    if request.method == 'POST':
+        email = request.POST.get('email')
+        try:
+            user = CustomUser.objects.get(email=email)
+            # Generate and send OTP
+            otp = generateAndSendOtp(email)
+            
+            # Store email and OTP in session for verification
+            request.session['reset_email'] = email
+            request.session['reset_otp'] = otp
+            
+            messages.success(request, 'OTP has been sent to your email.')
+            return redirect('password_reset_verify_otp')
+        except CustomUser.DoesNotExist:
+            messages.error(request, 'No user found with this email address.')
+    
+    return render(request, 'password_reset.html')
+
+def password_reset_verify_otp(request):
+    reset_email = request.session.get('reset_email')
+    if not reset_email:
+        messages.error(request, 'Please start password reset process again.')
+        return redirect('password_reset')
+
+    if request.method == 'POST':
+        otp = request.POST.get('otp')
+        stored_otp = request.session.get('reset_otp')
+        
+        if otp == stored_otp:
+            return redirect('password_reset_confirm')
+        else:
+            messages.error(request, 'Invalid OTP. Please try again.')
+
+    return render(request, 'password_reset_verify_otp.html', {'email': reset_email})
+
+def password_reset_confirm(request):
+    reset_email = request.session.get('reset_email')
+    if not reset_email:
+        messages.error(request, 'Please start password reset process again.')
+        return redirect('password_reset')
+
+    if request.method == 'POST':
+        password1 = request.POST.get('new_password1')
+        password2 = request.POST.get('new_password2')
+        
+        if password1 != password2:
+            messages.error(request, 'Passwords do not match.')
+            return render(request, 'password_reset_confirm.html')
+        
+        try:
+            user = CustomUser.objects.get(email=reset_email)
+            user.set_password(password1)
+            user.save()
+            
+            # Clear session data
+            del request.session['reset_email']
+            del request.session['reset_otp']
+            
+            messages.success(request, 'Your password has been reset successfully.')
+            return redirect('password_reset_complete')
+        except CustomUser.DoesNotExist:
+            messages.error(request, 'Error resetting password. Please try again.')
+    
+    return render(request, 'password_reset_confirm.html')

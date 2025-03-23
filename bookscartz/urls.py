@@ -31,7 +31,7 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('userapp.urls')),
+    path('', include('userapp.urls')),  # This already includes our password reset URLs
     path('', include('adminapp.urls')), 
     path('social/', include('allauth.urls')),  # allauth URLs
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

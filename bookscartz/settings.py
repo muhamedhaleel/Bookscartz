@@ -153,13 +153,12 @@ AUTH_USER_MODEL = 'adminapp.CustomUser'
 
 
 # Email Configuration
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # For development
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-# EMAIL_HOST_USER = 'muhammedhaleel88@gmail.com'  # Replace with your Gmail address
-# EMAIL_HOST_PASSWORD = 'icef uumh obrx elcj'  # Replace with your Gmail App Password
-
+# EMAIL_HOST_USER = 'muhammedhaleel88@gmail.com'  # Replace with your actual email
+# EMAIL_HOST_PASSWORD = 'pbkz dmpb chje kkil'  # Replace with your actual app password
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 
