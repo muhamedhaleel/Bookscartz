@@ -41,4 +41,6 @@ urlpatterns = [
     path('edit-coupon/<int:pk>/', views.edit_coupon, name='edit_coupon'),
     path('delete-coupon/<int:pk>/', views.delete_coupon, name='delete_coupon'),
     path('toggle-coupon-status/<int:pk>/', views.toggle_coupon_status, name='toggle_coupon_status'),
+    path('api/sales-report/', views.generate_sales_report, name='sales_report'),
+    path('download-sales-report/', views.download_sales_report_pdf, name='download_sales_report'),
 ]

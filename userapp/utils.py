@@ -7,8 +7,37 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, 
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch, mm
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT
+from django.template.loader import get_template
+from xhtml2pdf import pisa
+from decimal import Decimal
+from django.db import transaction
+from adminapp.models import Cart, Address, Order, OrderItem
+from django.contrib.sessions.backends.db import SessionStore
 
 def render_to_pdf(template_src, context_dict={}):
+    template = get_template(template_src)
+    
+    # Add safety checks for billing address
+    if 'order' in context_dict:
+        order = context_dict['order']
+        context_dict['billing_info'] = {
+            'full_name': order.billing_address.full_name if order.billing_address else order.user.username,
+            'address': order.billing_address.address_line1 if order.billing_address else "N/A",
+            'city': order.billing_address.city if order.billing_address else "N/A",
+            'state': order.billing_address.state if order.billing_address else "N/A",
+            'pincode': order.billing_address.pincode if order.billing_address else "N/A",
+            'phone': order.billing_address.phone if order.billing_address else "N/A"
+        }
+    
+    html = template.render(context_dict)
+    result = BytesIO()
+    pdf = pisa.pisaDocument(BytesIO(html.encode("UTF-8")), result)
+    
+    if not pdf.err:
+        return result.getvalue()
+    return None
+
+def render_to_pdf_reportlab(template_src, context_dict={}):
     buffer = BytesIO()
     
     # Create the PDF object using ReportLab with A4 size
@@ -164,3 +193,66 @@ def render_to_pdf(template_src, context_dict={}):
     pdf = buffer.getvalue()
     buffer.close()
     return pdf 
+
+@transaction.atomic
+def create_order(user, address_id, payment_method, transaction_id=None, request=None):
+    try:
+        # Get cart and address
+        cart = Cart.objects.get(user=user)
+        address = Address.objects.get(id=address_id)
+        
+        # Calculate totals
+        cart_items = cart.items.all()
+        subtotal = sum(item.product.price * item.quantity for item in cart_items)
+        
+        # Get coupon discount from request session
+        coupon_discount = Decimal(request.session.get('coupon_discount', '0')) if request else Decimal('0')
+        
+        # Calculate shipping
+        shipping_cost = Decimal('50') if subtotal < 999 else Decimal('0')
+        
+        # Calculate final total
+        total_amount = subtotal - coupon_discount + shipping_cost
+
+        # Create the order with basic fields first
+        order = Order.objects.create(
+            user=user,
+            billing_address=address,
+            payment_method=payment_method,
+            subtotal=subtotal,
+            shipping_cost=shipping_cost,
+            total_amount=total_amount,
+            status='confirmed' if payment_method == 'razorpay' else 'pending',
+            coupon_discount=coupon_discount
+        )
+
+        # Store Razorpay transaction ID separately if needed
+        if payment_method == 'razorpay' and transaction_id:
+            order.payment_id = transaction_id
+            order.save()
+
+        # Create order items and update stock
+        for cart_item in cart_items:
+            OrderItem.objects.create(
+                order=order,
+                product=cart_item.product,
+                quantity=cart_item.quantity,
+                price=cart_item.product.price
+            )
+            
+            # Update product stock
+            product = cart_item.product
+            product.stock -= cart_item.quantity
+            product.save()
+
+        return order
+
+    except Cart.DoesNotExist:
+        print("Cart not found for user")
+        raise
+    except Address.DoesNotExist:
+        print("Address not found")
+        raise
+    except Exception as e:
+        print(f"Detailed error in create_order: {str(e)}")
+        raise 

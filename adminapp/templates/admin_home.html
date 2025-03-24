@@ -63,6 +63,73 @@
                     <p class="text-3xl font-bold text-orange-600">{{ offer_count|default:"0" }}</p>
                 </div>
             </div>
+
+            <!-- Sales Report Section -->
+            <div class="mt-8 bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-2xl font-semibold mb-6">Sales Report</h2>
+                
+                <!-- Report Filters -->
+                <div class="flex flex-wrap gap-4 mb-6">
+                    <div class="flex-1 min-w-[200px]">
+                        <select id="reportType" class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#A79277]">
+                            <option value="daily">Today's Report</option>
+                            <option value="weekly">Last 7 Days</option>
+                            <option value="monthly">Last 30 Days</option>
+                            <option value="custom">Custom Date Range</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Custom Date Range -->
+                    <div id="customDateRange" class="flex-1 min-w-[300px] hidden">
+                        <div class="flex gap-2">
+                            <input type="date" id="startDate" class="flex-1 p-2 border rounded-lg">
+                            <input type="date" id="endDate" class="flex-1 p-2 border rounded-lg">
+                        </div>
+                    </div>
+                    
+                    <button onclick="generateReport()" class="bg-[#A79277] text-white px-6 py-2 rounded-lg hover:bg-[#8B7355]">
+                        Generate Report
+                    </button>
+                    <button onclick="downloadReport()" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700">
+                        Download PDF
+                    </button>
+                </div>
+
+                <!-- Summary Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h3 class="text-lg font-semibold mb-2">Total Orders</h3>
+                        <p id="totalOrders" class="text-2xl font-bold">0</p>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h3 class="text-lg font-semibold mb-2">Total Sales</h3>
+                        <p id="totalSales" class="text-2xl font-bold">₹0</p>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h3 class="text-lg font-semibold mb-2">Total Discounts</h3>
+                        <p id="totalDiscounts" class="text-2xl font-bold">₹0</p>
+                    </div>
+                </div>
+
+                <!-- Sales Report Table -->
+                <div class="overflow-x-auto">
+                    <table class="w-full border-collapse">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="border p-3 text-left">Date</th>
+                                <th class="border p-3 text-left">Orders</th>
+                                <th class="border p-3 text-left">Gross Sales</th>
+                                <th class="border p-3 text-left">Discounts</th>
+                                <th class="border p-3 text-left">Coupon Deductions</th>
+                                <th class="border p-3 text-left">Net Sales</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reportData">
+                            <!-- Report data will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </main>
     </div>
 
@@ -70,6 +137,94 @@
     <footer class="bg-gray-800 text-white text-center py-4 mt-8">
         © 2025 Bookscartz. All rights reserved.
     </footer>
+
+    <script>
+        // Show/hide custom date range based on selection
+        document.getElementById('reportType').addEventListener('change', function() {
+            const customDateRange = document.getElementById('customDateRange');
+            customDateRange.style.display = this.value === 'custom' ? 'block' : 'none';
+        });
+
+        function generateReport() {
+            const reportType = document.getElementById('reportType').value;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+
+            // Prepare data for API call
+            const data = {
+                report_type: reportType,
+                start_date: startDate,
+                end_date: endDate
+            };
+
+            // Make API call
+            fetch('/api/sales-report/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    updateReportDisplay(data);
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error generating report');
+            });
+        }
+
+        function updateReportDisplay(data) {
+            // Update summary cards
+            document.getElementById('totalOrders').textContent = data.summary.total_orders;
+            document.getElementById('totalSales').textContent = '₹' + data.summary.total_sales.toFixed(2);
+            document.getElementById('totalDiscounts').textContent = '₹' + data.summary.total_discounts.toFixed(2);
+
+            // Update table
+            const tbody = document.getElementById('reportData');
+            tbody.innerHTML = '';
+
+            data.details.forEach(row => {
+                tbody.innerHTML += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="border p-3">${row.date}</td>
+                        <td class="border p-3">${row.orders}</td>
+                        <td class="border p-3">₹${row.gross_sales.toFixed(2)}</td>
+                        <td class="border p-3">₹${row.discounts.toFixed(2)}</td>
+                        <td class="border p-3">₹${row.coupon_deductions.toFixed(2)}</td>
+                        <td class="border p-3">₹${row.net_sales.toFixed(2)}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        // Initialize with daily report
+        window.onload = function() {
+            generateReport();
+        };
+
+        function downloadReport() {
+            const reportType = document.getElementById('reportType').value;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+
+            // Create query parameters
+            const params = new URLSearchParams({
+                report_type: reportType,
+                start_date: startDate,
+                end_date: endDate
+            });
+
+            // Download the PDF
+            window.location.href = `/download-sales-report/?${params.toString()}`;
+        }
+    </script>
 </body>
 </html>
   

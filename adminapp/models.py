@@ -117,7 +117,8 @@ class Product(models.Model):
         return 0
 
 class Cart(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='carts')
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
+    coupon = models.ForeignKey('Coupon', on_delete=models.SET_NULL, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -204,13 +205,7 @@ class CartItem(models.Model):
         unique_together = ('cart', 'product')
 
 class Address(models.Model):
-    ADDRESS_TYPES = (
-        ('home', 'Home'),
-        ('work', 'Work'),
-        ('other', 'Other'),
-    )
-    
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='addresses')
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     full_name = models.CharField(max_length=100)
     phone = models.CharField(max_length=15)
     address_line1 = models.CharField(max_length=255)
@@ -218,7 +213,7 @@ class Address(models.Model):
     city = models.CharField(max_length=100)
     state = models.CharField(max_length=100)
     pincode = models.CharField(max_length=10)
-    type = models.CharField(max_length=10, choices=ADDRESS_TYPES, default='home')
+    type = models.CharField(max_length=20, choices=[('home', 'Home'), ('work', 'Work'), ('other', 'Other')])
     is_default = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

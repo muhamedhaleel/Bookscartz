@@ -9,7 +9,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.core.paginator import Paginator
 import os
-from django.db.models import Q
+from django.db.models import Q, Sum, Count
 from django.core.files.images import get_image_dimensions
 from PIL import Image
 import os
@@ -20,6 +20,16 @@ from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.utils import timezone
 from decimal import Decimal
+from datetime import datetime, timedelta
+import json
+from io import BytesIO
+from django.http import HttpResponse
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import letter, A4
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.lib.enums import TA_CENTER, TA_RIGHT
 
 
 
@@ -69,16 +79,22 @@ def admin_dashboard(request):
         product_count = Product.objects.count()
         category_count = Category.objects.count()
         brand_count = Brand.objects.count()
+        offer_count = Offer.objects.filter(is_active=True).count()
+        
+        # Get initial sales data
+        today = timezone.now().date()
+        orders = Order.objects.filter(created_at__date=today)
         
         context = {
             'product_count': product_count,
             'category_count': category_count,
             'brand_count': brand_count,
+            'offer_count': offer_count,
         }
         return render(request, 'admin_home.html', context)
     except Exception as e:
         messages.error(request, f'Error loading dashboard: {str(e)}')
-    return render(request, 'admin_home.html')  
+    return render(request, 'admin_home.html')
 
 
 # 
@@ -1187,3 +1203,276 @@ def toggle_coupon_status(request, pk):
         messages.error(request, f'Error toggling coupon status: {str(e)}')
     
     return redirect('coupon_list')
+
+@login_required(login_url='admin_login')
+def generate_sales_report(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            report_type = data.get('report_type')
+            start_date = data.get('start_date')
+            end_date = data.get('end_date')
+
+            # Set date range based on report type
+            today = timezone.now().date()
+            if report_type == 'daily':
+                start_date = today
+                end_date = today
+            elif report_type == 'weekly':
+                start_date = today - timedelta(days=6)
+                end_date = today
+            elif report_type == 'monthly':
+                start_date = today - timedelta(days=29)
+                end_date = today
+            elif report_type == 'custom':
+                start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+                end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+
+            # Query orders within date range
+            orders = Order.objects.filter(
+                created_at__date__gte=start_date,
+                created_at__date__lte=end_date
+            ).exclude(status='cancelled')
+
+            # Calculate overall summary
+            summary_data = orders.aggregate(
+                total_orders=Count('id'),
+                total_amount=Sum('total_amount'),
+                total_subtotal=Sum('subtotal'),
+                total_coupon_discount=Sum('coupon_discount')
+            )
+
+            summary = {
+                'total_orders': summary_data['total_orders'] or 0,
+                'total_sales': float(summary_data['total_amount'] or 0),
+                'total_discounts': float(summary_data['total_coupon_discount'] or 0)
+            }
+
+            # Get daily breakdown only for days with orders
+            daily_data = []
+            
+            # Get unique dates that have orders
+            order_dates = orders.values('created_at__date').distinct()
+            
+            for date_dict in order_dates:
+                current_date = date_dict['created_at__date']
+                daily_orders = orders.filter(created_at__date=current_date)
+                
+                daily_totals = daily_orders.aggregate(
+                    order_count=Count('id'),
+                    gross_sales=Sum('subtotal'),
+                    coupon_discount=Sum('coupon_discount'),
+                    net_sales=Sum('total_amount')
+                )
+
+                if daily_totals['order_count'] > 0:  # Only add if there are orders
+                    daily_stats = {
+                        'date': current_date.strftime('%d-%m-%Y'),
+                        'orders': daily_totals['order_count'],
+                        'gross_sales': float(daily_totals['gross_sales'] or 0),
+                        'discounts': 0,  # Since we don't have total_discount field
+                        'coupon_deductions': float(daily_totals['coupon_discount'] or 0),
+                        'net_sales': float(daily_totals['net_sales'] or 0)
+                    }
+                    daily_data.append(daily_stats)
+
+            # Sort daily data in reverse chronological order
+            daily_data.sort(key=lambda x: datetime.strptime(x['date'], '%d-%m-%Y'), reverse=True)
+
+            return JsonResponse({
+                'status': 'success',
+                'summary': summary,
+                'details': daily_data
+            })
+
+        except Exception as e:
+            print(f"Error in generate_sales_report: {str(e)}")
+            return JsonResponse({
+                'status': 'error',
+                'message': str(e)
+            }, status=400)
+
+    return JsonResponse({
+        'status': 'error',
+        'message': 'Invalid request method'
+    }, status=405)
+
+@login_required(login_url='admin_login')
+def download_sales_report_pdf(request):
+    try:
+        # Get filter parameters from request
+        report_type = request.GET.get('report_type', 'daily')
+        start_date = request.GET.get('start_date')
+        end_date = request.GET.get('end_date')
+
+        # Set date range based on report type
+        today = timezone.now().date()
+        if report_type == 'daily':
+            start_date = today
+            end_date = today
+        elif report_type == 'weekly':
+            start_date = today - timedelta(days=6)
+            end_date = today
+        elif report_type == 'monthly':
+            start_date = today - timedelta(days=29)
+            end_date = today
+        elif report_type == 'custom' and start_date and end_date:
+            start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+            end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+
+        # Query orders
+        orders = Order.objects.filter(
+            created_at__date__gte=start_date,
+            created_at__date__lte=end_date
+        ).exclude(status='cancelled')
+
+        # Create PDF
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(
+            buffer,
+            pagesize=A4,
+            rightMargin=30,
+            leftMargin=30,
+            topMargin=30,
+            bottomMargin=30
+        )
+
+        # Container for PDF elements
+        elements = []
+
+        # Styles
+        styles = getSampleStyleSheet()
+        styles.add(ParagraphStyle(
+            name='CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=20,
+            spaceAfter=30,
+            alignment=TA_CENTER
+        ))
+
+        # Add company header
+        elements.append(Paragraph("BOOKSCARTZ", styles['CustomTitle']))
+        elements.append(Spacer(1, 10))
+        
+        # Add report title and date range
+        title = f"Sales Report ({start_date.strftime('%d-%m-%Y')} to {end_date.strftime('%d-%m-%Y')})"
+        elements.append(Paragraph(title, ParagraphStyle(
+            'SubTitle',
+            parent=styles['Heading2'],
+            fontSize=14,
+            alignment=TA_CENTER,
+            spaceAfter=20
+        )))
+
+        # Calculate summary
+        summary_data = orders.aggregate(
+            total_orders=Count('id'),
+            total_amount=Sum('total_amount'),
+            total_subtotal=Sum('subtotal'),
+            total_coupon_discount=Sum('coupon_discount')
+        )
+
+        # Add summary table
+        summary_table_data = [
+            ['Summary', ''],
+            ['Total Orders:', str(summary_data['total_orders'] or 0)],
+            ['Gross Sales:', f"{float(summary_data['total_subtotal'] or 0):.2f}"],
+            ['Total Discounts:', f"{float(summary_data['total_coupon_discount'] or 0):.2f}"],
+            ['Net Sales:', f"{float(summary_data['total_amount'] or 0):.2f}"]
+        ]
+        
+        summary_table = Table(summary_table_data, colWidths=[200, 200])
+        summary_table.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('ALIGN', (0, 0), (0, -1), 'LEFT'),
+            ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('SPAN', (0, 0), (1, 0)),  # Merge first row
+            ('ALIGN', (0, 0), (1, 0), 'CENTER'),  # Center the merged cell
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+            ('GRID', (0, 1), (-1, -1), 1, colors.black),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ]))
+        elements.append(summary_table)
+        elements.append(Spacer(1, 30))
+
+        # Add daily breakdown table
+        daily_data = [['Date', 'Orders', 'Gross Sales', 'Discounts', 'Net Sales']]
+        
+        # Get unique dates that have orders
+        order_dates = orders.values('created_at__date').distinct().order_by('-created_at__date')
+        
+        for date_dict in order_dates:
+            current_date = date_dict['created_at__date']
+            daily_orders = orders.filter(created_at__date=current_date)
+            
+            daily_totals = daily_orders.aggregate(
+                order_count=Count('id'),
+                gross_sales=Sum('subtotal'),
+                coupon_discount=Sum('coupon_discount'),
+                net_sales=Sum('total_amount')
+            )
+
+            if daily_totals['order_count'] > 0:
+                daily_data.append([
+                    current_date.strftime('%d-%m-%Y'),
+                    str(daily_totals['order_count']),
+                    f"₹{float(daily_totals['gross_sales'] or 0):.2f}",
+                    f"₹{float(daily_totals['coupon_discount'] or 0):.2f}",
+                    f"₹{float(daily_totals['net_sales'] or 0):.2f}"
+                ])
+
+        # Add table header
+        elements.append(Paragraph("Daily Sales Breakdown", ParagraphStyle(
+            'TableTitle',
+            parent=styles['Heading3'],
+            fontSize=12,
+            alignment=TA_CENTER,
+            spaceAfter=10
+        )))
+
+        table = Table(daily_data, colWidths=[100, 80, 100, 100, 100])
+        table.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('ALIGN', (2, 1), (-1, -1), 'RIGHT'),  # Right align amounts
+        ]))
+        elements.append(table)
+
+        # Add footer
+        elements.append(Spacer(1, 20))
+        elements.append(Paragraph(
+            f"Generated on: {timezone.now().strftime('%d-%m-%Y %H:%M:%S')}",
+            ParagraphStyle(
+                'Footer',
+                parent=styles['Normal'],
+                fontSize=8,
+                textColor=colors.grey,
+                alignment=TA_RIGHT
+            )
+        ))
+
+        # Build PDF
+        doc.build(elements)
+        pdf = buffer.getvalue()
+        buffer.close()
+
+        # Create response
+        response = HttpResponse(content_type='application/pdf')
+        filename = f"Bookscartz_Sales_Report_{start_date.strftime('%Y%m%d')}_{end_date.strftime('%Y%m%d')}.pdf"
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        response.write(pdf)
+
+        return response
+
+    except Exception as e:
+        print(f"Error generating PDF: {str(e)}")
+        return HttpResponse("Error generating PDF", status=500)

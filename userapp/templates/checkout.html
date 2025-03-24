@@ -118,57 +118,86 @@
         }
 
         .address-card {
-            border: 1px solid var(--accent-color);
-            border-radius: 8px;
-            padding: 1.5rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 4px;
             cursor: pointer;
-            transition: var(--transition);
-            position: relative;
-            background: var(--white);
+            transition: all 0.2s ease;
         }
 
         .address-card:hover {
-            border-color: var(--secondary-color);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            border-color: #4CAF50;
         }
 
         .address-card.selected {
-            border-color: var(--secondary-color);
-            background-color: rgba(151, 112, 78, 0.05);
+            border-color: #4CAF50;
+            background-color: #f0fff0;
         }
 
         .address-radio {
+            position: relative;
+            min-width: 20px;
+        }
+
+        .address-radio input[type="radio"] {
             position: absolute;
-            top: 1.5rem;
-            right: 1.5rem;
+            opacity: 0;
+        }
+
+        .radio-label {
+            display: inline-block;
             width: 20px;
             height: 20px;
-            border: 2px solid var(--secondary-color);
+            border: 2px solid #999;
             border-radius: 50%;
+            position: relative;
             cursor: pointer;
-            transition: var(--transition);
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            transition: all 0.2s ease;
         }
 
-        .address-radio::after {
+        .address-radio input[type="radio"]:checked + .radio-label {
+            border-color: #4CAF50;
+        }
+
+        .address-radio input[type="radio"]:checked + .radio-label:after {
             content: '';
-            width: 10px;
-            height: 10px;
-            background: var(--secondary-color);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 12px;
+            height: 12px;
+            background-color: #4CAF50;
             border-radius: 50%;
-            transform: scale(0);
-            transition: var(--transition);
         }
 
-        .address-radio.selected::after {
-            transform: scale(1);
+        .address-details {
+            flex: 1;
         }
 
-        .address-card input[type="radio"] {
-            display: none;
+        .address-details p {
+            margin: 5px 0;
+            color: #666;
+        }
+
+        .address-details strong {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .default-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            background: #e8f5e9;
+            color: #2e7d32;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-top: 8px;
         }
 
         .add-address-btn {
@@ -719,6 +748,334 @@
         .text-green-600 {
             color: #059669;
         }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .close-modal {
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .half {
+            width: 100%;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 10px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .address-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.5rem;
+        }
+
+        .address-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .edit-btn,
+        .delete-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+
+        .edit-btn {
+            color: #2196F3;
+        }
+
+        .delete-btn {
+            color: #F44336;
+        }
+
+        .edit-btn:hover {
+            background-color: rgba(33, 150, 243, 0.1);
+        }
+
+        .delete-btn:hover {
+            background-color: rgba(244, 67, 54, 0.1);
+        }
+
+        .coupon-section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 16px;
+            color: #333;
+            margin: 0;
+        }
+
+        .section-title svg {
+            color: #4CAF50;
+        }
+
+        .coupons-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .coupon-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            border: 1px dashed var(--secondary-color);
+            border-radius: 8px;
+            background: var(--light-bg);
+            position: relative;
+        }
+
+        .coupon-item::before,
+        .coupon-item::after {
+            content: '';
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: white;
+            border-radius: 50%;
+        }
+
+        .coupon-item::before {
+            left: -6px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .coupon-item::after {
+            right: -6px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .coupon-code {
+            font-weight: 600;
+            font-size: 16px;
+            color: var(--primary-color);
+            margin-bottom: 4px;
+        }
+
+        .discount {
+            display: inline-block;
+            padding: 4px 8px;
+            background: var(--secondary-color);
+            color: var(--white);
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .coupon-details {
+            font-size: 12px;
+            color: var(--text-color);
+            margin-top: 4px;
+        }
+
+        .apply-btn {
+            padding: 6px 12px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .apply-btn:hover {
+            background: #8B7355;
+        }
+
+        .applied-coupon {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: rgba(151, 112, 78, 0.1);
+            border: 1px solid var(--secondary-color);
+            border-radius: 8px;
+            margin: 12px 0;
+        }
+
+        .coupon-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .savings {
+            color: var(--secondary-color);
+            font-size: 13px;
+        }
+
+        .remove-coupon-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: var(--primary-color);
+            color: var(--accent-color);
+            border: 1px solid var(--accent-color);
+            border-radius: 4px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .remove-coupon-btn:hover {
+            background: #3F4E4F;
+        }
+
+        .remove-coupon-btn svg {
+            width: 14px;
+            height: 14px;
+            stroke: var(--accent-color);
+        }
+
+        .message {
+            margin-top: 12px;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .message.success {
+            background: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #c8e6c9;
+        }
+
+        .message.error {
+            background: #ffebee;
+            color: #d32f2f;
+            border: 1px solid #ffcdd2;
+        }
+
+        .coupon-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .remove-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 6px;
+            width: 28px;
+            height: 28px;
+            background: var(--primary-color);
+            color: var(--accent-color);
+            border: 1px solid var(--accent-color);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .remove-btn:hover {
+            background: #3F4E4F;
+            transform: scale(1.1);
+        }
+
+        .remove-btn svg {
+            width: 14px;
+            height: 14px;
+            stroke: var(--accent-color);
+        }
+
+        .product-specific {
+            display: block;
+            font-size: 11px;
+            color: var(--secondary-color);
+            margin-top: 4px;
+        }
+
+        .coupon-used {
+            font-size: 12px;
+            color: #666;
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
@@ -775,35 +1132,97 @@
         <div class="checkout-left">
             <!-- Address Section First -->
             <div class="checkout-section">
-                <h2 class="section-title">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                        <circle cx="12" cy="10" r="3"></circle>
+                <div class="address-header">
+                    <h2 class="section-title">Delivery Address</h2>
+                    <button onclick="openAddressModal()" class="add-address-btn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
                     </svg>
-                    Shipping Address
-                </h2>
+                        <span>Add New</span>
+                    </button>
+                </div>
+
+                <!-- Simple Address Modal - Using the same design from profile.html -->
+                <div id="addressModal" class="modal" style="display: none;">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3 id="modalTitle">Add Address</h3>
+                            <span class="close-modal" onclick="closeAddressModal()">&times;</span>
+                        </div>
+                        <form id="addressForm" method="POST" action="{% url 'add_address' %}">
+                            {% csrf_token %}
+                            <input type="hidden" id="address_id" name="address_id" value="">
+                            <div class="form-group">
+                                <label for="full_name">Full Name*</label>
+                                <input type="text" id="full_name" name="full_name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="phone">Phone Number*</label>
+                                <input type="tel" id="phone" name="phone" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="address_line1">Address Line 1*</label>
+                                <input type="text" id="address_line1" name="address_line1" placeholder="House No, Building, Street" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="address_line2">Address Line 2</label>
+                                <input type="text" id="address_line2" name="address_line2" placeholder="Area, Colony, Landmark">
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group half">
+                                    <label for="city">City*</label>
+                                    <input type="text" id="city" name="city" required>
+                                </div>
+                                <div class="form-group half">
+                                    <label for="state">State*</label>
+                                    <input type="text" id="state" name="state" required>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group half">
+                                    <label for="pincode">Pincode*</label>
+                                    <input type="text" id="pincode" name="pincode" required>
+                                </div>
+                                <div class="form-group half">
+                                    <label for="type">Address Type*</label>
+                                    <select id="type" name="type" required>
+                                        <option value="home">Home</option>
+                                        <option value="work">Work</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn">Save Address</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Existing addresses display -->
                 {% if addresses %}
                 <div class="address-list">
                     {% for address in addresses %}
-                    <div class="address-card {% if address.is_default %}selected{% endif %}">
-                        <input type="radio" name="address" value="{{ address.id }}" {% if address.is_default %}checked{% endif %}>
-                        <div class="address-radio {% if address.is_default %}selected{% endif %}"></div>
-                        <strong>{{ address.full_name }}</strong>
-                        <p>{{ address.address_line1 }}</p>
-                        <p>{{ address.address_line2 }}</p>
-                        <p>{{ address.city }}, {{ address.state }} - {{ address.pincode }}</p>
-                        <p>Phone: {{ address.phone }}</p>
+                    <div class="address-card" onclick="selectAddress(this, '{{ address.id }}')">
+                        <input type="radio" name="delivery_address" value="{{ address.id }}" 
+                               {% if forloop.first %}checked{% endif %} 
+                               class="address-radio">
+                        <div class="address-content">
+                            <h3>{{ address.full_name }}</h3>
+                            <p>{{ address.address_line1 }}</p>
+                            {% if address.address_line2 %}
+                            <p>{{ address.address_line2 }}</p>
+                            {% endif %}
+                            <p>{{ address.city }}, {{ address.state }} {{ address.pincode }}</p>
+                            <p>Phone: {{ address.phone }}</p>
+                        </div>
                     </div>
                     {% endfor %}
                 </div>
+                {% else %}
+                <div class="no-address">
+                    <p>No addresses found. Please add a delivery address.</p>
+                </div>
                 {% endif %}
-                <a href="{% url 'add_address' %}" class="add-address-btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                    </svg>
-                    Add New Address
-                </a>
             </div>
 
             <!-- Order Items Section -->
@@ -853,19 +1272,25 @@
                     Payment Method
                 </h2>
                 <div class="payment-methods">
-                    <label class="payment-method">
-                        <input type="radio" name="payment" value="Cash on Delivery" checked>
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold mb-3">Select Payment Method</h3>
+                        <div class="space-y-3">
+                            <label class="flex items-center space-x-3">
+                                <input type="radio" name="payment_method" value="cod" class="form-radio text-[#A79277]">
                         <span>Cash on Delivery</span>
                     </label>
-                    <label class="payment-method">
-                        <input type="radio" name="payment" value="wallet" {% if wallet.balance < final_total %}disabled{% endif %}>
-                        <span>
-                            Wallet Balance (₹{{ wallet.balance|default:"0.00" }})
-                            {% if wallet.balance < final_total %}
-                            <small>Insufficient balance (Required: ₹{{ final_total }})</small>
-                            {% endif %}
-                        </span>
+                            
+                            <label class="flex items-center space-x-3">
+                                <input type="radio" name="payment_method" value="wallet" class="form-radio text-[#A79277]">
+                                <span>Wallet (Balance: ₹{{ wallet.balance|default:"0.00" }})</span>
+                            </label>
+
+                            <label class="flex items-center space-x-3">
+                                <input type="radio" name="payment_method" value="razorpay" class="form-radio text-[#A79277]">
+                                <span>Pay Online (Razorpay)</span>
                     </label>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -875,79 +1300,87 @@
             <h2 class="section-title">Order Summary</h2>
             
             <!-- Coupon Section -->
-            <div class="bg-white p-6 rounded-lg shadow-md mb-4">
-                <h3 class="text-lg font-semibold mb-4">Apply Coupon</h3>
-                
-                {% if coupon_code %}
-                <!-- Applied coupon display -->
-                <div class="flex items-center justify-between p-3 bg-green-50 rounded-lg mb-3">
-                    <div>
-                        <span class="font-medium text-green-700">Applied Coupon:</span>
-                        <span class="ml-2">{{ coupon_code }}</span>
+            <div class="coupon-section">
+                <div class="section-header">
+                    <h3 class="section-title">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                        </svg>
+                        Apply Coupon
+                    </h3>
                     </div>
-                    <form method="POST" action="{% url 'remove_coupon' %}" class="inline">
-                        {% csrf_token %}
-                        <button type="submit" class="text-red-600 hover:text-red-800">
-                            Remove
-                        </button>
-                    </form>
-                </div>
-                {% else %}
-                <!-- Available Coupons Display -->
+
                 {% if valid_coupons %}
-                <div class="mb-6">
-                    <div class="text-sm font-medium text-gray-700 mb-3">Available Coupons</div>
-                    <div class="grid gap-3">
+                <div class="coupons-list">
                         {% for coupon in valid_coupons %}
-                        <div class="relative border border-gray-200 rounded-lg p-4 hover:border-[#A79277] transition-all">
-                            <div class="flex justify-between items-start">
-                                <div class="flex-1">
-                                    <div class="flex items-center gap-2 mb-2">
-                                        <span class="text-lg font-bold text-[#A79277]">{{ coupon.code }}</span>
+                    <div class="coupon-item">
+                        <div class="coupon-left">
+                            <div class="coupon-code">{{ coupon.code }}</div>
+                            <div class="coupon-value">
                                         {% if coupon.type == 'percentage' %}
-                                        <span class="bg-[#A79277] text-white text-xs px-2 py-1 rounded">{{ coupon.value }}% OFF</span>
+                                <span class="discount">{{ coupon.value }}% OFF</span>
                                         {% else %}
-                                        <span class="bg-[#A79277] text-white text-xs px-2 py-1 rounded">₹{{ coupon.value }} OFF</span>
+                                <span class="discount">₹{{ coupon.value }} OFF</span>
                                         {% endif %}
                                     </div>
-                                    <p class="text-sm text-gray-600 mb-3">Min. order: ₹{{ coupon.min_amount }}</p>
-                                    <button onclick="applyCoupon('{{ coupon.code }}')" 
-                                            class="inline-flex items-center px-4 py-2 bg-[#2C3639] text-white text-sm font-medium rounded-md hover:bg-[#3F4E4F] transform hover:-translate-y-0.5 transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#2C3639] focus:ring-offset-2 group w-28 justify-center shadow-sm">
-                                        <span class="flex items-center gap-2">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                            <div class="coupon-details">
+                                <span>Min order: ₹{{ coupon.min_amount }}</span>
+                                {% if coupon.product_specific %}
+                                <span class="product-specific">Valid for: {{ coupon.product.name }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="coupon-actions">
+                            {% if coupon.product_specific and coupon.product.id in cart_product_ids %}
+                                {% if coupon.product.id in applied_coupon_products %}
+                                <span class="coupon-used">Already applied</span>
+                                {% else %}
+                                <button onclick="applyCoupon('{{ coupon.code }}', {{ coupon.product.id }})" class="apply-btn">Apply</button>
+                                {% endif %}
+                            {% else %}
+                                {% if not coupon.product_specific %}
+                                <button onclick="applyCoupon('{{ coupon.code }}')" class="apply-btn">Apply</button>
+                                {% endif %}
+                            {% endif %}
+                            <button onclick="removeCoupon('{{ coupon.code }}')" class="remove-btn" title="Remove Coupon">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
                                             </svg>
-                                            Apply
-                                        </span>
                                     </button>
-                                </div>
-                                <!-- Decorative elements -->
-                                <div class="absolute -left-[2px] top-1/2 -translate-y-1/2 w-1 h-8 bg-[#A79277] rounded-r"></div>
                             </div>
                         </div>
                         {% endfor %}
-                    </div>
                 </div>
                 {% endif %}
 
-                <!-- Manual Coupon Input -->
-                <div class="relative">
-                    <div class="text-sm font-medium text-gray-700 mb-2">Have another coupon?</div>
-                    <form id="couponForm" class="flex gap-2">
-                        {% csrf_token %}
-                        <input type="text" 
-                               name="coupon_code" 
-                               placeholder="Enter coupon code" 
-                               class="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#A79277] uppercase"
-                               style="letter-spacing: 1px;">
-                        <button type="submit" 
-                                class="px-4 py-2 bg-[#A79277] text-white rounded-lg hover:bg-[#8B7355] transition-colors">
-                            Apply
+                {% if applied_coupon %}
+                <div class="applied-coupon">
+                    <div class="coupon-info">
+                        <div class="coupon-code">{{ applied_coupon.code }}</div>
+                        <div class="discount-info">
+                            <span class="savings">You saved: ₹{{ applied_coupon.discount_amount }}</span>
+                        </div>
+                    </div>
+                    <button onclick="removeCoupon()" class="remove-coupon-btn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                        Remove
                         </button>
-                    </form>
                 </div>
+                {% else %}
+                {% comment %} <div class="coupon-input">
+                    <form id="couponForm" class="coupon-form">
+                        {% csrf_token %}
+                        <input type="text" name="coupon_code" placeholder="Enter coupon code" required>
+                        <button type="submit">Apply</button>
+                    </form>
+                </div> {% endcomment %}
                 {% endif %}
-                <div id="couponMessage" class="mt-2 text-sm"></div>
+
+                <div id="couponMessage" class="message"></div>
             </div>
 
             <!-- Price Summary -->
@@ -989,194 +1422,132 @@
         </div>
     </div>
 
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
     <script>
-        // Add this function outside the DOMContentLoaded event listener
-        function removeCoupon() {
-            const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        // Function to handle address selection
+        function selectAddress(card, addressId) {
+            // Remove selected class and uncheck all radio buttons
+            document.querySelectorAll('.address-card').forEach(c => {
+                c.classList.remove('selected');
+                const radio = c.querySelector('input[type="radio"]');
+                if (radio) radio.checked = false;
+            });
             
-            fetch('/remove-coupon/', {
+            // Add selected class and check the radio button
+            card.classList.add('selected');
+            const radio = card.querySelector('input[type="radio"]');
+            if (radio) {
+                radio.checked = true;
+                console.log('Selected address:', addressId); // Debug log
+            }
+        }
+
+        // Place Order Button Click Handler
+        document.getElementById('placeOrderBtn').addEventListener('click', function() {
+            // Get the selected payment method first
+            const selectedPayment = document.querySelector('input[name="payment_method"]:checked');
+            if (!selectedPayment) {
+                alert('Please select a payment method');
+                return;
+            }
+
+            // Get the selected address
+            const selectedAddress = document.querySelector('input[name="delivery_address"]:checked');
+            console.log('Selected address on submit:', selectedAddress?.value); // Debug log
+
+            if (!selectedAddress) {
+                // Try to get the first address
+                const firstAddress = document.querySelector('.address-card');
+                if (firstAddress) {
+                    const radio = firstAddress.querySelector('input[type="radio"]');
+                    if (radio) {
+                        radio.checked = true;
+                        firstAddress.classList.add('selected');
+                        console.log('Auto-selected first address:', radio.value); // Debug log
+                    }
+                }
+            }
+
+            // Final check for selected address
+            const finalSelectedAddress = document.querySelector('input[name="delivery_address"]:checked');
+            if (!finalSelectedAddress) {
+                alert('Please select a delivery address');
+                return;
+            }
+
+            // Proceed with order placement
+            const data = {
+                payment_method: selectedPayment.value,
+                address_id: finalSelectedAddress.value
+            };
+
+            fetch('/place-order/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': csrftoken
-                }
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify(data)
             })
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'success') {
-                    location.reload();
+                    window.location.href = data.redirect_url;
                 } else {
-                    alert('Error removing coupon');
+                    alert(data.message);
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('An error occurred while removing the coupon');
-            });
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            // User dropdown toggle functionality
-            const userMenu = document.getElementById('userMenu');
-            const userIcon = userMenu.querySelector('.user-icon');
-
-            userIcon.addEventListener('click', (e) => {
-                e.stopPropagation();
-                userMenu.classList.toggle('active');
-            });
-
-            // Close dropdown when clicking outside
-            document.addEventListener('click', (event) => {
-                if (!userMenu.contains(event.target)) {
-                    userMenu.classList.remove('active');
-                }
-            });
-
-            // Prevent dropdown from closing when clicking inside it
-            userMenu.querySelector('.user-dropdown').addEventListener('click', (e) => {
-                e.stopPropagation();
-            });
-
-            // Add hover effect for dropdown items
-            const dropdownItems = document.querySelectorAll('.dropdown-item');
-            dropdownItems.forEach(item => {
-                item.addEventListener('mouseenter', () => {
-                    item.querySelector('svg').style.transform = 'translateX(5px)';
-                });
-                item.addEventListener('mouseleave', () => {
-                    item.querySelector('svg').style.transform = 'translateX(0)';
-                });
-            });
-
-            // Address selection
-            const addressCards = document.querySelectorAll('.address-card');
-            addressCards.forEach(card => {
-                card.addEventListener('click', () => {
-                    addressCards.forEach(c => {
-                        c.classList.remove('selected');
-                        c.querySelector('.address-radio').classList.remove('selected');
-                    });
-                    card.classList.add('selected');
-                    card.querySelector('.address-radio').classList.add('selected');
-                    card.querySelector('input[type="radio"]').checked = true;
-                });
-            });
-
-            // Payment method selection with animation
-            document.querySelectorAll('.payment-method').forEach(method => {
-                method.addEventListener('click', function(e) {
-                    if (!this.querySelector('input[type="radio"]').disabled) {
-                        document.querySelectorAll('.payment-method').forEach(m => {
-                            m.classList.remove('selected');
-                        });
-                        this.classList.add('selected');
-                    }
-                });
-            });
-
-            // Place Order Button Click Handler
-            document.getElementById('placeOrderBtn').addEventListener('click', function() {
-                const selectedAddress = document.querySelector('input[name="address"]:checked');
-                const selectedPayment = document.querySelector('input[name="payment"]:checked');
-
-                if (!selectedAddress) {
-                    alert('Please select a delivery address');
-                    return;
-                }
-
-                if (!selectedPayment) {
-                    alert('Please select a payment method');
-                    return;
-                }
-
-                // Check wallet balance if wallet payment is selected
-                if (selectedPayment.value === 'wallet') {
-                    const walletBalance = parseFloat('{{ wallet.balance|default:"0" }}');
-                    const finalTotal = parseFloat('{{ final_total }}');
-                    
-                    if (walletBalance < finalTotal) {
-                        alert(`Insufficient wallet balance. Required: ₹${finalTotal}, Available: ₹${walletBalance}`);
-                        return;
-                    }
-                }
-
-                // Get CSRF token
-                const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-                
-                // Send order data to server
-                fetch('{% url "place_order" %}', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': csrftoken
-                    },
-                    body: JSON.stringify({
-                        address: selectedAddress.value,
-                        payment: selectedPayment.value
-                    })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        window.location.href = `/order-details/${data.order_id}/`;
-                    } else {
-                        alert(data.message);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('An error occurred while placing your order');
-                });
-            });
-
-            document.getElementById('couponForm').addEventListener('submit', function(e) {
-                e.preventDefault();
-                const code = this.querySelector('input[name="coupon_code"]').value;
-                
-                fetch('/apply-coupon/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                    },
-                    body: JSON.stringify({ code: code })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    const messageDiv = document.getElementById('couponMessage');
-                    const discountDiv = document.getElementById('couponDiscount');
-                    
-                    if (data.status === 'success') {
-                        messageDiv.className = 'mt-2 text-sm text-green-600';
-                        messageDiv.textContent = data.message;
-                        discountDiv.classList.remove('hidden');
-                        
-                        // Update price details
-                        document.getElementById('subtotal').textContent = data.subtotal;
-                        document.getElementById('discountAmount').textContent = data.discount;
-                        document.getElementById('finalTotal').textContent = data.final_total;
-                    } else {
-                        messageDiv.className = 'mt-2 text-sm text-red-600';
-                        messageDiv.textContent = data.message;
-                        discountDiv.classList.add('hidden');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                });
+                alert('Error placing order');
             });
         });
 
-        function applyCoupon(code) {
-            const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        function removeCoupon(code, productId = null) {
+            if (confirm('Are you sure you want to remove this coupon?')) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = "{% url 'remove_coupon' %}";
+                
+                const csrfInput = document.createElement('input');
+                csrfInput.type = 'hidden';
+                csrfInput.name = 'csrfmiddlewaretoken';
+                csrfInput.value = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                
+                const codeInput = document.createElement('input');
+                codeInput.type = 'hidden';
+                codeInput.name = 'coupon_code';
+                codeInput.value = code;
+
+                if (productId) {
+                    const productInput = document.createElement('input');
+                    productInput.type = 'hidden';
+                    productInput.name = 'product_id';
+                    productInput.value = productId;
+                    form.appendChild(productInput);
+                }
+                
+                form.appendChild(csrfInput);
+                form.appendChild(codeInput);
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+
+        function applyCoupon(code, productId = null) {
+            const data = {
+                code: code,
+                product_id: productId
+            };
             
             fetch('/apply-coupon/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': csrftoken
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
                 },
-                body: JSON.stringify({ code: code })
+                body: JSON.stringify(data)
             })
             .then(response => response.json())
             .then(data => {
@@ -1189,6 +1560,114 @@
             .catch(error => {
                 console.error('Error:', error);
                 alert('An error occurred while applying the coupon');
+            });
+        }
+
+        function openAddressModal() {
+            document.getElementById('addressModal').style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeAddressModal() {
+            document.getElementById('addressModal').style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        function editAddress(id, fullName, phone, line1, line2, city, state, pincode, type) {
+            // Fill the form with existing data
+            document.getElementById('address_id').value = id;
+            document.getElementById('full_name').value = fullName;
+            document.getElementById('phone').value = phone;
+            document.getElementById('address_line1').value = line1;
+            document.getElementById('address_line2').value = line2;
+            document.getElementById('city').value = city;
+            document.getElementById('state').value = state;
+            document.getElementById('pincode').value = pincode;
+            document.getElementById('type').value = type;
+
+            // Update form action and modal title
+            document.getElementById('addressForm').action = "{% url 'edit_address' 0 %}".replace('0', id);
+            document.getElementById('modalTitle').textContent = 'Edit Address';
+            
+            // Show the modal
+            openAddressModal();
+        }
+
+        function deleteAddress(id) {
+            if (confirm('Are you sure you want to delete this address?')) {
+                window.location.href = "{% url 'delete_address' 0 %}".replace('0', id);
+            }
+        }
+
+        function initiateRazorpayPayment(addressId) {
+            fetch('/create-razorpay-order/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    address_id: addressId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    const options = {
+                        key: '{{ razorpay_key_id }}',
+                        amount: data.amount,
+                        currency: "INR",
+                        name: "Bookscartz",
+                        description: "Book Purchase",
+                        order_id: data.order_id,
+                        handler: function (response) {
+                            verifyPayment(response, addressId);
+                        },
+                        prefill: {
+                            name: "{{ request.user.get_full_name }}",
+                            email: "{{ request.user.email }}"
+                        },
+                        theme: {
+                            color: "#A79277"
+                        }
+                    };
+                    const rzp = new Razorpay(options);
+                    rzp.open();
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error initiating payment');
+            });
+        }
+
+        function verifyPayment(response, addressId) {
+            fetch('/verify-razorpay-payment/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    razorpay_payment_id: response.razorpay_payment_id,
+                    razorpay_order_id: response.razorpay_order_id,
+                    razorpay_signature: response.razorpay_signature,
+                    address_id: addressId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    window.location.href = data.redirect_url;
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error verifying payment');
             });
         }
     </script>

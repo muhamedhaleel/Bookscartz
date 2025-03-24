@@ -2,91 +2,228 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Invoice #{{ order.id }}</title>
+    <title>Bookscartz Invoice #{{ invoice_number }}</title>
     <style>
+        @page {
+            size: a4;
+            margin: 25mm 20mm;
+        }
+        
         body {
             font-family: Arial, sans-serif;
             line-height: 1.6;
             margin: 0;
-            padding: 20px;
+            padding: 0;
+            color: #000;
         }
-        .header {
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .invoice-header {
             text-align: center;
+            padding: 20px 0;
             margin-bottom: 30px;
         }
-        .invoice-details {
-            margin-bottom: 30px;
+
+        .invoice-header h1 {
+            font-size: 24px;
+            margin: 0;
+            text-transform: uppercase;
         }
+
+        .invoice-header p {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+
+        .invoice-meta {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 40px;
+            padding: 20px 0;
+        }
+
+        .invoice-meta-left, .invoice-meta-right {
+            flex: 1;
+        }
+
+        .invoice-number {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        .meta-item {
+            margin: 8px 0;
+        }
+
+        .address-section {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 40px;
+        }
+
+        .address-block {
+            flex: 1;
+            padding: 0 20px;
+        }
+
+        .address-block h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+
+        .address-block p {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+
         .invoice-table {
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 30px;
         }
+
         .invoice-table th, .invoice-table td {
-            border: 1px solid #ddd;
-            padding: 8px;
+            border: 1px solid #000;
+            padding: 12px;
             text-align: left;
+            font-size: 14px;
         }
+
         .invoice-table th {
-            background-color: #f8f9fa;
+            font-weight: bold;
         }
+
         .total-section {
-            text-align: right;
-            margin-top: 20px;
+            margin-left: auto;
+            width: 500px;
+            margin-bottom: 40px;
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            font-size: 14px;
+        }
+
+        .total-row.final {
+            border-top: 1px solid #000;
+            margin-top: 10px;
+            padding-top: 12px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .status-badge {
+            font-weight: bold;
+        }
+
+        .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid #000;
+            text-align: center;
+            font-size: 12px;
+        }
+
+        .footer p {
+            margin: 5px 0;
+        }
+
+        .thank-you {
+            font-size: 16px;
+            margin-bottom: 10px;
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>BOOKSCARTZ</h1>
-        <h2>Invoice</h2>
-    </div>
+    <div class="container">
+        <div class="invoice-header">
+            <h1>{{ company_name }}</h1>
+            <p>{{ company_address }}</p>
+            <p>Phone: {{ company_phone }} | Email: {{ company_email }}</p>
+        </div>
 
-    <div class="invoice-details">
-        <p><strong>Order #:</strong> {{ order.id }}</p>
-        <p><strong>Date:</strong> {{ order.created_at|date:"F j, Y" }}</p>
-        <p><strong>Payment Method:</strong> {{ order.payment_method }}</p>
-    </div>
+        <div class="invoice-meta">
+            <div class="invoice-meta-left">
+                <div class="invoice-number">Invoice #{{ invoice_number }}</div>
+                <div class="meta-item">Date: {{ date }}</div>
+                <div class="meta-item">Payment Method: {{ payment_method }}</div>
+            </div>
+            <div class="invoice-meta-right">
+                <div class="meta-item">Order Status: <span class="status-badge">{{ order_status }}</span></div>
+                <div class="meta-item">Order Date: {{ order_date }}</div>
+            </div>
+        </div>
 
-    <div class="customer-details">
-        <h3>Bill To:</h3>
-        <p>{{ order.billing_address.full_name }}</p>
-        <p>{{ order.billing_address.address_line1 }}</p>
-        {% if order.billing_address.address_line2 %}
-        <p>{{ order.billing_address.address_line2 }}</p>
-        {% endif %}
-        <p>{{ order.billing_address.city }}, {{ order.billing_address.state }} - {{ order.billing_address.pincode }}</p>
-        <p>Phone: {{ order.billing_address.phone }}</p>
-    </div>
+        <div class="address-section">
+            <div class="address-block">
+                <h3>Bill To</h3>
+                <p>{{ billing_info.full_name }}</p>
+                <p>{{ billing_info.address }}</p>
+                <p>{{ billing_info.city }}, {{ billing_info.state }} - {{ billing_info.pincode }}</p>
+                <p>Phone: {{ billing_info.phone }}</p>
+            </div>
+            <div class="address-block">
+                <h3>Ship To</h3>
+                <p>{{ billing_info.full_name }}</p>
+                <p>{{ billing_info.address }}</p>
+                <p>{{ billing_info.city }}, {{ billing_info.state }} - {{ billing_info.pincode }}</p>
+                <p>Phone: {{ billing_info.phone }}</p>
+            </div>
+        </div>
 
-    <table class="invoice-table">
-        <thead>
-            <tr>
-                <th>Item</th>
-                <th>Quantity</th>
-                <th>Price</th>
-                <th>Total</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for item in order.items.all %}
-            <tr>
-                <td>{{ item.product.name }}</td>
-                <td>{{ item.quantity }}</td>
-                <td>₹{{ item.price }}</td>
-                <td>₹{{ item.total_price }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+        <table class="invoice-table">
+            <thead>
+                <tr>
+                    <th>Item Description</th>
+                    <th>Quantity</th>
+                    <th>Unit Price</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in order_items %}
+                <tr>
+                    <td>{{ item.product.name }}</td>
+                    <td>{{ item.quantity }}</td>
+                    <td>{{ item.price }}</td>
+                    <td>{{ item.total_price }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
 
-    <div class="total-section">
-        <p><strong>Subtotal:</strong> ₹{{ order.subtotal }}</p>
-        {% if order.total_discount > 0 %}
-        <p><strong>Discount:</strong> -₹{{ order.total_discount }}</p>
-        {% endif %}
-        <p><strong>Shipping:</strong> {% if order.subtotal >= 999 %}Free{% else %}₹50{% endif %}</p>
-        <h3>Total: ₹{{ order.total_amount }}</h3>
+        <div class="total-section">
+            <div class="total-row">
+                <span>Subtotal:</span>
+                <span>{{ subtotal }}</span>
+            </div>
+            {% if coupon_discount %}
+            <div class="total-row">
+                <span>Coupon Discount:</span>
+                <span>{{ coupon_discount }}</span>
+            </div>
+            {% endif %}
+            <div class="total-row">
+                <span>Shipping:</span>
+                <span>{{ shipping_cost }}</span>
+            </div>
+            <div class="total-row final">
+                <span>Total Amount:</span>
+                <span>{{ total_amount }}</span>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p class="thank-you">Thank you for shopping with {{ company_name }}!</p>
+            
+        </div>
     </div>
 </body>
 </html> 

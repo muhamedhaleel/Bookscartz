@@ -179,6 +179,10 @@ AUTHENTICATION_BACKENDS = [
     
 ]
 
+# Razorpay Keys from .env
+RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID")
+RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET")
+
 
 # Password validation settings (if not already present)
 AUTH_PASSWORD_VALIDATORS = [
