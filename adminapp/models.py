@@ -205,7 +205,13 @@ class CartItem(models.Model):
         unique_together = ('cart', 'product')
 
 class Address(models.Model):
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    ADDRESS_TYPES = (
+        ('home', 'Home'),
+        ('work', 'Work'),
+        ('other', 'Other'),
+    )
+    
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='addresses')
     full_name = models.CharField(max_length=100)
     phone = models.CharField(max_length=15)
     address_line1 = models.CharField(max_length=255)
@@ -213,7 +219,7 @@ class Address(models.Model):
     city = models.CharField(max_length=100)
     state = models.CharField(max_length=100)
     pincode = models.CharField(max_length=10)
-    type = models.CharField(max_length=20, choices=[('home', 'Home'), ('work', 'Work'), ('other', 'Other')])
+    type = models.CharField(max_length=10, choices=ADDRESS_TYPES, default='home')
     is_default = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

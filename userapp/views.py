@@ -586,89 +586,199 @@ def checkout_view(request):
     try:
         cart = Cart.objects.get(user=request.user)
         cart_items = cart.items.all()
-        
-        if not cart_items.exists():
-            messages.error(request, 'Your cart is empty')
-            return redirect('cart')
-        
-        # Get user's addresses and ensure at least one is selected as default
+        wallet = Wallet.objects.get_or_create(user=request.user)[0]
         addresses = Address.objects.filter(user=request.user)
-        if addresses.exists() and not addresses.filter(is_default=True).exists():
-            # Set first address as default if no default exists
-            first_address = addresses.first()
-            first_address.is_default = True
-            first_address.save()
 
-        # Get or create wallet
-        wallet, _ = Wallet.objects.get_or_create(user=request.user)
-        
         # Calculate totals
-        original_total = sum(item.product.price * item.quantity for item in cart_items)
-        total_price = original_total
+        total_price = sum(item.product.price * item.quantity for item in cart_items)
         
-        # Get coupon discount from session
-        coupon_discount = Decimal(request.session.get('coupon_discount', '0'))
-        
+        # Get coupon discount from session instead of cart
+        coupon_code = request.session.get('coupon_code')
+        discount = Decimal(request.session.get('coupon_discount', '0'))
+
+        shipping_cost = Decimal('50') if total_price < 999 else Decimal('0')
+        final_total = total_price - discount + shipping_cost
+
         context = {
             'cart': cart,
+            'cart_items': cart_items,
             'addresses': addresses,
             'wallet': wallet,
-            'original_total': original_total,
-            'total_price': total_price - coupon_discount,
-            'total_discount': coupon_discount,
+            'total_price': total_price,
+            'discount': discount,
+            'coupon_code': coupon_code,
+            'shipping_cost': shipping_cost,
+            'final_total': final_total,
             'razorpay_key_id': settings.RAZORPAY_KEY_ID,
+            'valid_coupons': Coupon.objects.filter(
+                is_active=True,
+                min_amount__lte=total_price
+            ),
         }
-        
         return render(request, 'checkout.html', context)
     except Cart.DoesNotExist:
-        messages.error(request, 'Your cart is empty')
+        messages.error(request, 'No active cart found')
         return redirect('cart')
 
 @login_required
 def place_order(request):
     if request.method == 'POST':
         try:
+            # Parse JSON data from request body
             data = json.loads(request.body)
             payment_method = data.get('payment_method')
             address_id = data.get('address_id')
 
-            if not address_id:
-                # Try to get default address
-                default_address = Address.objects.filter(user=request.user, is_default=True).first()
-                if default_address:
-                    address_id = default_address.id
-                else:
-                    # Try to get any address
-                    any_address = Address.objects.filter(user=request.user).first()
-                    if any_address:
-                        address_id = any_address.id
-                    else:
+            # Validate the address
+            try:
+                address = Address.objects.get(id=address_id, user=request.user)
+            except Address.DoesNotExist:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Invalid delivery address'
+                }, status=400)
+
+            # Get cart and validate
+            cart = Cart.objects.get(user=request.user)
+            if not cart.items.exists():
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Your cart is empty'
+                })
+
+            # Calculate totals
+            subtotal = cart.get_subtotal()
+            shipping_cost = Decimal('50') if subtotal < 999 else Decimal('0')
+            total_amount = subtotal + shipping_cost
+
+            # Handle COD payment
+            if payment_method == 'cod':
+                try:
+                    with transaction.atomic():
+                        # Create order
+                        order = Order.objects.create(
+                            user=request.user,
+                            billing_address=address,
+                            payment_method='cod',
+                            total_amount=total_amount,
+                            subtotal=subtotal,
+                            shipping_cost=shipping_cost
+                        )
+
+                        # Create order items
+                        for item in cart.items.all():
+                            OrderItem.objects.create(
+                                order=order,
+                                product=item.product,
+                                quantity=item.quantity,
+                                price=item.product.price,
+                                total_price=item.get_total_price()
+                            )
+                            # Update product stock
+                            product = item.product
+                            product.stock -= item.quantity
+                            product.save()
+
+                        # Clear cart
+                        cart.items.all().delete()
+
                         return JsonResponse({
-                            'status': 'error',
-                            'message': 'No delivery address found'
-                        }, status=400)
+                            'status': 'success',
+                            'order_id': order.id
+                        })
 
-            # Create order using the create_order function
-            order = create_order(
-                user=request.user,
-                address_id=address_id,
-                payment_method=payment_method,
-                request=request
-            )
+                except Exception as e:
+                    print(f"Error creating COD order: {str(e)}")
+                    return JsonResponse({
+                        'status': 'error',
+                        'message': 'Error creating order'
+                    }, status=400)
 
+            # Handle wallet payment
+            elif payment_method == 'wallet':
+                wallet = Wallet.objects.get(user=request.user)
+                if wallet.balance < total_amount:
+                    return JsonResponse({
+                        'status': 'error',
+                        'message': f'Insufficient wallet balance. Required: ₹{total_amount}, Available: ₹{wallet.balance}'
+                    })
+
+                try:
+                    with transaction.atomic():
+                        # Create order
+                        order = Order.objects.create(
+                            user=request.user,
+                            billing_address=address,
+                            payment_method='wallet',
+                            total_amount=total_amount,
+                            subtotal=subtotal,
+                            shipping_cost=shipping_cost
+                        )
+
+                        # Create order items
+                        for item in cart.items.all():
+                            OrderItem.objects.create(
+                                order=order,
+                                product=item.product,
+                                quantity=item.quantity,
+                                price=item.product.price,
+                                total_price=item.get_total_price()
+                            )
+                            # Update product stock
+                            product = item.product
+                            product.stock -= item.quantity
+                            product.save()
+
+                        # Deduct amount from wallet
+                        wallet.balance -= total_amount
+                        wallet.save()
+
+                        # Create wallet transaction
+                        WalletTransaction.objects.create(
+                            wallet=wallet,
+                            amount=total_amount,
+                            type='debit',
+                            order_id=str(order.id)
+                        )
+
+                        # Clear cart
+                        cart.items.all().delete()
+
+                        return JsonResponse({
+                            'status': 'success',
+                            'order_id': order.id
+                        })
+
+                except Exception as e:
+                    print(f"Error processing wallet payment: {str(e)}")
+                    return JsonResponse({
+                        'status': 'error',
+                        'message': 'Error processing payment'
+                    }, status=400)
+
+            # Handle other payment methods...
+            else:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Invalid payment method'
+                })
+
+        except json.JSONDecodeError:
             return JsonResponse({
-                'status': 'success',
-                'redirect_url': reverse('order_confirmation', args=[order.id])
-            })
-
+                'status': 'error',
+                'message': 'Invalid JSON data'
+            }, status=400)
         except Exception as e:
             print(f"Error in place_order: {str(e)}")
             return JsonResponse({
                 'status': 'error',
-                'message': str(e)
-            }, status=400)
+                'message': 'Error processing your order'
+            }, status=500)
 
-    return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
+    return JsonResponse({
+        'status': 'error',
+        'message': 'Invalid request method'
+    }, status=405)
 
 @login_required
 def order_details(request, order_id):

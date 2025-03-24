@@ -6,7 +6,7 @@
     <title>My Wallet - Bookscartz</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500&display=swap" rel="stylesheet">
     <style>
-        /* Include the same base styles from profile.html */
+        /* Base styles */
         body {
             font-family: 'Montserrat', sans-serif;
             background-color: #f0f4f8;
@@ -14,7 +14,7 @@
             display: flex;
         }
         
-        /* Copy sidebar styles from profile.html */
+        /* Sidebar styles */
         .sidebar {
             width: 200px;
             background-color: #343a40;
@@ -29,6 +29,31 @@
             box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
         }
 
+        .sidebar h2 {
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .sidebar a {
+            color: white;
+            text-decoration: none;
+            padding: 10px 15px;
+            margin-bottom: 5px;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+
+        .sidebar a:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .sidebar a.active {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Main content styles */
         .main-content {
             margin-left: 220px;
             padding: 20px;
@@ -132,11 +157,12 @@
         <a href="{% url 'profile' %}">Profile</a>
         <a href="{% url 'home' %}">Home</a>
         <a href="{% url 'user_orders' %}">My Orders</a>
-        <a href="{% url 'wallet' %}">Wallet</a>
+        <a href="{% url 'wallet' %}" class="active">Wallet</a>
         <a href="{% url 'logout' %}">Logout</a>
         <a href="#" id="toggleChangePassword">Change Password</a>
     </div>
 
+    <!-- Rest of your existing wallet content -->
     <div class="main-content">
         <div class="wallet-container">
             <h2>My Wallet</h2>
