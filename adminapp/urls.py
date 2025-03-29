@@ -43,4 +43,8 @@ urlpatterns = [
     path('toggle-coupon-status/<int:pk>/', views.toggle_coupon_status, name='toggle_coupon_status'),
     path('api/sales-report/', views.generate_sales_report, name='sales_report'),
     path('download-sales-report/', views.download_sales_report_pdf, name='download_sales_report'),
+    path('api/sales-analytics/', views.sales_analytics, name='sales_analytics'),
+    path('api/top-products/', views.top_products, name='top_products'),
+    path('api/top-categories/', views.top_categories, name='top_categories'),
+    path('api/top-publishers/', views.top_publishers, name='top_publishers'),
 ]

@@ -30,6 +30,7 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, 
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT
+from django.db.models.functions import TruncDate, TruncMonth, TruncYear
 
 
 
@@ -1476,3 +1477,83 @@ def download_sales_report_pdf(request):
     except Exception as e:
         print(f"Error generating PDF: {str(e)}")
         return HttpResponse("Error generating PDF", status=500)
+
+def sales_analytics(request):
+    period = request.GET.get('period', 'yearly')
+    
+    if period == 'yearly':
+        orders = Order.objects.annotate(
+            date=TruncYear('created_at')
+        ).values('date').annotate(
+            total=Sum('total_amount')
+        ).order_by('date')
+    elif period == 'monthly':
+        orders = Order.objects.annotate(
+            date=TruncMonth('created_at')
+        ).values('date').annotate(
+            total=Sum('total_amount')
+        ).order_by('date')
+    elif period == 'weekly':
+        end_date = datetime.now()
+        start_date = end_date - timedelta(weeks=12)
+        orders = Order.objects.filter(
+            created_at__range=[start_date, end_date]
+        ).annotate(
+            date=TruncDate('created_at')
+        ).values('date').annotate(
+            total=Sum('total_amount')
+        ).order_by('date')
+    else:  # daily
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=30)
+        orders = Order.objects.filter(
+            created_at__range=[start_date, end_date]
+        ).annotate(
+            date=TruncDate('created_at')
+        ).values('date').annotate(
+            total=Sum('total_amount')
+        ).order_by('date')
+
+    labels = [order['date'].strftime('%Y-%m-%d') for order in orders]
+    values = [float(order['total']) for order in orders]
+
+    return JsonResponse({
+        'labels': labels,
+        'values': values
+    })
+
+def top_products(request):
+    products = OrderItem.objects.values(
+        'product__name'
+    ).annotate(
+        total_quantity=Sum('quantity')
+    ).order_by('-total_quantity')[:10]
+
+    return JsonResponse({
+        'labels': [item['product__name'] for item in products],
+        'values': [item['total_quantity'] for item in products]
+    })
+
+def top_categories(request):
+    categories = OrderItem.objects.values(
+        'product__category__name'
+    ).annotate(
+        total_quantity=Sum('quantity')
+    ).order_by('-total_quantity')[:10]
+
+    return JsonResponse({
+        'labels': [item['product__category__name'] for item in categories],
+        'values': [item['total_quantity'] for item in categories]
+    })
+
+def top_publishers(request):
+    publishers = OrderItem.objects.values(
+        'product__brand__name'
+    ).annotate(
+        total_quantity=Sum('quantity')
+    ).order_by('-total_quantity')[:10]
+
+    return JsonResponse({
+        'labels': [item['product__brand__name'] for item in publishers],
+        'values': [item['total_quantity'] for item in publishers]
+    })

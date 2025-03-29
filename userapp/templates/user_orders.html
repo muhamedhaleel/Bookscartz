@@ -542,20 +542,12 @@
             position: fixed;
             top: 20px;
             right: 20px;
+            background-color: #4caf50;
             color: white;
-            padding: 1rem;
-            border-radius: 0.5rem;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 16px;
+            border-radius: 4px;
             z-index: 1000;
-            transition: all 0.3s ease;
-            transform: translateX(120%);
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
-        .success-toast.show {
-            transform: translateX(0);
+            animation: fadeIn 0.5s, fadeOut 0.5s 2.5s;
         }
 
         .check-icon {
@@ -789,9 +781,57 @@
         .pagination-prev:hover svg {
             transform: translateX(-2px) rotate(180deg);
         }
+
+        .return-status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            background-color: #f3f4f6;
+            color: #374151;
+        }
+
+        .item-meta .return-btn {
+            margin-top: 8px;
+            padding: 4px 12px;
+            font-size: 0.85rem;
+        }
+
+        .error-toast {
+            display: none;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #f44336;
+            color: white;
+            padding: 16px;
+            border-radius: 4px;
+            z-index: 1000;
+        }
+
+        .error-toast.show {
+            display: block;
+            animation: fadeIn 0.5s, fadeOut 0.5s 2.5s;
+        }
+
+        @keyframes fadeIn {
+            from {opacity: 0;}
+            to {opacity: 1;}
+        }
+
+        @keyframes fadeOut {
+            from {opacity: 1;}
+            to {opacity: 0;}
+        }
     </style>
 </head>
 <body>
+    <!-- Add this near the top of your body tag -->
+    <div id="errorToast" class="error-toast">
+        <span id="errorMessage"></span>
+    </div>
+
     <!-- Header -->
     <header class="header">
         <div class="top-bar">
@@ -847,8 +887,8 @@
                 <a href="{% url 'user_orders' %}?status=delivered" class="status-link {% if status == 'delivered' %}active{% endif %}">Delivered</a>
                 <a href="{% url 'user_orders' %}?status=cancelled" class="status-link {% if status == 'cancelled' %}active{% endif %}">Cancelled</a>
                 <a href="{% url 'user_orders' %}?status=returned" class="status-link {% if status == 'returned' %}active{% endif %}">Returned</a>
+            </div>
         </div>
-    </div>
 
         {% for order in orders %}
             <div class="order-card">
@@ -906,11 +946,20 @@
                                     <p>Quantity: {{ item.quantity }}</p>
                                     <p>Price: ₹{{ item.price }}</p>
                                     <p>Total: ₹{{ item.total_price }}</p>
+                                    {% if order.status == 'delivered' %}
+                                        {% if not item.return_requested %}
+                                            <button type="button" onclick="openReturnModal('{{ order.id }}', '{{ item.id }}')" class="return-btn">
+                                                Return Item
+                                            </button>
+                                        {% else %}
+                                            <span class="return-status">Return {{ item.return_status|default:"Requested" }}</span>
+                                        {% endif %}
+                                    {% endif %}
                                 </div>
+                            </div>
                         </div>
-                    </div>
                     {% endfor %}
-            </div>
+                </div>
 
                 <div class="order-actions">
                     <div class="action-buttons">
@@ -924,20 +973,7 @@
                             Invoice
                         </a>
                         
-                        <!-- Debug the condition -->
-                        {% if order.status == 'delivered' %}
-                            <!-- Add this to debug -->
-                            <span style="display:none">
-                                Status: {{ order.status }}
-                                Has return request: {{ order.return_request|yesno:"yes,no" }}
-                            </span>
-                            
-                            <button type="button" onclick="openReturnModal('{{ order.id }}')" class="return-btn">
-                                Return Item
-                            </button>
-                        {% endif %}
-                        
-                        {% if order.status != 'cancelled' and order.status != 'delivered' %}
+                        {% if order.status != 'cancelled' and order.status != 'delivered' and order.status != 'returned' %}
                             <button onclick="cancelOrder({{ order.id }})" class="cancel-order-btn">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <circle cx="12" cy="12" r="10"></circle>
@@ -947,14 +983,14 @@
                                 Cancel Order
                             </button>
                         {% endif %}
+                    </div>
                 </div>
             </div>
-        </div>
         {% empty %}
             <div class="empty-orders">
                 <p class="empty-message">No orders found.</p>
                 <a href="{% url 'product_list' %}" class="continue-shopping-btn">Continue Shopping</a>
-        </div>
+            </div>
         {% endfor %}
 
         <!-- Pagination -->
@@ -1001,9 +1037,10 @@
                 <h3>Return Request</h3>
                 <span class="close" onclick="closeReturnModal()">&times;</span>
             </div>
-            <form id="returnForm">
+            <form id="returnForm" method="post">
                 {% csrf_token %}
                 <input type="hidden" id="order_id" name="order_id">
+                <input type="hidden" id="item_id" name="item_id">
                 
                 <div class="form-group">
                     <label for="complaint_type">Complaint Type *</label>
@@ -1032,8 +1069,8 @@
                     <button type="submit" class="submit-btn">Submit Request</button>
                 </div>
             </form>
+        </div>
     </div>
-</div>
 
     <!-- Add this JavaScript -->
     <script>
@@ -1075,8 +1112,9 @@
         return cookieValue;
     }
 
-    function openReturnModal(orderId) {
+    function openReturnModal(orderId, itemId) {
         document.getElementById('order_id').value = orderId;
+        document.getElementById('item_id').value = itemId;
         document.getElementById('returnModal').classList.add('show');
         document.body.style.overflow = 'hidden';
     }
@@ -1092,44 +1130,58 @@
         e.preventDefault();
         
         const orderId = document.getElementById('order_id').value;
+        const itemId = document.getElementById('item_id').value;
         const reason = document.getElementById('complaint_type').value;
         const comments = document.getElementById('return_comments').value;
         const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
         
         if (!reason || !comments) {
-            alert('Please fill in all required fields');
+            showError('Please fill in all required fields');
             return;
         }
         
-        const data = new URLSearchParams();
-        data.append('reason', reason);
-        data.append('comments', comments);
-        data.append('csrfmiddlewaretoken', csrfToken);
+        const formData = new FormData();
+        formData.append('item_id', itemId);
+        formData.append('reason', reason);
+        formData.append('comments', comments);
+        formData.append('csrfmiddlewaretoken', csrfToken);
         
         fetch(`/request-return/${orderId}/`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
                 'X-CSRFToken': csrfToken,
-                'Accept': 'application/json'
             },
-            credentials: 'same-origin',
-            body: data
+            body: formData
         })
         .then(response => response.json())
         .then(data => {
             if (data.status === 'success') {
-                alert('Return request submitted successfully');
-                window.location.reload();
+                closeReturnModal();
+                showSuccess('Return request submitted successfully');
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
             } else {
                 throw new Error(data.message || 'Error submitting return request');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert(error.message || 'An error occurred while submitting the return request');
+            showError(error.message || 'An error occurred while submitting the return request');
         });
     });
+
+    // Add success toast
+    function showSuccess(message) {
+        const toast = document.createElement('div');
+        toast.className = 'success-toast';
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.remove();
+        }, 3000);
+    }
 
     document.addEventListener('DOMContentLoaded', function() {
         // User dropdown toggle functionality
@@ -1164,6 +1216,16 @@
             });
         });
     });
+
+    function showError(message) {
+        const toast = document.getElementById('errorToast');
+        const messageElement = document.getElementById('errorMessage');
+        messageElement.textContent = message;
+        toast.classList.add('show');
+        setTimeout(() => {
+            toast.classList.remove('show');
+        }, 3000);
+    }
     </script>
 </body>
 </html> 

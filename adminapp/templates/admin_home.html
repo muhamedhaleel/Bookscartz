@@ -30,8 +30,7 @@
                 <a href="{% url 'admin_customer' %}" class="flex items-center py-2 px-3 hover:bg-white rounded-lg">Customers</a>
                 <a href="{% url 'admin_manage_orders' %}" class="flex items-center py-2 px-3 hover:bg-white rounded-lg">Orders</a>
                 <a href="{% url 'offer_list' %}" class="flex items-center py-2 px-3 hover:bg-white rounded-lg">Offers</a>
-                <a href="{% url 'coupon_list' %}" class="flex items-center py-2 px-3 hover:bg-white rounded-lg">
-                    <span>Coupons</span>
+                <a href="{% url 'coupon_list' %}" class="flex items-center py-2 px-3 hover:bg-white rounded-lg">Coupons</a>
                 </a>
             </nav>
         </aside>
@@ -61,6 +60,101 @@
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <h2 class="text-xl font-semibold mb-2">Total Offers</h2>
                     <p class="text-3xl font-bold text-orange-600">{{ offer_count|default:"0" }}</p>
+                </div>
+            </div>
+
+            <!-- Sales Analytics Section -->
+            <div class="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Sales Chart -->
+                <div class="bg-white rounded-lg shadow-md p-6 sales-analytics-card">
+                    <div class="flex justify-between items-center mb-6">
+                        <div class="relative">
+                            <h2 class="text-2xl font-semibold sales-title">
+                                Sales Analytics
+                                <div class="sales-underline"></div>
+                            </h2>
+                            <p class="text-sm text-gray-500 mt-1">Track your sales performance</p>
+                        </div>
+                        <select id="chartPeriod" class="sales-select">
+                            <option value="yearly">Yearly</option>
+                            <option value="monthly">Monthly</option>
+                            <option value="weekly">Weekly</option>
+                            <option value="daily">Daily</option>
+                        </select>
+                    </div>
+                    <div class="sales-chart-container">
+                        <canvas id="salesChart"></canvas>
+                        <div class="sales-info">
+                            <div class="info-card">
+                                <span class="info-label">Total Sales</span>
+                                <span class="info-value" id="totalSalesValue">₹0</span>
+                            </div>
+                            <div class="info-card">
+                                <span class="info-label">Average</span>
+                                <span class="info-value" id="averageSalesValue">₹0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Top Products Chart -->
+                <div class="bg-white rounded-lg shadow-md p-6 products-card">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-2xl font-semibold text-gray-800 products-title">
+                            Best Selling Products
+                            <div class="products-underline"></div>
+                        </h2>
+                        <div class="bg-gray-100 rounded-full px-3 py-1 text-sm text-gray-600">
+                            Top 10 Products
+                        </div>
+                    </div>
+                    <div class="h-[400px] relative products-chart-container">
+                        <canvas id="productsChart"></canvas>
+                        <div class="absolute top-0 right-0 bg-white/80 rounded-lg p-2 text-xs text-gray-500 products-info">
+                            Hover for details
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Categories and Publishers Analytics -->
+            <div class="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Top Categories -->
+                <div class="bg-white rounded-lg shadow-md p-4 category-card">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-xl font-semibold text-gray-800 category-title">
+                            Top Categories
+                            <div class="category-underline"></div>
+                        </h2>
+                        <div class="bg-gray-100 rounded-full px-2 py-1 text-xs text-gray-600">
+                            Total: {{ category_count }}
+                        </div>
+                    </div>
+                    <div class="h-[300px] relative category-chart-container">
+                        <canvas id="categoriesChart"></canvas>
+                        <div class="absolute top-0 right-0 bg-white/80 rounded-lg p-2 text-xs text-gray-500 category-info">
+                            Click segments for details
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Top Publishers -->
+                <div class="bg-white rounded-lg shadow-md p-4 publisher-card">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-xl font-semibold text-gray-800 publisher-title">
+                            Top Publishers
+                            <div class="publisher-underline"></div>
+                        </h2>
+                        <div class="bg-gray-100 rounded-full px-2 py-1 text-xs text-gray-600">
+                            Total: {{ brand_count }}
+                        </div>
+                    </div>
+                    <div class="h-[300px] relative publisher-chart-container">
+                        <canvas id="publishersChart"></canvas>
+                        <div class="absolute top-0 right-0 bg-white/80 rounded-lg p-2 text-xs text-gray-500 publisher-info">
+                            Click segments for details
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -138,12 +232,403 @@
         © 2025 Bookscartz. All rights reserved.
     </footer>
 
+    <!-- Add Chart.js before closing body tag -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <script>
-        // Show/hide custom date range based on selection
-        document.getElementById('reportType').addEventListener('change', function() {
-            const customDateRange = document.getElementById('customDateRange');
-            customDateRange.style.display = this.value === 'custom' ? 'block' : 'none';
+        // Initialize all charts when the document is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Fetch initial data and create charts
+            fetchSalesData('yearly');
+            fetchTopProducts();
+            fetchTopCategories();
+            fetchTopPublishers();
+
+            // Add event listener for chart period changes
+            document.getElementById('chartPeriod').addEventListener('change', function() {
+                fetchSalesData(this.value);
+            });
         });
+
+        function fetchSalesData(period) {
+            fetch(`/api/sales-analytics/?period=${period}`, {
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                createSalesChart(data);
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        function createSalesChart(data) {
+            const ctx = document.getElementById('salesChart').getContext('2d');
+            
+            // Calculate total and average sales
+            const total = data.values.reduce((a, b) => a + b, 0);
+            const average = total / data.values.length;
+            
+            // Update info cards
+            document.getElementById('totalSalesValue').textContent = '₹' + total.toLocaleString();
+            document.getElementById('averageSalesValue').textContent = '₹' + average.toLocaleString();
+            
+            // Destroy existing chart if it exists
+            if (window.salesChart instanceof Chart) {
+                window.salesChart.destroy();
+            }
+
+            window.salesChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        label: 'Sales Amount',
+                        data: data.values,
+                        borderColor: '#A79277',
+                        backgroundColor: 'rgba(167, 146, 119, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: '#ffffff',
+                        pointBorderColor: '#A79277',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                            titleColor: '#2d3748',
+                            bodyColor: '#4a5568',
+                            borderColor: '#A79277',
+                            borderWidth: 1,
+                            padding: 12,
+                            displayColors: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return '₹' + context.raw.toLocaleString();
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(167, 146, 119, 0.1)',
+                                drawBorder: false
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return '₹' + value.toLocaleString();
+                                },
+                                font: {
+                                    size: 12
+                                },
+                                color: '#4a5568'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                font: {
+                                    size: 12
+                                },
+                                color: '#4a5568'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function fetchTopProducts() {
+            fetch('/api/top-products/', {
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                createTopProductsChart(data);
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        function createTopProductsChart(data) {
+            const ctx = document.getElementById('productsChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.labels.map(label => {
+                        // Truncate long product names and add ellipsis
+                        return label.length > 20 ? label.substring(0, 20) + '...' : label;
+                    }),
+                    datasets: [{
+                        label: 'Units Sold',
+                        data: data.values,
+                        backgroundColor: [
+                            '#A79277',
+                            '#8B7355',
+                            '#6B5736',
+                            '#4C3D27',
+                            '#2E2518',
+                            '#C4B5A3',
+                            '#D8CEC2',
+                            '#EBE5DE'
+                        ],
+                        borderColor: '#ffffff',
+                        borderWidth: 2,
+                        borderRadius: 8,
+                        maxBarThickness: 40,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y', // This makes it a horizontal bar chart
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                            titleColor: '#2d3748',
+                            bodyColor: '#4a5568',
+                            borderColor: '#A79277',
+                            borderWidth: 1,
+                            padding: 12,
+                            displayColors: true,
+                            callbacks: {
+                                title: function(context) {
+                                    // Show full product name in tooltip
+                                    return data.labels[context[0].dataIndex];
+                                },
+                                label: function(context) {
+                                    const value = context.raw || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b);
+                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    return ` Sales: ${value} units (${percentage}% of total)`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                font: {
+                                    family: "'Inter', sans-serif",
+                                    size: 12
+                                },
+                                color: '#4a5568',
+                                callback: function(value, index) {
+                                    const label = data.labels[index];
+                                    // Truncate long names for the axis labels
+                                    return label.length > 25 ? label.substring(0, 25) + '...' : label;
+                                }
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: 'rgba(167, 146, 119, 0.1)',
+                                drawBorder: false
+                            },
+                            ticks: {
+                                font: {
+                                    family: "'Inter', sans-serif",
+                                    size: 12
+                                },
+                                color: '#4a5568'
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 1000,
+                        easing: 'easeInOutQuart'
+                    },
+                    layout: {
+                        padding: {
+                            right: 10
+                        }
+                    }
+                }
+            });
+        }
+
+        function fetchTopCategories() {
+            fetch('/api/top-categories/', {
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                createTopCategoriesChart(data);
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        function createTopCategoriesChart(data) {
+            const ctx = document.getElementById('categoriesChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        data: data.values,
+                        backgroundColor: [
+                            '#A79277',
+                            '#8B7355',
+                            '#6B5736',
+                            '#4C3D27',
+                            '#2E2518',
+                            '#C4B5A3',
+                            '#D8CEC2',
+                            '#EBE5DE'
+                        ],
+                        borderWidth: 2,
+                        borderColor: '#ffffff',
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                padding: 10,
+                                font: {
+                                    size: 11,
+                                    family: "'Inter', sans-serif"
+                                },
+                                boxWidth: 15,
+                                usePointStyle: true,
+                                pointStyle: 'circle'
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                            titleColor: '#2d3748',
+                            bodyColor: '#4a5568',
+                            borderColor: '#A79277',
+                            borderWidth: 1,
+                            padding: 12,
+                            displayColors: true,
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.raw || 0;
+                                    const percentage = ((value / context.dataset.data.reduce((a, b) => a + b)) * 100).toFixed(1);
+                                    return ` ${label}: ${value} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    },
+                    animation: {
+                        animateScale: true,
+                        animateRotate: true
+                    },
+                    cutout: '60%'
+                }
+            });
+        }
+
+        function fetchTopPublishers() {
+            fetch('/api/top-publishers/', {
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                createTopPublishersChart(data);
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        function createTopPublishersChart(data) {
+            const ctx = document.getElementById('publishersChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        data: data.values,
+                        backgroundColor: [
+                            '#A79277',
+                            '#8B7355',
+                            '#6B5736',
+                            '#4C3D27',
+                            '#2E2518',
+                            '#C4B5A3',
+                            '#D8CEC2',
+                            '#EBE5DE'
+                        ],
+                        borderWidth: 2,
+                        borderColor: '#ffffff',
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                padding: 10,
+                                font: {
+                                    size: 11,
+                                    family: "'Inter', sans-serif"
+                                },
+                                boxWidth: 15,
+                                usePointStyle: true,
+                                pointStyle: 'circle'
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                            titleColor: '#2d3748',
+                            bodyColor: '#4a5568',
+                            borderColor: '#A79277',
+                            borderWidth: 1,
+                            padding: 12,
+                            displayColors: true,
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.raw || 0;
+                                    const percentage = ((value / context.dataset.data.reduce((a, b) => a + b)) * 100).toFixed(1);
+                                    return ` ${label}: ${value} books (${percentage}%)`;
+                                }
+                            }
+                        }
+                    },
+                    animation: {
+                        animateScale: true,
+                        animateRotate: true,
+                        duration: 1000,
+                        easing: 'easeInOutQuart'
+                    }
+                }
+            });
+        }
 
         function generateReport() {
             const reportType = document.getElementById('reportType').value;
@@ -225,6 +710,362 @@
             window.location.href = `/download-sales-report/?${params.toString()}`;
         }
     </script>
+
+    <style>
+        .category-card {
+            background: linear-gradient(145deg, #ffffff, #f8f9fa);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(167, 146, 119, 0.1);
+        }
+
+        .category-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(167, 146, 119, 0.15);
+        }
+
+        .category-title {
+            position: relative;
+            display: inline-block;
+            background: linear-gradient(to right, #2d3748, #4a5568);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .category-underline {
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(to right, #A79277, #8B7355);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+            transform-origin: left;
+        }
+
+        .category-card:hover .category-underline {
+            transform: scaleX(1);
+        }
+
+        .category-chart-container {
+            position: relative;
+            padding: 1rem;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(8px);
+        }
+
+        .category-info {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .category-card:hover .category-info {
+            opacity: 1;
+        }
+
+        @media (max-width: 768px) {
+            .category-card {
+                padding: 1rem;
+            }
+            
+            .category-chart-container {
+                height: 300px;
+            }
+        }
+
+        .products-card {
+            background: linear-gradient(145deg, #ffffff, #f8f9fa);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(167, 146, 119, 0.1);
+        }
+
+        .products-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(167, 146, 119, 0.15);
+        }
+
+        .products-title {
+            position: relative;
+            display: inline-block;
+            background: linear-gradient(to right, #2d3748, #4a5568);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .products-underline {
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(to right, #A79277, #8B7355);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+            transform-origin: left;
+        }
+
+        .products-card:hover .products-underline {
+            transform: scaleX(1);
+        }
+
+        .products-chart-container {
+            position: relative;
+            padding: 1rem;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(8px);
+        }
+
+        .products-info {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .products-card:hover .products-info {
+            opacity: 1;
+        }
+
+        @media (max-width: 768px) {
+            .products-card {
+                padding: 1rem;
+            }
+            
+            .products-chart-container {
+                height: 300px;
+            }
+        }
+
+        .publisher-card {
+            background: linear-gradient(145deg, #ffffff, #f8f9fa);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(167, 146, 119, 0.1);
+        }
+
+        .publisher-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(167, 146, 119, 0.15);
+        }
+
+        .publisher-title {
+            position: relative;
+            display: inline-block;
+            background: linear-gradient(to right, #2d3748, #4a5568);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .publisher-underline {
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(to right, #A79277, #8B7355);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+            transform-origin: left;
+        }
+
+        .publisher-card:hover .publisher-underline {
+            transform: scaleX(1);
+        }
+
+        .publisher-chart-container {
+            position: relative;
+            padding: 1rem;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(8px);
+        }
+
+        .publisher-info {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .publisher-card:hover .publisher-info {
+            opacity: 1;
+        }
+
+        @media (max-width: 768px) {
+            .publisher-card {
+                padding: 1rem;
+            }
+            
+            .publisher-chart-container {
+                height: 300px;
+            }
+        }
+
+        /* Sales Analytics Styles */
+        .sales-analytics-card {
+            background: linear-gradient(145deg, #ffffff, #f8f9fa);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(167, 146, 119, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .sales-analytics-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(167, 146, 119, 0.15);
+        }
+
+        .sales-title {
+            position: relative;
+            display: inline-block;
+            background: linear-gradient(to right, #2d3748, #4a5568);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 600;
+        }
+
+        .sales-underline {
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(to right, #A79277, #8B7355);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+            transform-origin: left;
+        }
+
+        .sales-analytics-card:hover .sales-underline {
+            transform: scaleX(1);
+        }
+
+        .sales-select {
+            padding: 0.5rem 2rem 0.5rem 1rem;
+            border: 1px solid #A79277;
+            border-radius: 0.5rem;
+            background-color: white;
+            color: #4a5568;
+            font-size: 0.875rem;
+            transition: all 0.3s ease;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23A79277'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.5rem center;
+            background-size: 1.5em 1.5em;
+        }
+
+        .sales-select:hover {
+            border-color: #8B7355;
+            box-shadow: 0 2px 4px rgba(167, 146, 119, 0.1);
+        }
+
+        .sales-select:focus {
+            outline: none;
+            ring: 2px;
+            ring-color: #A79277;
+            border-color: #8B7355;
+        }
+
+        .sales-chart-container {
+            position: relative;
+            padding: 1rem;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(8px);
+            height: 400px;
+        }
+
+        .sales-info {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            opacity: 0;
+            transform: translateX(10px);
+            transition: all 0.3s ease;
+        }
+
+        .sales-analytics-card:hover .sales-info {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .info-card {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid rgba(167, 146, 119, 0.2);
+            backdrop-filter: blur(4px);
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .info-label {
+            font-size: 0.75rem;
+            color: #4a5568;
+        }
+
+        .info-value {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        @media (max-width: 768px) {
+            .sales-analytics-card {
+                padding: 1rem;
+            }
+            
+            .sales-chart-container {
+                height: 300px;
+            }
+            
+            .sales-info {
+                position: static;
+                flex-direction: row;
+                margin-top: 1rem;
+                opacity: 1;
+                transform: none;
+            }
+            
+            .info-card {
+                flex: 1;
+            }
+        }
+
+        /* Update the existing styles */
+        .category-chart-container,
+        .publisher-chart-container {
+            height: 300px !important;
+            padding: 0.5rem;
+        }
+
+        .category-title,
+        .publisher-title {
+            font-size: 1.25rem;
+        }
+
+        /* Update the chart container heights for different screen sizes */
+        @media (max-width: 1024px) {
+            .category-chart-container,
+            .publisher-chart-container {
+                height: 250px !important;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .category-chart-container,
+            .publisher-chart-container {
+                height: 200px !important;
+            }
+            
+            .category-title,
+            .publisher-title {
+                font-size: 1.125rem;
+            }
+        }
+    </style>
 </body>
 </html>
   

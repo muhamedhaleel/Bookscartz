@@ -24,6 +24,8 @@ from .userotp import generateAndSendOtp  # Add this import
 import razorpay
 from django.conf import settings
 import time
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 
 def generate_otp():
     """Generate a 6-digit OTP"""
@@ -592,7 +594,7 @@ def checkout_view(request):
         # Calculate totals
         total_price = sum(item.product.price * item.quantity for item in cart_items)
         
-        # Get coupon discount from session instead of cart
+        # Get coupon discount from session instead of cart  
         coupon_code = request.session.get('coupon_code')
         discount = Decimal(request.session.get('coupon_discount', '0'))
 
@@ -650,6 +652,13 @@ def place_order(request):
             subtotal = cart.get_subtotal()
             shipping_cost = Decimal('50') if subtotal < 999 else Decimal('0')
             total_amount = subtotal + shipping_cost
+
+            # Check if COD is allowed based on total amount
+            if payment_method == 'cod' and total_amount <= 1000:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Cash on Delivery is only available for orders above ₹1,000'
+                }, status=400)
 
             # Handle COD payment
             if payment_method == 'cod':
@@ -886,10 +895,8 @@ def cancel_order(request, order_id):
         })
 
 @login_required
+@require_POST
 def request_return(request, order_id):
-    if request.method != 'POST':
-        return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=400)
-        
     try:
         order = get_object_or_404(Order, id=order_id, user=request.user)
         
@@ -899,48 +906,62 @@ def request_return(request, order_id):
                 'status': 'error',
                 'message': 'Order is not eligible for return'
             }, status=400)
-            
-        # Check if return request already exists
-        if order.return_request.exists():
-            return JsonResponse({
-                'status': 'error',
-                'message': 'Return request already exists for this order'
-            }, status=400)
-            
+
+        # Get form data
+        item_id = request.POST.get('item_id')
         reason = request.POST.get('reason')
         comments = request.POST.get('comments')
-        
-        if not reason:
+
+        if not item_id or not reason or not comments:
             return JsonResponse({
                 'status': 'error',
-                'message': 'Return reason is required'
+                'message': 'All fields are required'
             }, status=400)
-            
+
+        # Validate reason choice
+        valid_reasons = [choice[0] for choice in ReturnRequest.REASON_CHOICES]
+        if reason not in valid_reasons:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Invalid reason selected'
+            }, status=400)
+
+        # Get the order item
+        order_item = get_object_or_404(OrderItem, id=item_id, order=order)
+
+        # Check if item already has a return request
+        if order_item.return_requested:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Return request already exists for this item'
+            }, status=400)
+
         with transaction.atomic():
             # Create return request
             return_request = ReturnRequest.objects.create(
                 order=order,
+                order_item=order_item,
                 reason=reason,
                 comments=comments,
-                status='pending'
+                status='pending',
+                admin_notes=''  # Initialize empty admin notes
             )
-            
-            # Mark items as return requested
-            for item in order.items.all():
-                item.return_requested = True
-                item.return_status = 'requested'
-                item.save()
-            
+
+            # Update order item status
+            order_item.return_requested = True
+            order_item.return_status = 'pending'
+            order_item.save()
+
         return JsonResponse({
             'status': 'success',
             'message': 'Return request submitted successfully'
         })
-        
+
     except Exception as e:
         print(f"Error processing return request: {str(e)}")
         return JsonResponse({
             'status': 'error',
-            'message': 'Error processing return request'
+            'message': 'An error occurred while processing your request'
         }, status=500)
 
 @login_required

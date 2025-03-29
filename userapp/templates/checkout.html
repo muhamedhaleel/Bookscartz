@@ -1293,9 +1293,17 @@
                         <h3 class="text-lg font-semibold mb-3">Select Payment Method</h3>
                         <div class="space-y-3">
                             <label class="flex items-center space-x-3">
-                                <input type="radio" name="payment_method" value="cod" class="form-radio text-[#A79277]">
-                        <span>Cash on Delivery</span>
-                    </label>
+                                <input type="radio" name="payment_method" value="cod" class="form-radio text-[#A79277]" 
+                                       {% if total_price <= 1000 %}disabled{% endif %}>
+                                <span {% if total_price <= 1000 %}style="color: #999;"{% endif %}>
+                                    Cash on Delivery
+                                    {% if total_price <= 1000 %}
+                                    <small style="display: block; color: #dc2626; font-size: 0.8rem;">
+                                        (Only available for orders above ₹1,000)
+                                    </small>
+                                    {% endif %}
+                                </span>
+                            </label>
                             
                             <label class="flex items-center space-x-3">
                                 <input type="radio" name="payment_method" value="wallet" class="form-radio text-[#A79277]">
@@ -1470,6 +1478,13 @@
 
             // Get the selected address
             const selectedAddress = document.querySelector('input[name="delivery_address"]:checked');
+
+            // Check if COD is selected for orders below or equal to 1000
+            const totalPrice = parseFloat('{{ total_price }}');
+            if (selectedPayment.value === 'cod' && totalPrice <= 1000) {
+                alert('Cash on Delivery is only available for orders above ₹1,000. Please choose a different payment method.');
+                return;
+            }
 
             // For COD payment
             if (selectedPayment.value === 'cod') {

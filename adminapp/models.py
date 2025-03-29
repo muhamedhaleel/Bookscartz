@@ -305,7 +305,8 @@ class OrderItem(models.Model):
     RETURN_STATUS_CHOICES = (
         ('pending', 'Pending'),
         ('approved', 'Approved'),
-        ('rejected', 'Rejected')
+        ('rejected', 'Rejected'),
+        ('completed', 'Completed')
     )
 
     order = models.ForeignKey(Order, related_name='items', on_delete=models.CASCADE)
@@ -314,19 +315,21 @@ class OrderItem(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2)
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
     return_status = models.CharField(max_length=20, choices=RETURN_STATUS_CHOICES, null=True, blank=True)
-    return_reason = models.TextField(null=True, blank=True)
     return_requested = models.BooleanField(default=False)
+
+    def can_be_returned(self):
+        return (
+            self.order.status == 'delivered' and 
+            not self.return_requested and 
+            not ReturnRequest.objects.filter(order_item=self).exists()
+        )
 
     def __str__(self):
         return f"{self.quantity} x {self.product.name}"
 
     def save(self, *args, **kwargs):
-        # Calculate total price before saving
         self.total_price = self.quantity * self.price
         super().save(*args, **kwargs)
-
-    def get_total_price(self):
-        return self.total_price
 
 class ReturnRequest(models.Model):
     REASON_CHOICES = [
@@ -340,30 +343,21 @@ class ReturnRequest(models.Model):
     STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('approved', 'Approved'),
-        ('rejected', 'Rejected')
+        ('rejected', 'Rejected'),
+        ('completed', 'Completed')
     ]
     
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='return_request')
+    order_item = models.ForeignKey(OrderItem, on_delete=models.CASCADE, related_name='return_request', null=True, blank=True)
     reason = models.CharField(max_length=50, choices=REASON_CHOICES)
-    comments = models.TextField(blank=True, null=True)
+    comments = models.TextField()
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    admin_notes = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    admin_notes = models.TextField(null=True, blank=True)
 
     def __str__(self):
-        return f"Return Request for Order #{self.order.id}"
-
-    def save(self, *args, **kwargs):
-        is_new = self._state.adding
-        super().save(*args, **kwargs)
-        
-        if is_new:
-            # Update order items marked for return
-            for item in self.order.items.all():
-                item.return_requested = True
-                item.return_status = 'requested'
-                item.save()
+        return f"Return Request #{self.id} for Order #{self.order.id}"
 
 class Wishlist(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='wishlist')
