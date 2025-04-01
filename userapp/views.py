@@ -325,137 +325,73 @@ def product_detail(request, product_id):
     }
     return render(request, 'product_detail.html', context)
 
-@require_POST
 @login_required
+@require_POST
 def add_to_cart(request, product_id):
-    if request.method == 'POST':
-        try:
-            product = Product.objects.get(id=product_id)
-            
-            # Remove from wishlist if exists
-            Wishlist.objects.filter(user=request.user, product=product).delete()
-            
-            quantity = int(request.POST.get('quantity', 1))
-            
-            # Validate quantity
-            if quantity < 1:
-                return JsonResponse({
-                    'success': False,
-                    'message': 'Quantity must be at least 1'
-                })
-            
-            max_allowed = min(3, product.stock)
-            if quantity > max_allowed:
-                return JsonResponse({
-                    'success': False,
-                    'message': f'Maximum {max_allowed} items allowed'
-                })
-            
-            # Get or create cart
-            cart, _ = Cart.objects.get_or_create(user=request.user)
-            
-            # Get or create cart item
-            cart_item, created = CartItem.objects.get_or_create(
-                cart=cart,
-                product=product,
-                defaults={'quantity': quantity}
-            )
-            
-            if not created:
-                # Update existing cart item
-                new_quantity = cart_item.quantity + quantity
-                if new_quantity > max_allowed:
-                    return JsonResponse({
-                        'success': False,
-                        'message': f'Cart would exceed maximum limit of {max_allowed} items'
-                    })
-                cart_item.quantity = new_quantity
-                cart_item.save()
-            
-            # Update product stock
-            product.stock -= quantity
-            product.save()
-            
-            return JsonResponse({
-                'success': True,
-                'message': 'Added to cart successfully',
-                'new_stock': product.stock,
-                'cart_quantity': cart_item.quantity
-            })
-            
-        except Product.DoesNotExist:
+    try:
+        product = get_object_or_404(Product, id=product_id)
+        language_id = request.POST.get('selected_language')
+        quantity = int(request.POST.get('quantity', 1))
+        
+        if not language_id:
             return JsonResponse({
                 'success': False,
-                'message': 'Product not found'
+                'message': 'Please select a language'
             })
-        except ValueError:
-            return JsonResponse({
-                'success': False,
-                'message': 'Invalid quantity'
-            })
-        except Exception as e:
-            return JsonResponse({
-                'success': False,
-                'message': str(e)
-            })
-    return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
+
+        # Get or create cart
+        cart, created = Cart.objects.get_or_create(user=request.user)
+        
+        # Get or create cart item
+        cart_item, created = CartItem.objects.get_or_create(
+            cart=cart,
+            product=product,
+            selected_language_id=language_id,
+            defaults={'quantity': quantity}
+        )
+        
+        if not created:
+            cart_item.quantity += quantity
+            if cart_item.quantity > 3:
+                cart_item.quantity = 3
+            cart_item.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Added to cart successfully',
+            'new_stock': product.stock
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': str(e)
+        })
 
 @login_required
 def cart_view(request):
-    cart = Cart.objects.filter(user=request.user).first()
-    cart_items = []
-    total_price = 0
-    total_discount = 0
-
-    if cart:
-        cart_items = cart.items.select_related('product', 'product__category', 'product__language').all()
-        
-        # Get active offers
-        product_offers = Offer.objects.filter(is_active=True, offer_type='product')
-        category_offers = Offer.objects.filter(is_active=True, offer_type='category')
-        
-        # Calculate discounts for each cart item
-        for item in cart_items:
-            max_discount = 0
-            
-            # Check product-specific offers
-            for offer in product_offers:
-                if str(item.product.id) == str(offer.offer_items):
-                    max_discount = max(max_discount, float(offer.discount))
-            
-            # Check category offers
-            for offer in category_offers:
-                if str(item.product.category.id) == str(offer.offer_items):
-                    max_discount = max(max_discount, float(offer.discount))
-            
-            # Calculate discounted price if there's a discount
-            original_price = float(str(item.product.price))
-            item_total = original_price * item.quantity
-            item.original_total = round(item_total, 2)
-            
-            if max_discount > 0:
-                item.product.discount = max_discount
-                discount_amount = (original_price * max_discount) / 100
-                item.product.offer_price = round(original_price - discount_amount, 2)
-                discounted_total = item.product.offer_price * item.quantity
-                item.discount_amount = round(item_total - discounted_total, 2)
-                total_discount += item.discount_amount
-            else:
-                item.product.offer_price = None
-                item.product.discount = None
-                item.discount_amount = 0
-                discounted_total = item_total
-            
-            item.total_price = round(discounted_total, 2)
-            total_price += item.total_price
+    # Get cart for the user
+    cart, created = Cart.objects.get_or_create(user=request.user)
+    
+    # Get cart items through the cart relationship using new related_name
+    cart_items = cart.user_cart_items.select_related(
+        'product',
+        'product__category',
+        'product__brand',
+        'product__primary_language',
+        'product__secondary_language',
+        'product__tertiary_language'
+    ).all()
+    
+    # Calculate total price
+    total_price = sum(item.get_total_price() for item in cart_items)
     
     context = {
         'cart': cart,
         'cart_items': cart_items,
-        'total_price': round(total_price, 2),
-        'total_discount': round(total_discount, 2),
-        'original_total': round(total_price + total_discount, 2)
+        'total_price': total_price,
     }
+    
     return render(request, 'cart.html', context)
 
 @require_POST

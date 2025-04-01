@@ -1,3 +1,4 @@
+{% load custom_filters %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -753,8 +754,14 @@
                 <div class="item-details">
                     <a href="{% url 'product_detail' item.product.id %}" class="item-name">{{ item.product.name }}</a>
                     <div class="item-meta">
-                        <span>Category: {{ item.product.category.name }}</span>
-                        <span>Language: {{ item.product.language.name }}</span>
+                        <span>Quantity: {{ item.quantity }}</span>
+                        <span>Language: 
+                            {% if item.selected_language %}
+                                {{ item.selected_language.name }}
+                            {% else %}
+                                {{ item.product.primary_language.name }}
+                            {% endif %}
+                        </span>
                     </div>
                 </div>
                 <div class="item-price">
@@ -781,11 +788,15 @@
                     </button>
                 </div>
                 <div class="item-subtotal">
-                    {% if item.discount_amount > 0 %}
-                        <span class="original-subtotal" style="text-decoration: line-through; color: #888; font-size: 0.9rem;">₹{{ item.original_total }}</span>
-                        <span class="final-subtotal" style="color: var(--primary-color); font-weight: bold; display: block;">₹{{ item.total_price }}</span>
+                    {% if item.product.offer_price %}
+                        <span class="original-subtotal" style="text-decoration: line-through; color: #888; font-size: 0.9rem;">
+                            ₹{{ item.product.price|multiply:item.quantity|floatformat:2 }}
+                        </span>
+                        <span class="final-subtotal" style="color: var(--primary-color); font-weight: bold; display: block;">
+                            ₹{{ item.get_total_price|floatformat:2 }}
+                        </span>
                     {% else %}
-                        ₹{{ item.total_price }}
+                        ₹{{ item.get_total_price|floatformat:2 }}
                     {% endif %}
                 </div>
                 <div class="remove-item">

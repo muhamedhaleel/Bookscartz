@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
-from adminapp.models import CustomUser
+from adminapp.models import CustomUser, ReturnRequest
 import random
 from django.core.mail import send_mail
 from django.conf import settings
@@ -122,3 +122,22 @@ class SignupForm(UserCreationForm):
         send_mail(subject, message, from_email, recipient_list)
 
         return user
+
+class ReturnRequestForm(forms.ModelForm):
+    class Meta:
+        model = ReturnRequest
+        fields = ['reason', 'comments']
+        widgets = {
+            'reason': forms.Select(attrs={
+                'class': 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-[#A79277] focus:border-[#A79277]'
+            }),
+            'comments': forms.Textarea(attrs={
+                'class': 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-[#A79277] focus:border-[#A79277]',
+                'rows': 4
+            })
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['reason'].required = True
+        self.fields['comments'].required = True

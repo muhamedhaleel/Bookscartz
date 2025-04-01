@@ -411,14 +411,17 @@ def admin_publisher(request):
 
 
 @login_required(login_url='admin_login')
-
 def admin_products(request):
+    if not request.user.is_staff:
+        messages.error(request, 'Unauthorized access')
+        return redirect('admin_login')
+
+    # Get search query
+    search_query = request.GET.get('search', '')
+    
     try:
-        # Get search query
-        search_query = request.GET.get('search', '')
-        
         # Get all products with related data
-        products = Product.objects.select_related('category', 'brand', 'language').order_by('-added_on')
+        products = Product.objects.select_related('category', 'brand', 'primary_language', 'secondary_language', 'tertiary_language').order_by('-added_on')
         
         # Apply search filter if search query exists
         if search_query:
@@ -426,7 +429,9 @@ def admin_products(request):
                 Q(name__icontains=search_query) |
                 Q(category__name__icontains=search_query) |
                 Q(brand__name__icontains=search_query) |
-                Q(language__name__icontains=search_query)
+                Q(primary_language__name__icontains=search_query) |
+                Q(secondary_language__name__icontains=search_query) |
+                Q(tertiary_language__name__icontains=search_query)
             )
         
         # Get active categories, brands, and languages for the forms
@@ -445,9 +450,15 @@ def admin_products(request):
         return render(request, 'admin_product.html', context)
         
     except Exception as e:
-        print(f"Error in admin_products view: {str(e)}")  # Add this for debugging
-        messages.error(request, f"Error: {str(e)}")
-        return redirect('admin_dashboard')
+        messages.error(request, f'Error loading products: {str(e)}')
+        context = {
+            'products': [],
+            'categories': Category.objects.filter(is_active=True),
+            'brands': Brand.objects.filter(is_active=True),
+            'languages': Language.objects.filter(is_active=True),
+            'search_query': search_query
+        }
+        return render(request, 'admin_product.html', context)
 
 @login_required(login_url='admin_login')
 def add_product(request):
@@ -458,33 +469,35 @@ def add_product(request):
             description = request.POST.get('description')
             category_id = request.POST.get('category')
             brand_id = request.POST.get('brand')
-            language_id = request.POST.get('language')
             price = request.POST.get('price')
             stock = request.POST.get('stock')
             image1 = request.FILES.get('image1')
             image2 = request.FILES.get('image2')
             image3 = request.FILES.get('image3')
             
+            # Get language IDs
+            primary_language_id = request.POST.get('primary_language')
+            secondary_language_id = request.POST.get('secondary_language')
+            tertiary_language_id = request.POST.get('tertiary_language')
             
-            if not all([name, description, category_id, brand_id, language_id, price, stock, image1]):
+            if not all([name, description, category_id, brand_id, price, stock, image1]):
                 messages.error(request, "Please fill all required fields")
                 return redirect('admin_products')
 
-            # Get language instance
-            language = get_object_or_404(Language, id=language_id)
-            
             # Create product
             product = Product.objects.create(
                 name=name,
                 description=description,
                 category_id=category_id,
                 brand_id=brand_id,
-                language=language,
                 price=price,
                 stock=stock,
                 image1=image1,
                 image2=image2,
                 image3=image3,
+                primary_language_id=primary_language_id if primary_language_id else None,
+                secondary_language_id=secondary_language_id if secondary_language_id else None,
+                tertiary_language_id=tertiary_language_id if tertiary_language_id else None,
                 is_active=True
             )
             messages.success(request, "Product added successfully!")
@@ -508,10 +521,15 @@ def edit_product(request, pk):
             product.price = request.POST.get('price')
             product.stock = request.POST.get('stock')
             
-            # Handle language
-            language_id = request.POST.get('language')
-            language = get_object_or_404(Language, id=language_id)
-            product.language = language
+            # Handle optional languages
+            primary_language_id = request.POST.get('primary_language')
+            secondary_language_id = request.POST.get('secondary_language')
+            tertiary_language_id = request.POST.get('tertiary_language')
+            
+            # Set all languages as optional
+            product.primary_language_id = primary_language_id if primary_language_id else None
+            product.secondary_language_id = secondary_language_id if secondary_language_id else None
+            product.tertiary_language_id = tertiary_language_id if tertiary_language_id else None
             
             # Handle images
             image1 = request.FILES.get('image1')

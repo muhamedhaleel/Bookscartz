@@ -73,7 +73,9 @@ class Product(models.Model):
     is_active = models.BooleanField(default=True)
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
     brand = models.ForeignKey(Brand, on_delete=models.CASCADE)
-    language = models.ForeignKey(Language, on_delete=models.CASCADE, null=True, blank=True)
+    primary_language = models.ForeignKey(Language, on_delete=models.CASCADE, null=True, blank=True, related_name='primary_products')
+    secondary_language = models.ForeignKey(Language, on_delete=models.CASCADE, null=True, blank=True, related_name='secondary_products')
+    tertiary_language = models.ForeignKey(Language, on_delete=models.CASCADE, null=True, blank=True, related_name='tertiary_products')
     image1 = models.ImageField(upload_to='products/')
     image2 = models.ImageField(upload_to='products/', null=True, blank=True)
     image3 = models.ImageField(upload_to='products/', null=True, blank=True)
@@ -175,14 +177,14 @@ class Cart(models.Model):
         db_table = 'adminapp_cart'
 
 class CartItem(models.Model):
-    cart = models.ForeignKey(Cart, related_name='items', on_delete=models.CASCADE)
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name='admin_cart_items')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='admin_cart_items')
     quantity = models.PositiveIntegerField(default=1)
+    selected_language = models.ForeignKey(Language, on_delete=models.SET_NULL, null=True, related_name='admin_cart_items')
     added_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def get_total_price(self):
-        """Calculate total price for this item"""
         if self.product.offer_price:
             return self.product.offer_price * self.quantity
         return self.product.price * self.quantity
@@ -437,5 +439,4 @@ class WalletTransaction(models.Model):
 
     def __str__(self):
         return f"{self.type} - {self.amount} - {self.date}"
-
 

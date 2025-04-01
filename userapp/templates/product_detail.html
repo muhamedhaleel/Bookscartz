@@ -621,6 +621,56 @@
             padding-top: 2rem;
             border-top: 1px solid rgba(0,0,0,0.1);
         }
+
+        /* Language Select Box Styles */
+        .language-select {
+            position: relative;
+            width: 180px;
+        }
+
+        .language-select select {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 100%;
+            padding: 8px 35px 8px 15px;
+            font-size: 14px;
+            border: 2px solid #ddd;
+            border-radius: 25px;
+            background-color: white;
+            color: #333;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .language-select select:hover {
+            border-color: var(--secondary-color);
+        }
+
+        .language-select select:focus {
+            outline: none;
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 2px rgba(151, 112, 78, 0.1);
+        }
+
+        .language-select::after {
+            content: '';
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 0;
+            height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-top: 6px solid var(--secondary-color);
+            pointer-events: none;
+        }
+
+        .language-select select option {
+            padding: 10px;
+            background-color: white;
+            color: #333;
+        }
     </style>
 </head>
 <body>
@@ -709,6 +759,8 @@
             <!-- Product Info Section -->
             <div class="product-info">
                 <h1 class="product-title">{{ product.name }}</h1>
+                <p class="product-publisher">{{ product.publisher }}</p>
+                
                 <p class="product-publisher">By {{ product.brand.name }}</p>
                 
                 <div class="product-price-container">
@@ -736,7 +788,22 @@
                     </div>
                     <div class="meta-item">
                         <span class="meta-label">Language</span>
-                        <span class="meta-value">{{ product.language.name }}</span>
+                        <div class="language-select">
+                            <select id="languageSelector" 
+                                    name="selected_language" 
+                                    required>
+                                <option value="">Select Language</option>
+                                {% if product.primary_language %}
+                                    <option value="{{ product.primary_language.id }}">{{ product.primary_language.name }}</option>
+                                {% endif %}
+                                {% if product.secondary_language %}
+                                    <option value="{{ product.secondary_language.id }}">{{ product.secondary_language.name }}</option>
+                                {% endif %}
+                                {% if product.tertiary_language %}
+                                    <option value="{{ product.tertiary_language.id }}">{{ product.tertiary_language.name }}</option>
+                                {% endif %}
+                            </select>
+                        </div>
                     </div>
                     {% if product.stock > 0 %}
                     <div class="meta-item">
@@ -773,6 +840,7 @@
                 <form id="addToCartForm" method="POST" action="{% url 'add_to_cart' product.id %}" class="add-to-cart-form">
                     {% csrf_token %}
                     <input type="hidden" name="quantity" id="quantityInput" value="1">
+                    <input type="hidden" name="selected_language" id="selectedLanguageInput">
                     <button type="submit" class="add-to-cart">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;">
                             <circle cx="9" cy="21" r="1"></circle>
@@ -952,54 +1020,67 @@
         });
 
         document.addEventListener('DOMContentLoaded', function() {
+            const languageSelector = document.getElementById('languageSelector');
+            const selectedLanguageInput = document.getElementById('selectedLanguageInput');
+            const addToCartForm = document.getElementById('addToCartForm');
+            const quantityWarning = document.getElementById('quantityWarning');
+            const successMessage = document.getElementById('successMessage');
+
+            // Initialize quantity controls
             const decreaseBtn = document.getElementById('decreaseQuantity');
             const increaseBtn = document.getElementById('increaseQuantity');
             const quantityInput = document.getElementById('quantity');
             const quantityInputHidden = document.getElementById('quantityInput');
-            const quantityWarning = document.getElementById('quantityWarning');
-            const successMessage = document.getElementById('successMessage');
             const currentStock = {{ product.stock }};
             const maxQuantity = Math.min(3, currentStock);
 
             function updateQuantity(newValue) {
                 const value = parseInt(newValue);
-                
                 if (value < 1) {
                     quantityInput.value = 1;
                     quantityInputHidden.value = 1;
-                    quantityWarning.style.display = 'none';
                 } else if (value > maxQuantity) {
                     quantityInput.value = maxQuantity;
                     quantityInputHidden.value = maxQuantity;
-                    quantityWarning.textContent = `Maximum ${maxQuantity} items allowed`;
-                    quantityWarning.style.display = 'block';
                 } else {
                     quantityInput.value = value;
                     quantityInputHidden.value = value;
-                    quantityWarning.style.display = 'none';
                 }
-
                 decreaseBtn.disabled = value <= 1;
                 increaseBtn.disabled = value >= maxQuantity;
             }
 
-            decreaseBtn.addEventListener('click', () => {
-                updateQuantity(parseInt(quantityInput.value) - 1);
-            });
+            // Set up quantity controls
+            if (decreaseBtn && increaseBtn && quantityInput) {
+                decreaseBtn.addEventListener('click', () => {
+                    updateQuantity(parseInt(quantityInput.value) - 1);
+                });
 
-            increaseBtn.addEventListener('click', () => {
-                updateQuantity(parseInt(quantityInput.value) + 1);
-            });
+                increaseBtn.addEventListener('click', () => {
+                    updateQuantity(parseInt(quantityInput.value) + 1);
+                });
+            }
 
-            // Initialize quantity
-            updateQuantity(1);
+            // Language selector and form submission
+            if (languageSelector && selectedLanguageInput && addToCartForm) {
+                // Set initial value when page loads
+                selectedLanguageInput.value = languageSelector.value;
+                
+                // Update hidden input when language selection changes
+                languageSelector.addEventListener('change', function() {
+                    selectedLanguageInput.value = this.value;
+                });
 
-            // Form submission handling
-            const addToCartForm = document.getElementById('addToCartForm');
-            if (addToCartForm) {
+                // Form submission handling
                 addToCartForm.addEventListener('submit', function(e) {
                     e.preventDefault();
-                    
+
+                    // Validate language selection
+                    if (!selectedLanguageInput.value) {
+                        alert('Please select a language');
+                        return;
+                    }
+
                     fetch(this.action, {
                         method: 'POST',
                         body: new FormData(this),
@@ -1019,24 +1100,33 @@
                             }, 3000);
 
                             // Update stock display
-                            document.querySelector('.stock-status').textContent = 
-                                `In Stock (${data.new_stock} available)`;
-                            
-                            // Reset quantity
+                            const stockStatus = document.querySelector('.stock-status');
+                            if (stockStatus && data.new_stock !== undefined) {
+                                stockStatus.textContent = `In Stock (${data.new_stock} available)`;
+                                stockStatus.className = 'stock-status in-stock';
+                            }
+
+                            // Reset form
                             updateQuantity(1);
+                            languageSelector.value = '';
+                            selectedLanguageInput.value = '';
+
                         } else {
-                            quantityWarning.textContent = data.message;
-                            quantityWarning.style.display = 'block';
+                            if (quantityWarning) {
+                                quantityWarning.textContent = data.message;
+                                quantityWarning.style.display = 'block';
+                            } else {
+                                alert(data.message);
+                            }
                         }
                     })
                     .catch(error => {
                         console.error('Error:', error);
-                        quantityWarning.textContent = 'Error adding to cart';
-                        quantityWarning.style.display = 'block';
+                        alert('Error adding to cart. Please try again.');
                     });
                 });
             }
         });
     </script>
 </body>
-</html> 
+</html>

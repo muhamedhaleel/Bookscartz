@@ -8,4 +8,8 @@ def subtract(value, arg):
     try:
         return value - arg
     except (ValueError, TypeError):
-        return value 
+        return value
+
+@register.filter
+def multiply(value, arg):
+    return float(value) * float(arg) 
