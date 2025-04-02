@@ -96,7 +96,7 @@ WSGI_APPLICATION = 'bookscartz.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'bookcart',
+        'NAME': 'bookcartz_ecom',
         'USER': 'root',
         'PASSWORD': '1234',
         'HOST': 'localhost',
