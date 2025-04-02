@@ -129,15 +129,15 @@ class Cart(models.Model):
 
     def get_original_total(self):
         """Calculate total without any discounts"""
-        return sum(item.get_original_total() for item in self.items.all())
+        return sum(item.get_original_total() for item in self.user_cart_items.all())
 
     def get_total_discount(self):
         """Calculate total discount from product offers"""
-        return sum(item.get_discount_amount() for item in self.items.all())
+        return sum(item.get_discount_amount() for item in self.user_cart_items.all())
 
     def get_subtotal(self):
         """Calculate total after product discounts but before coupon"""
-        return sum(item.get_total_price() for item in self.items.all())
+        return sum(item.get_total_price() for item in self.user_cart_items.all())
 
     def get_total(self):
         """Calculate final total after coupon"""
@@ -167,20 +167,20 @@ class Cart(models.Model):
 
     def get_items_count(self):
         """Get total number of items in cart"""
-        return sum(item.quantity for item in self.items.all())
+        return sum(item.quantity for item in self.user_cart_items.all())
 
     def clear(self):
         """Remove all items from cart"""
-        self.items.all().delete()
+        self.user_cart_items.all().delete()
 
     class Meta:
         db_table = 'adminapp_cart'
 
 class CartItem(models.Model):
-    cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name='admin_cart_items')
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='admin_cart_items')
+    cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name='user_cart_items')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.PositiveIntegerField(default=1)
-    selected_language = models.ForeignKey(Language, on_delete=models.SET_NULL, null=True, related_name='admin_cart_items')
+    selected_language = models.ForeignKey(Language, on_delete=models.SET_NULL, null=True)
     added_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -203,7 +203,7 @@ class CartItem(models.Model):
         return f"{self.quantity} x {self.product.name}"
 
     class Meta:
-        db_table = 'adminapp_cartitem'
+        db_table = 'userapp_cartitem'
         unique_together = ('cart', 'product')
 
 class Address(models.Model):

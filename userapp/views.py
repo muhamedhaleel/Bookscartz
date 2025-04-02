@@ -523,7 +523,7 @@ def delete_address(request, address_id):
 def checkout_view(request):
     try:
         cart = Cart.objects.get(user=request.user)
-        cart_items = cart.items.all()
+        cart_items = cart.user_cart_items.all()
         wallet = Wallet.objects.get_or_create(user=request.user)[0]
         addresses = Address.objects.filter(user=request.user)
 
@@ -578,7 +578,7 @@ def place_order(request):
 
             # Get cart and validate
             cart = Cart.objects.get(user=request.user)
-            if not cart.items.exists():
+            if not cart.user_cart_items.exists():
                 return JsonResponse({
                     'status': 'error',
                     'message': 'Your cart is empty'
@@ -611,7 +611,7 @@ def place_order(request):
                         )
 
                         # Create order items
-                        for item in cart.items.all():
+                        for item in cart.user_cart_items.all():
                             OrderItem.objects.create(
                                 order=order,
                                 product=item.product,
@@ -625,7 +625,7 @@ def place_order(request):
                             product.save()
 
                         # Clear cart
-                        cart.items.all().delete()
+                        cart.user_cart_items.all().delete()
 
                         return JsonResponse({
                             'status': 'success',
@@ -661,7 +661,7 @@ def place_order(request):
                         )
 
                         # Create order items
-                        for item in cart.items.all():
+                        for item in cart.user_cart_items.all():
                             OrderItem.objects.create(
                                 order=order,
                                 product=item.product,
@@ -687,7 +687,7 @@ def place_order(request):
                         )
 
                         # Clear cart
-                        cart.items.all().delete()
+                        cart.user_cart_items.all().delete()
 
                         return JsonResponse({
                             'status': 'success',
@@ -1161,7 +1161,7 @@ def create_razorpay_order(request):
         
         # Get cart and calculate total
         cart = Cart.objects.get(user=request.user)
-        cart_items = cart.items.all()
+        cart_items = cart.user_cart_items.all()
         
         # Calculate total price
         total_price = sum(item.product.price * item.quantity for item in cart_items)
@@ -1229,7 +1229,7 @@ def verify_razorpay_payment(request):
             
             # Clear cart and session data
             cart = Cart.objects.get(user=request.user)
-            cart.items.all().delete()
+            cart.user_cart_items.all().delete()
             
             # Clear coupon data from session
             request.session.pop('coupon_code', None)

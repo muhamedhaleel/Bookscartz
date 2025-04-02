@@ -1246,7 +1246,7 @@
             <div class="checkout-section">
                 <h2 class="section-title">Order Items</h2>
                 <div class="product-list">
-                    {% for item in cart.items.all %}
+                    {% for item in cart.user_cart_items.all %}
                     <div class="product-item">
                         <div class="product-image">
                             <img src="{{ item.product.image1.url }}" alt="{{ item.product.name }}">

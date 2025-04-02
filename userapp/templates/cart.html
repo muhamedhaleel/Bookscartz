@@ -746,7 +746,7 @@
 
         {% if cart_items %}
         <div class="cart-items">
-            {% for item in cart_items %}
+            {% for item in cart.user_cart_items.all %}
             <div class="cart-item" data-item-id="{{ item.id }}">
                 <div class="item-image">
                     <img src="{{ item.product.image1.url }}" alt="{{ item.product.name }}">

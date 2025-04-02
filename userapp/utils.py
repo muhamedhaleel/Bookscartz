@@ -197,62 +197,52 @@ def render_to_pdf_reportlab(template_src, context_dict={}):
 @transaction.atomic
 def create_order(user, address_id, payment_method, transaction_id=None, request=None):
     try:
-        # Get cart and address
-        cart = Cart.objects.get(user=user)
-        address = Address.objects.get(id=address_id)
-        
-        # Calculate totals
-        cart_items = cart.items.all()
-        subtotal = sum(item.product.price * item.quantity for item in cart_items)
-        
-        # Get coupon discount from request session
-        coupon_discount = Decimal(request.session.get('coupon_discount', '0')) if request else Decimal('0')
-        
-        # Calculate shipping
-        shipping_cost = Decimal('50') if subtotal < 999 else Decimal('0')
-        
-        # Calculate final total
-        total_amount = subtotal - coupon_discount + shipping_cost
-
-        # Create the order with basic fields first
-        order = Order.objects.create(
-            user=user,
-            billing_address=address,
-            payment_method=payment_method,
-            subtotal=subtotal,
-            shipping_cost=shipping_cost,
-            total_amount=total_amount,
-            status='confirmed' if payment_method == 'razorpay' else 'pending',
-            coupon_discount=coupon_discount
-        )
-
-        # Store Razorpay transaction ID separately if needed
-        if payment_method == 'razorpay' and transaction_id:
-            order.payment_id = transaction_id
-            order.save()
-
-        # Create order items and update stock
-        for cart_item in cart_items:
-            OrderItem.objects.create(
-                order=order,
-                product=cart_item.product,
-                quantity=cart_item.quantity,
-                price=cart_item.product.price
+        with transaction.atomic():
+            # Get cart and address
+            cart = Cart.objects.get(user=user)
+            address = Address.objects.get(id=address_id, user=user)
+            
+            # Calculate totals
+            subtotal = cart.get_subtotal()
+            shipping_cost = Decimal('50') if subtotal < 999 else Decimal('0')
+            total_amount = subtotal + shipping_cost
+            
+            # Create order
+            order = Order.objects.create(
+                user=user,
+                billing_address=address,
+                payment_method=payment_method,
+                total_amount=total_amount,
+                subtotal=subtotal,
+                shipping_cost=shipping_cost,
             )
             
-            # Update product stock
-            product = cart_item.product
-            product.stock -= cart_item.quantity
-            product.save()
-
-        return order
+            # Create order items
+            for item in cart.user_cart_items.all():
+                OrderItem.objects.create(
+                    order=order,
+                    product=item.product,
+                    quantity=item.quantity,
+                    price=item.product.price,
+                    total_price=item.get_total_price()
+                )
+                # Update product stock
+                product = item.product
+                product.stock -= item.quantity
+                product.save()
+            
+            # Clear cart
+            cart.user_cart_items.all().delete()
+            
+            return order
+            
+    except Exception as e:
+        print(f"Error in create_order: {str(e)}")
+        raise e
 
     except Cart.DoesNotExist:
         print("Cart not found for user")
         raise
     except Address.DoesNotExist:
         print("Address not found")
-        raise
-    except Exception as e:
-        print(f"Detailed error in create_order: {str(e)}")
         raise 
