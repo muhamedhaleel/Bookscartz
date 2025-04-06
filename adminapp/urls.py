@@ -47,4 +47,5 @@ urlpatterns = [
     path('api/top-products/', views.top_products, name='top_products'),
     path('api/top-categories/', views.top_categories, name='top_categories'),
     path('api/top-publishers/', views.top_publishers, name='top_publishers'),
+    path('admin-wallets/', views.admin_wallets, name='admin_wallets'),
 ]

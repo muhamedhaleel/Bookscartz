@@ -204,7 +204,7 @@ class CartItem(models.Model):
 
     class Meta:
         db_table = 'userapp_cartitem'
-        unique_together = ('cart', 'product')
+        unique_together = ('cart', 'product', 'selected_language')
 
 class Address(models.Model):
     ADDRESS_TYPES = (

@@ -1255,19 +1255,11 @@
                             <h3>{{ item.product.name }}</h3>
                             <div class="product-meta">
                                 <p>Quantity: {{ item.quantity }}</p>
-                                <div class="price-details">
-                                    {% if item.product.offer_price %}
-                                        <span class="original-price" style="text-decoration: line-through; color: #888; font-size: 0.9rem;">₹{{ item.product.price }}</span>
-                                        <span class="discounted-price" style="color: var(--primary-color); font-weight: bold; display: block;">₹{{ item.product.offer_price }}</span>
-                                        <span class="discount-badge" style="background-color: #ffeb3b; color: #f57c00; font-size: 0.8rem; padding: 2px 6px; border-radius: 4px;">{{ item.product.get_discount_percentage }}% OFF</span>
-                                    {% else %}
-                                        <span class="regular-price">₹{{ item.product.price }}</span>
-                                    {% endif %}
-                                </div>
                                 <div class="item-subtotal">
                                     {% if item.product.offer_price %}
                                         <span class="original-subtotal" style="text-decoration: line-through; color: #888; font-size: 0.9rem;">₹{{ item.get_original_total }}</span>
                                         <span class="final-subtotal" style="color: var(--primary-color); font-weight: bold; display: block;">₹{{ item.get_total_price }}</span>
+                                        <span class="discount-badge" style="background-color: #ffeb3b; color: #f57c00; font-size: 0.8rem; padding: 2px 6px; border-radius: 4px;">{{ item.product.get_discount_percentage }}% OFF</span>
                                     {% else %}
                                         ₹{{ item.get_total_price }}
                                     {% endif %}
@@ -1294,12 +1286,12 @@
                         <div class="space-y-3">
                             <label class="flex items-center space-x-3">
                                 <input type="radio" name="payment_method" value="cod" class="form-radio text-[#A79277]" 
-                                       {% if total_price <= 1000 %}disabled{% endif %}>
-                                <span {% if total_price <= 1000 %}style="color: #999;"{% endif %}>
+                                       {% if total_price > 1000 %}disabled{% endif %}>
+                                <span {% if total_price > 1000 %}style="color: #999;"{% endif %}>
                                     Cash on Delivery
-                                    {% if total_price <= 1000 %}
+                                    {% if total_price > 1000 %}
                                     <small style="display: block; color: #dc2626; font-size: 0.8rem;">
-                                        (Only available for orders above ₹1,000)
+                                        (Only available for orders up to ₹1,000)
                                     </small>
                                     {% endif %}
                                 </span>

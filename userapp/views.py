@@ -319,9 +319,17 @@ def product_detail(request, product_id):
         if cart:
             cart_item = CartItem.objects.filter(cart=cart, product=product).first()
     
+    # Check if product is in user's wishlist
+    wishlist_product_ids = []
+    if request.user.is_authenticated:
+        wishlist_product_ids = list(Wishlist.objects.filter(
+            user=request.user
+        ).values_list('product_id', flat=True))
+    
     context = {
         'product': product,
         'cart_item': cart_item,
+        'wishlist_product_ids': wishlist_product_ids,
     }
     return render(request, 'product_detail.html', context)
 
@@ -342,19 +350,35 @@ def add_to_cart(request, product_id):
         # Get or create cart
         cart, created = Cart.objects.get_or_create(user=request.user)
         
-        # Get or create cart item
-        cart_item, created = CartItem.objects.get_or_create(
+        # Check if item already exists in cart with the same product AND language
+        existing_item = CartItem.objects.filter(
             cart=cart,
             product=product,
-            selected_language_id=language_id,
-            defaults={'quantity': quantity}
-        )
+            selected_language_id=language_id
+        ).first()
         
-        if not created:
-            cart_item.quantity += quantity
-            if cart_item.quantity > 3:
-                cart_item.quantity = 3
-            cart_item.save()
+        if existing_item:
+            # Update quantity for existing item
+            new_quantity = existing_item.quantity + quantity
+            if new_quantity > 3:
+                new_quantity = 3
+                
+            existing_item.quantity = new_quantity
+            existing_item.save()
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Cart updated successfully',
+                'new_stock': product.stock
+            })
+        else:
+            # Create new cart item
+            CartItem.objects.create(
+                cart=cart,
+                product=product,
+                selected_language_id=language_id,
+                quantity=min(quantity, 3)
+            )
         
         return JsonResponse({
             'success': True,
@@ -419,10 +443,47 @@ def update_cart(request, item_id):
         # Update quantity
         cart_item.quantity = quantity
         cart_item.save()
+
+        # Calculate updated prices
+        cart = cart_item.cart
+        cart_items = cart.user_cart_items.all()
+        
+        # Calculate totals including offer prices
+        total_price = 0
+        original_total = 0
+        
+        for item in cart_items:
+            original_price = float(item.product.price * item.quantity)
+            original_total += original_price
+            
+            if hasattr(item.product, 'offer_price') and item.product.offer_price:
+                total_price += float(item.product.offer_price * item.quantity)
+            else:
+                total_price += original_price
+        
+        # Calculate item specific data
+        item_original_price = float(cart_item.product.price * cart_item.quantity)
+        item_final_price = float(cart_item.product.offer_price * cart_item.quantity) if hasattr(cart_item.product, 'offer_price') and cart_item.product.offer_price else item_original_price
+        
+        item_data = {
+            'quantity': cart_item.quantity,
+            'has_offer': hasattr(cart_item.product, 'offer_price') and cart_item.product.offer_price,
+            'original_subtotal': item_original_price,
+            'final_subtotal': item_final_price
+        }
+
+        # Calculate cart summary data
+        cart_data = {
+            'original_total': original_total,
+            'total_price': total_price,
+            'total_discount': original_total - total_price if original_total > total_price else 0
+        }
         
         return JsonResponse({
             'success': True,
-            'message': 'Cart updated successfully'
+            'message': 'Cart updated successfully',
+            'item_data': item_data,
+            'cart_data': cart_data
         })
         
     except CartItem.DoesNotExist:
@@ -441,17 +502,31 @@ def update_cart(request, item_id):
 def remove_from_cart(request, item_id):
     try:
         cart_item = CartItem.objects.get(id=item_id, cart__user=request.user)
-        
-        # Update product stock
-        cart_item.product.stock += cart_item.quantity
-        cart_item.product.save()
+        cart = cart_item.cart
         
         # Delete cart item
         cart_item.delete()
         
+        # Calculate updated cart totals
+        remaining_items = cart.user_cart_items.all()
+        cart_empty = not remaining_items.exists()
+        
+        if not cart_empty:
+            total_price = sum(item.get_total_price() for item in remaining_items)
+            original_total = sum(item.product.price * item.quantity for item in remaining_items)
+            cart_data = {
+                'original_total': float(original_total),
+                'total_price': float(total_price),
+                'total_discount': float(original_total - total_price) if original_total > total_price else 0,
+                'cart_empty': False
+            }
+        else:
+            cart_data = {'cart_empty': True}
+        
         return JsonResponse({
             'success': True,
-            'message': 'Item removed from cart'
+            'message': 'Item removed from cart',
+            'cart_data': cart_data
         })
         
     except CartItem.DoesNotExist:
@@ -590,10 +665,10 @@ def place_order(request):
             total_amount = subtotal + shipping_cost
 
             # Check if COD is allowed based on total amount
-            if payment_method == 'cod' and total_amount <= 1000:
+            if payment_method == 'cod' and total_amount > 1000:
                 return JsonResponse({
                     'status': 'error',
-                    'message': 'Cash on Delivery is only available for orders above ₹1,000'
+                    'message': 'Cash on Delivery is only available for orders up to ₹1,000'
                 }, status=400)
 
             # Handle COD payment

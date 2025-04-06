@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout, get_user_model
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from .models import Category, Brand, Product, Language, Offer, Order, ReturnRequest, OrderItem, Coupon, Wallet, WalletTransaction
 from .forms import CategoryForm
@@ -1575,3 +1575,25 @@ def top_publishers(request):
         'labels': [item['product__brand__name'] for item in publishers],
         'values': [item['total_quantity'] for item in publishers]
     })
+
+def is_admin(user):
+    return user.is_authenticated and user.is_superuser
+
+@login_required(login_url='admin_login')
+@user_passes_test(is_admin)
+def admin_wallets(request):
+    # Get all wallet transactions ordered by date (most recent first)
+    transactions = WalletTransaction.objects.select_related(
+        'wallet', 
+        'wallet__user'
+    ).order_by('-date')
+    
+    # Pagination
+    paginator = Paginator(transactions, 10)  # Show 10 transactions per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'transactions': page_obj,
+    }
+    return render(request, 'admin_wallets.html', context)

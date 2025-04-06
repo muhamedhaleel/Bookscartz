@@ -746,7 +746,7 @@
 
         {% if cart_items %}
         <div class="cart-items">
-            {% for item in cart.user_cart_items.all %}
+            {% for item in cart_items %}
             <div class="cart-item" data-item-id="{{ item.id }}">
                 <div class="item-image">
                     <img src="{{ item.product.image1.url }}" alt="{{ item.product.name }}">
@@ -812,7 +812,7 @@
         <div class="cart-summary">
             <div class="summary-row">
                 <span class="summary-label">Original Total</span>
-                <span class="summary-value">₹{{ original_total }}</span>
+                <span class="summary-value">₹</span>
             </div>
             {% if total_discount > 0 %}
             <div class="summary-row">
@@ -824,10 +824,6 @@
                 <span class="summary-label">Subtotal</span>
                 <span class="summary-value">₹{{ total_price }}</span>
             </div>
-            {% comment %} <div class="summary-row">
-                <span class="summary-label">Shipping</span>
-                <span class="summary-value">{% if total_price >= 999 %}Free{% else %}₹50{% endif %}</span>
-            </div> {% endcomment %}
             <div class="summary-row total-row">
                 <span class="summary-label">Total Amount</span>
                 <span class="summary-value">₹{% if total_price >= 999 %}{{ total_price }}{% else %}{{ total_price|add:50 }}{% endif %}</span>
@@ -891,16 +887,49 @@
             }, 3000);
         }
 
-        function showDeleteModal(itemId) {
-            currentItemId = itemId;
-            deleteModal.style.display = 'block';
-            document.body.style.overflow = 'hidden';
+        function updateCartUI(data) {
+            // Update discount if exists
+            const discountElement = document.querySelector('.summary-row:nth-child(2) .summary-value');
+            if (discountElement && data.total_discount > 0) {
+                discountElement.textContent = `-₹${data.total_discount.toFixed(2)}`;
+            }
+
+            // Update subtotal
+            const subtotalElement = document.querySelector('.summary-row:nth-child(3) .summary-value');
+            if (subtotalElement && data.total_price !== undefined) {
+                subtotalElement.textContent = `₹${data.total_price.toFixed(2)}`;
+            }
+
+            // Update final total
+            const totalElement = document.querySelector('.total-row .summary-value');
+            if (totalElement && data.total_price !== undefined) {
+                const finalTotal = data.total_price >= 999 ? data.total_price : data.total_price + 50;
+                totalElement.textContent = `₹${finalTotal.toFixed(2)}`;
+            }
         }
 
-        function hideDeleteModal() {
-            deleteModal.style.display = 'none';
-            document.body.style.overflow = '';
-            currentItemId = null;
+        function updateItemUI(itemElement, data) {
+            // Update quantity display
+            const quantityDisplay = itemElement.querySelector('.item-meta span:first-child');
+            if (quantityDisplay) {
+                quantityDisplay.textContent = `Quantity: ${data.quantity}`;
+            }
+
+            // Update item subtotal
+            const subtotalElement = itemElement.querySelector('.item-subtotal');
+            if (subtotalElement) {
+                if (data.has_offer) {
+                    subtotalElement.innerHTML = `
+                        <span class="original-subtotal" style="text-decoration: line-through; color: #888; font-size: 0.9rem;">
+                            ₹${data.original_subtotal.toFixed(2)}
+                        </span>
+                        <span class="final-subtotal" style="color: var(--primary-color); font-weight: bold; display: block;">
+                            ₹${data.final_subtotal.toFixed(2)}
+                        </span>`;
+                } else {
+                    subtotalElement.textContent = `₹${data.final_subtotal.toFixed(2)}`;
+                }
+            }
         }
 
         cartItems.forEach(item => {
@@ -922,7 +951,20 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        location.reload();
+                        // Update quantity input
+                        quantityInput.value = data.item_data.quantity;
+                        
+                        // Update item UI
+                        updateItemUI(item, data.item_data);
+                        
+                        // Update cart summary
+                        updateCartUI(data.cart_data);
+                        
+                        // Update button states
+                        decreaseBtn.disabled = data.item_data.quantity <= 1;
+                        increaseBtn.disabled = data.item_data.quantity >= 3;
+                        
+                        showToast('Cart updated successfully');
                     } else {
                         showToast(data.message || 'Error updating cart', 'error');
                     }
@@ -952,6 +994,18 @@
             });
         });
 
+        function showDeleteModal(itemId) {
+            currentItemId = itemId;
+            deleteModal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function hideDeleteModal() {
+            deleteModal.style.display = 'none';
+            document.body.style.overflow = '';
+            currentItemId = null;
+        }
+
         // Modal event listeners
         closeModal.addEventListener('click', hideDeleteModal);
         cancelBtn.addEventListener('click', hideDeleteModal);
@@ -973,10 +1027,24 @@
                 .then(data => {
                     if (data.success) {
                         hideDeleteModal();
-                        showToast('Item removed from cart');
+                        
+                        // Remove the item element from DOM
+                        const itemElement = document.querySelector(`.cart-item[data-item-id="${currentItemId}"]`);
+                        if (itemElement) {
+                            itemElement.remove();
+                        }
+                        
+                        if (data.cart_data.cart_empty) {
+                            // Reload page if cart is empty
                         setTimeout(() => {
                             location.reload();
                         }, 1000);
+                        } else {
+                            // Update cart summary
+                            updateCartUI(data.cart_data);
+                        }
+                        
+                        showToast('Item removed from cart');
                     } else {
                         showToast(data.message || 'Error removing item', 'error');
                     }
@@ -988,7 +1056,7 @@
             }
         });
 
-        // User dropdown toggle functionality
+        // Keep existing user menu functionality
         const userMenu = document.getElementById('userMenu');
         const userIcon = userMenu.querySelector('.user-icon');
 
@@ -997,32 +1065,15 @@
             userMenu.classList.toggle('active');
         });
 
-        // Close dropdown when clicking outside
         document.addEventListener('click', (event) => {
             if (!userMenu.contains(event.target)) {
                 userMenu.classList.remove('active');
             }
         });
-
-        // Prevent dropdown from closing when clicking inside it
-        userMenu.querySelector('.user-dropdown').addEventListener('click', (e) => {
-            e.stopPropagation();
-        });
-
-        // Add hover effect for dropdown items
-        const dropdownItems = document.querySelectorAll('.dropdown-item');
-        dropdownItems.forEach(item => {
-            item.addEventListener('mouseenter', () => {
-                item.querySelector('svg').style.transform = 'translateX(5px)';
-            });
-            item.addEventListener('mouseleave', () => {
-                item.querySelector('svg').style.transform = 'translateX(0)';
-            });
-        });
     });
     </script>
 
-    <!-- Footer with exact same colors as product_list.html -->
+    
     <footer class="footer">
         <div class="footer-container">
             <div class="footer-section">
