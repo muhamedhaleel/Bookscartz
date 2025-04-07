@@ -811,7 +811,7 @@ def user_orders(request):
     orders = Order.objects.filter(user=request.user)\
         .prefetch_related(
             'items__product',
-            'return_request'
+            'return_requests'
         )\
         .order_by('-created_at')
     
@@ -960,7 +960,7 @@ def request_return(request, order_id):
                 reason=reason,
                 comments=comments,
                 status='pending',
-                admin_notes=''  # Initialize empty admin notes
+                admin_notes=''
             )
 
             # Update order item status

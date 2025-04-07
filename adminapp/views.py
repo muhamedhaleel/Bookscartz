@@ -883,7 +883,7 @@ def admin_manage_orders(request):
         .select_related('user')\
         .prefetch_related(
             'items__product',
-            'return_request',
+            'return_requests',
             Prefetch('items', queryset=OrderItem.objects.filter(return_requested=True), to_attr='returned_items')
         ).order_by('-created_at')
     
@@ -910,40 +910,34 @@ def get_return_details(request, order_id):
     
     try:
         order = get_object_or_404(Order, id=order_id)
-        return_request = order.return_request.select_related('order').first()
+        return_requests = order.return_requests.select_related('order_item', 'order_item__product').all()
         
-        if not return_request:
+        if not return_requests:
             return JsonResponse({
                 'status': 'error',
-                'message': 'Return request not found'
+                'message': 'No return requests found'
             }, status=404)
-            
-        # Calculate refund amount
-        refund_amount = order.calculate_return_refund_amount()
         
         response_data = {
             'status': 'success',
             'order_id': order.id,
             'customer_name': f"{order.user.first_name} {order.user.last_name}",
-            'created_at': return_request.created_at.strftime('%B %d, %Y'),
-            'status': return_request.status,
-            'reason': return_request.get_reason_display(),
-            'comments': return_request.comments,
-            'refund_amount': float(refund_amount),
             'items': []
         }
         
-        # Add item details
-        for item in order.items.filter(return_requested=True).select_related('product'):
-            item_data = {
+        for return_request in return_requests:
+            item = return_request.order_item
+            response_data['items'].append({
+                'id': return_request.id,
                 'name': item.product.name,
                 'quantity': item.quantity,
                 'price': str(item.price),
                 'total': str(item.total_price),
                 'image': request.build_absolute_uri(item.product.image1.url) if item.product.image1 else '',
-                'return_status': item.return_status
-            }
-            response_data['items'].append(item_data)
+                'return_status': return_request.status,
+                'reason': return_request.get_reason_display(),
+                'comments': return_request.comments
+            })
         
         return JsonResponse(response_data)
         
@@ -963,79 +957,89 @@ def admin_handle_return(request, order_id):
     try:
         with transaction.atomic():
             order = get_object_or_404(Order, id=order_id)
-            return_request = order.return_request.first()
+            return_request_id = request.POST.get('return_request_id')
             
-            if not return_request:
+            if not return_request_id:
                 return JsonResponse({
                     'status': 'error',
-                    'message': 'Return request not found'
-                }, status=404)
+                    'message': 'Return request ID is required'
+                }, status=400)
             
+            return_request = get_object_or_404(ReturnRequest, id=return_request_id, order=order)
             status = request.POST.get('return_status')
-            admin_notes = request.POST.get('admin_notes', '')
+            admin_notes = request.POST.get('admin_notes', '').strip()
             
-            if status not in ['approved', 'rejected']:
+            if not status or status not in ['approved', 'rejected']:
                 return JsonResponse({
                     'status': 'error',
                     'message': 'Invalid status'
                 }, status=400)
             
-            # Update return request
+            if not admin_notes:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Admin notes are required'
+                }, status=400)
+            
+            # Update return request status and notes
             return_request.status = status
             return_request.admin_notes = admin_notes
             return_request.save()
             
-            # Calculate total refund amount first
-            total_refund_amount = Decimal('0.00')
+            # Get the specific order item being returned
+            order_item = return_request.order_item
             
-            # Get all items that were requested for return
-            returned_items = order.items.filter(return_requested=True)
-            
-            for item in returned_items:
-                if status == 'approved':
-                    # Calculate refund amount for this item
-                    total_refund_amount += item.total_price
-                    
-                    # Update inventory
-                    product = item.product
-                    product.stock += item.quantity
-                    product.save()
+            if status == 'approved':
+                # Calculate refund amount for this item
+                refund_amount = order_item.total_price
+                
+                # Update inventory
+                product = order_item.product
+                product.stock += order_item.quantity
+                product.save()
                 
                 # Update item return status
-                item.return_status = status
-                item.save()
-            
-            # If approved, add refund amount to user's wallet
-            if status == 'approved' and total_refund_amount > 0:
-                # Get or create user's wallet
-                wallet, created = Wallet.objects.get_or_create(user=order.user)
+                order_item.return_status = status
+                order_item.save()
                 
-                # Add refund amount to wallet
-                wallet.balance += total_refund_amount
+                # Add refund amount to user's wallet
+                wallet, created = Wallet.objects.get_or_create(user=order.user)
+                wallet.balance += refund_amount
                 wallet.save()
                 
                 # Create wallet transaction record
                 WalletTransaction.objects.create(
                     wallet=wallet,
-                    amount=total_refund_amount,
+                    amount=refund_amount,
                     type='credit',
                     order_id=str(order.id)
                 )
                 
-                # Update order status to 'returned' when return is approved
-                order.status = 'returned'
-                order.save()
+                message = f'Return request approved. Refund amount of ₹{refund_amount} has been added to wallet.'
+            else:
+                # Update item return status to rejected
+                order_item.return_status = status
+                order_item.save()
+                message = 'Return request has been rejected.'
+            
+            # Check if all items are returned and update order status
+            order.check_return_status()
             
             return JsonResponse({
                 'status': 'success',
-                'message': f'Return request has been {status} successfully. Refund amount of ₹{total_refund_amount} has been added to wallet.'
+                'message': message
             })
             
+    except ReturnRequest.DoesNotExist:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Return request not found'
+        }, status=404)
     except Exception as e:
         print(f"Error handling return: {str(e)}")
         return JsonResponse({
             'status': 'error',
-            'message': 'Error processing return request'
+            'message': str(e)
         }, status=500)
 
 @login_required(login_url='admin_login')

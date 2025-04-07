@@ -952,7 +952,17 @@
                                                 Return Item
                                             </button>
                                         {% else %}
-                                            <span class="return-status">Return {{ item.return_status|default:"Requested" }}</span>
+                                            <span class="return-status" style="
+                                                background-color: {% if item.return_status == 'pending' %}#fff3cd
+                                                {% elif item.return_status == 'approved' %}#d1e7dd
+                                                {% elif item.return_status == 'rejected' %}#f8d7da
+                                                {% elif item.return_status == 'completed' %}#cfe2ff{% endif %};
+                                                color: {% if item.return_status == 'pending' %}#856404
+                                                {% elif item.return_status == 'approved' %}#0f5132
+                                                {% elif item.return_status == 'rejected' %}#842029
+                                                {% elif item.return_status == 'completed' %}#0c63e4{% endif %};">
+                                                Return {{ item.return_status|title }}
+                                            </span>
                                         {% endif %}
                                     {% endif %}
                                 </div>

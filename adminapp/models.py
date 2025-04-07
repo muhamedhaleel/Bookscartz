@@ -4,6 +4,7 @@ from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
 from django.conf import settings
 from decimal import Decimal
+from django.utils import timezone
 
 
 # admin
@@ -268,7 +269,8 @@ class Order(models.Model):
         ('processing', 'Processing'),
         ('shipped', 'Shipped'),
         ('delivered', 'Delivered'),
-        ('cancelled', 'Cancelled')
+        ('cancelled', 'Cancelled'),
+        ('returned', 'Returned')
     )
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
@@ -303,6 +305,15 @@ class Order(models.Model):
             for item in self.items.filter(return_requested=True)
         )
 
+    def check_return_status(self):
+        """Check and update order status based on item returns"""
+        total_items = self.items.count()
+        returned_items = self.items.filter(return_requested=True, return_status='approved').count()
+        
+        if returned_items > 0 and returned_items == total_items:
+            self.status = 'returned'
+            self.save()
+
 class OrderItem(models.Model):
     RETURN_STATUS_CHOICES = (
         ('pending', 'Pending'),
@@ -318,12 +329,14 @@ class OrderItem(models.Model):
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
     return_status = models.CharField(max_length=20, choices=RETURN_STATUS_CHOICES, null=True, blank=True)
     return_requested = models.BooleanField(default=False)
+    return_request_date = models.DateTimeField(null=True, blank=True)
 
     def can_be_returned(self):
+        """Check if the item is eligible for return"""
         return (
             self.order.status == 'delivered' and 
             not self.return_requested and 
-            not ReturnRequest.objects.filter(order_item=self).exists()
+            not self.return_request.exists()
         )
 
     def __str__(self):
@@ -331,7 +344,12 @@ class OrderItem(models.Model):
 
     def save(self, *args, **kwargs):
         self.total_price = self.quantity * self.price
+        # Update return request date if return is requested
+        if self.return_requested and not self.return_request_date:
+            self.return_request_date = timezone.now()
         super().save(*args, **kwargs)
+        # Update order status after saving item
+        self.order.check_return_status()
 
 class ReturnRequest(models.Model):
     REASON_CHOICES = [
@@ -349,8 +367,8 @@ class ReturnRequest(models.Model):
         ('completed', 'Completed')
     ]
     
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='return_request')
-    order_item = models.ForeignKey(OrderItem, on_delete=models.CASCADE, related_name='return_request', null=True, blank=True)
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='return_requests')
+    order_item = models.ForeignKey(OrderItem, on_delete=models.CASCADE, related_name='return_request')
     reason = models.CharField(max_length=50, choices=REASON_CHOICES)
     comments = models.TextField()
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
@@ -359,7 +377,12 @@ class ReturnRequest(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"Return Request #{self.id} for Order #{self.order.id}"
+        return f"Return Request #{self.id} for Order #{self.order.id} - Item: {self.order_item.product.name}"
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        self.order_item.return_status = self.status
+        self.order_item.save()
 
 class Wishlist(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='wishlist')
