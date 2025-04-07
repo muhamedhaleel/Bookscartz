@@ -5,19 +5,85 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Signup - Bookscartz</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, rgb(249, 248, 250) 100%);
+        :root {
+            --primary-color: #2C3639;
+            --secondary-color: rgb(151, 112, 78);
+            --accent-color: #DCD7C9;
+            --text-color: #2C3639;
+            --light-bg: #F5F5F5;
+            --white: #FFFFFF;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
         }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            color: var(--text-color);
+            line-height: 1.6;
+            background-color: var(--light-bg);
+        }
+
+        .signup-container {
+            background: var(--white);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+        }
+
+        .signup-container:hover {
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .signup-title {
+            font-family: 'Cormorant Garamond', serif;
+            color: var(--primary-color);
+        }
+
+        .form-input {
+            border: 1px solid var(--accent-color);
+            border-radius: 6px;
+            transition: var(--transition);
+            width: 100%;
+            padding: 0.75rem;
+            margin-top: 0.5rem;
+        }
+
+        .form-input:focus {
+            border-color: var(--secondary-color);
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(151, 112, 78, 0.1);
+        }
+
+        .signup-btn {
+            background: var(--primary-color);
+            transition: var(--transition);
+        }
+
+        .signup-btn:hover {
+            background: var(--secondary-color);
+        }
+
+        .link {
+            color: var(--secondary-color);
+            transition: var(--transition);
+        }
+
+        .link:hover {
+            color: var(--primary-color);
+        }
+
         .error-message {
             animation: slideIn 0.3s ease-out;
+            color: #dc2626;
         }
+
         @keyframes slideIn {
             from { opacity: 0; transform: translateY(-10px); }
             to { opacity: 1; transform: translateY(0); }
         }
+
         .toast {
             position: fixed;
             top: 20px;
@@ -25,6 +91,7 @@
             z-index: 1000;
             animation: slideInRight 0.3s ease-out;
         }
+
         @keyframes slideInRight {
             from { transform: translateX(100%); }
             to { transform: translateX(0); }
@@ -33,9 +100,9 @@
 </head>
 <body class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
     <!-- Global Messages -->
-        {% if messages %}
+    {% if messages %}
     <div class="toast" id="messages-container">
-            {% for message in messages %}
+        {% for message in messages %}
         <div class="mb-3 p-4 rounded-lg shadow-lg {% if message.tags == 'error' %}bg-red-500{% else %}bg-green-500{% endif %} text-white">
             {{ message }}
             <button onclick="this.parentElement.remove()" class="float-right font-bold">&times;</button>
@@ -44,10 +111,9 @@
     </div>
     {% endif %}
 
-    <div class="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg">
+    <div class="signup-container max-w-md w-full space-y-8 p-8">
         <div class="text-center">
-            <h2 class="text-3xl font-extrabold text-gray-900">Welcome Signup</h2>
-
+            <h2 class="signup-title text-3xl font-extrabold">Welcome Signup</h2>
         </div>
 
         <!-- Form Errors -->
@@ -67,13 +133,12 @@
                 <label for="{{ form.username.id_for_label }}" class="block text-sm font-medium text-gray-700">Username</label>
                 {{ form.username }}
                 {% if form.username.errors %}
-                <div class="mt-1 text-sm text-red-600 error-message">
+                <div class="mt-1 text-sm error-message">
                     {% for error in form.username.errors %}
                     <p>{{ error }}</p>
                     {% endfor %}
                 </div>
                 {% endif %}
-                
             </div>
             
             <!-- Email Field -->
@@ -81,7 +146,7 @@
                 <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-gray-700">Email address</label>
                 {{ form.email }}
                 {% if form.email.errors %}
-                <div class="mt-1 text-sm text-red-600 error-message">
+                <div class="mt-1 text-sm error-message">
                     {% for error in form.email.errors %}
                     <p>{{ error }}</p>
                     {% endfor %}
@@ -94,13 +159,12 @@
                 <label for="{{ form.phone_number.id_for_label }}" class="block text-sm font-medium text-gray-700">Phone Number</label>
                 {{ form.phone_number }}
                 {% if form.phone_number.errors %}
-                <div class="mt-1 text-sm text-red-600 error-message">
+                <div class="mt-1 text-sm error-message">
                     {% for error in form.phone_number.errors %}
                     <p>{{ error }}</p>
                     {% endfor %}
                 </div>
                 {% endif %}
-                
             </div>
             
             <!-- Password Field -->
@@ -108,7 +172,7 @@
                 <label for="{{ form.password1.id_for_label }}" class="block text-sm font-medium text-gray-700">Password</label>
                 {{ form.password1 }}
                 {% if form.password1.errors %}
-                <div class="mt-1 text-sm text-red-600 error-message">
+                <div class="mt-1 text-sm error-message">
                     {% for error in form.password1.errors %}
                     <p>{{ error }}</p>
                     {% endfor %}
@@ -116,7 +180,6 @@
                 {% endif %}
                 <div class="mt-2 text-xs text-gray-500">
                     <p>Password requirements:</p>
-                    
                 </div>
             </div>
             
@@ -125,7 +188,7 @@
                 <label for="{{ form.password2.id_for_label }}" class="block text-sm font-medium text-gray-700">Confirm Password</label>
                 {{ form.password2 }}
                 {% if form.password2.errors %}
-                <div class="mt-1 text-sm text-red-600 error-message">
+                <div class="mt-1 text-sm error-message">
                     {% for error in form.password2.errors %}
                     <p>{{ error }}</p>
                     {% endfor %}
@@ -134,16 +197,18 @@
             </div>
 
             <div>
-                <button type="submit" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                <button type="submit" class="signup-btn w-full flex justify-center py-3 px-4 rounded-md shadow-sm text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
                     Create Account
                 </button>
             </div>
 
-             <div class="text-center text-sm">
+            <div class="text-center text-sm">
                 <p>Already have an account? 
-                    <a href="{% url 'login' %}" class="text-blue-600 hover:text-blue-800">Login here</a>
+                    <a href="{% url 'login' %}" class="link">Login here</a>
                 </p>
             </div> 
         </form>
     </div>
+</body>
+</html>
 

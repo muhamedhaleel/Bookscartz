@@ -4,85 +4,167 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Login - Bookscartz</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --primary-color: #2C3639;
+            --secondary-color: rgb(151, 112, 78);
+            --accent-color: #DCD7C9;
+            --text-color: #2C3639;
+            --light-bg: #F5F5F5;
+            --white: #FFFFFF;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            color: var(--text-color);
+            line-height: 1.6;
+            background-color: var(--light-bg);
+        }
+
+        .login-container {
+            background: var(--white);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+        }
+
+        .login-container:hover {
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .login-title {
+            font-family: 'Cormorant Garamond', serif;
+            color: var(--primary-color);
+        }
+
+        .form-input {
+            border: 1px solid var(--accent-color);
+            border-radius: 6px;
+            transition: var(--transition);
+        }
+
+        .form-input:focus {
+            border-color: var(--secondary-color);
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(151, 112, 78, 0.1);
+        }
+
+        .login-btn {
+            background: var(--primary-color);
+            transition: var(--transition);
+        }
+
+        .login-btn:hover {
+            background: var(--secondary-color);
+        }
+
+        .google-btn {
+            border: 1px solid var(--accent-color);
+            transition: var(--transition);
+        }
+
+        .google-btn:hover {
+            background-color: var(--light-bg);
+        }
+
+        .divider {
+            border-color: var(--accent-color);
+        }
+
+        .divider-text {
+            background-color: var(--white);
+            color: var(--text-color);
+        }
+
+        .link {
+            color: var(--secondary-color);
+            transition: var(--transition);
+        }
+
+        .link:hover {
+            color: var(--primary-color);
+        }
+    </style>
 </head>
-<body class="bg-gray-100">
-    <div class="min-h-screen flex items-center justify-center">
-        <div class="bg-white p-8 rounded-lg shadow-md w-96">
-            <h2 class="text-2xl font-bold mb-6 text-center">Please Login</h2>
-            
-            {% if messages %}
-                {% for message in messages %}
-                    <div class="mb-4 p-4 rounded {% if message.tags == 'error' %}bg-red-100 text-red-700{% endif %}">
-                        {{ message }}
-                    </div>
-                {% endfor %}
-            {% endif %}
+<body class="min-h-screen flex items-center justify-center">
+    <div class="login-container p-8 rounded-lg w-96">
+        <h2 class="login-title text-2xl font-bold mb-6 text-center">Please Login</h2>
+        
+        {% if messages %}
+            {% for message in messages %}
+                <div class="mb-4 p-4 rounded {% if message.tags == 'error' %}bg-red-100 text-red-700{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
 
-            <form method="POST">
-                {% csrf_token %}
-                <div class="mb-4">
-                    <label class="block text-gray-700 text-sm font-bold mb-2" for="username">
-                        Username
-                    </label>
-                    <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                           id="username" type="text" name="username" required>
-                </div>
-                <div class="mb-4">
-                    <label class="block text-gray-700 text-sm font-bold mb-2" for="password">
-                        Password
-                    </label>
-                    <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-2 leading-tight focus:outline-none focus:shadow-outline"
-                           id="password" type="password" name="password" required>
-                    <div class="text-sm text-right">
-                        <a href="{% url 'password_reset' %}" class="text-blue-600 hover:text-blue-800 font-medium">
-                            Forgot your password?
-                        </a>
-                    </div>
-                </div>
-                
-                <div class="flex items-center justify-between">
-                    <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline w-full"
-                            type="submit">
-                        Sign In
-                    </button> 
-                </div>
-                
-                <!-- Divider -->
-                <div class="relative my-6">
-                    <div class="absolute inset-0 flex items-center">
-                        <div class="w-full border-t border-gray-300"></div>
-                    </div>
-                    <div class="relative flex justify-center text-sm">
-                        <span class="px-2 bg-white text-gray-500">Or</span>
-                    </div>
-                </div>
-
-                <!-- Google Sign-In Button -->
-                <div class="flex justify-center mb-6">
-                    <a href="{% url 'google_login' %}"
-                       class="flex items-center justify-center gap-2 w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors duration-200">
-                        <svg class="w-5 h-5" viewBox="0 0 24 24">
-                            <path fill="#EA4335" d="M5.266 9.765A7.077 7.077 0 0 1 12 4.909c1.69 0 3.218.6 4.418 1.582L19.91 3C17.782 1.145 15.055 0 12 0 7.27 0 3.198 2.698 1.24 6.65l4.026 3.115Z"/>
-                            <path fill="#34A853" d="M16.04 18.013c-1.09.703-2.474 1.078-4.04 1.078a7.077 7.077 0 0 1-6.723-4.823l-4.04 3.067A11.965 11.965 0 0 0 12 24c2.933 0 5.735-1.043 7.834-3l-3.793-2.987Z"/>
-                            <path fill="#4A90E2" d="M19.834 21c2.195-2.048 3.62-5.096 3.62-9 0-.71-.109-1.473-.272-2.182H12v4.637h6.436c-.317 1.559-1.17 2.766-2.395 3.558L19.834 21Z"/>
-                            <path fill="#FBBC05" d="M5.277 14.268A7.12 7.12 0 0 1 4.909 12c0-.782.125-1.533.357-2.235L1.24 6.65A11.934 11.934 0 0 0 0 12c0 1.92.445 3.73 1.237 5.335l4.04-3.067Z"/>
-                        </svg>
-                        <span>Sign in with Google</span>
+        <form method="POST">
+            {% csrf_token %}
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="username">
+                    Username
+                </label>
+                <input class="form-input shadow appearance-none w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none"
+                       id="username" type="text" name="username" required>
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="password">
+                    Password
+                </label>
+                <input class="form-input shadow appearance-none w-full py-2 px-3 text-gray-700 mb-2 leading-tight focus:outline-none"
+                       id="password" type="password" name="password" required>
+                <div class="text-sm text-right">
+                    <a href="{% url 'password_reset' %}" class="link font-medium">
+                        Forgot your password?
                     </a>
                 </div>
-
-                <!-- Sign Up Link -->
-                <div class="text-center">
-                    <p class="text-gray-600">
-                        Don't have an account? 
-                        <a href="{% url 'signup' %}" class="text-blue-500 hover:underline font-semibold">
-                            Sign up here
-                        </a>
-                    </p>
+            </div>
+            
+            <div class="flex items-center justify-between">
+                <button class="login-btn text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline w-full"
+                        type="submit">
+                    Sign In
+                </button> 
+            </div>
+            
+            <!-- Divider -->
+            <div class="relative my-6">
+                <div class="absolute inset-0 flex items-center">
+                    <div class="w-full border-t divider"></div>
                 </div>
-            </form>
-        </div>
+                <div class="relative flex justify-center text-sm">
+                    <span class="px-2 divider-text">Or</span>
+                </div>
+            </div>
+
+            <!-- Google Sign-In Button -->
+            <div class="flex justify-center mb-6">
+                <a href="{% url 'google_login' %}"
+                   class="google-btn flex items-center justify-center gap-2 w-full px-4 py-2 rounded-lg text-gray-700 transition-colors duration-200">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24">
+                        <path fill="#EA4335" d="M5.266 9.765A7.077 7.077 0 0 1 12 4.909c1.69 0 3.218.6 4.418 1.582L19.91 3C17.782 1.145 15.055 0 12 0 7.27 0 3.198 2.698 1.24 6.65l4.026 3.115Z"/>
+                        <path fill="#34A853" d="M16.04 18.013c-1.09.703-2.474 1.078-4.04 1.078a7.077 7.077 0 0 1-6.723-4.823l-4.04 3.067A11.965 11.965 0 0 0 12 24c2.933 0 5.735-1.043 7.834-3l-3.793-2.987Z"/>
+                        <path fill="#4A90E2" d="M19.834 21c2.195-2.048 3.62-5.096 3.62-9 0-.71-.109-1.473-.272-2.182H12v4.637h6.436c-.317 1.559-1.17 2.766-2.395 3.558L19.834 21Z"/>
+                        <path fill="#FBBC05" d="M5.277 14.268A7.12 7.12 0 0 1 4.909 12c0-.782.125-1.533.357-2.235L1.24 6.65A11.934 11.934 0 0 0 0 12c0 1.92.445 3.73 1.237 5.335l4.04-3.067Z"/>
+                    </svg>
+                    <span>Sign in with Google</span>
+                </a>
+            </div>
+
+            <!-- Sign Up Link -->
+            <div class="text-center">
+                <p class="text-gray-600">
+                    Don't have an account? 
+                    <a href="{% url 'signup' %}" class="link font-semibold">
+                        Sign up here
+                    </a>
+                </p>
+            </div>
+        </form>
     </div>
 </body>
 </html>

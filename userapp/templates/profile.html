@@ -11,122 +11,150 @@
             background-color: #f0f4f8;
             margin: 0;
             display: flex;
+            min-height: 100vh;
         }
         .sidebar {
-            width: 200px; /* Reduced width */
-            background-color: #343a40; /* Darker background for the sidebar */
+            width: 220px;
+            background-color: #343a40;
             color: white;
-            padding: 15px; /* Reduced padding */
+            padding: 20px;
             height: 100vh;
             position: fixed;
             display: flex;
             flex-direction: column;
             justify-content: flex-start;
-            border-radius: 0 10px 10px 0;
-            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 0 15px 15px 0;
+            box-shadow: 2px 0 15px rgba(0, 0, 0, 0.15);
         }
         .sidebar h2 {
             color: #ffffff;
-            margin-bottom: 15px; /* Reduced margin */
-            font-size: 1.3em; /* Reduced font size */
-            text-align: center; /* Center the heading */
+            margin-bottom: 20px;
+            font-size: 1.4em;
+            text-align: center;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
         }
         .sidebar a {
             color: #ffffff;
             text-decoration: none;
             display: block;
-            margin: 8px 0; /* Reduced margin */
-            padding: 8px; /* Reduced padding */
-            border-radius: 5px;
-            transition: background-color 0.3s, transform 0.2s; /* Added transform for hover effect */
+            margin: 10px 0;
+            padding: 10px 15px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
         }
         .sidebar a:hover {
-            background-color: #495057; /* Lighter background on hover */
-            transform: scale(1.05); /* Slightly enlarge on hover */
+            background-color: #495057;
+            transform: translateX(5px);
         }
         .main-content {
-            margin-left: 220px; /* Adjusted space for sidebar */
-            padding: 20px;
-            width: calc(100% - 220px); /* Adjusted width for main content */
+            margin-left: 240px;
+            padding: 30px;
+            width: calc(100% - 240px);
         }
         .profile-container {
             background: white;
-            padding: 20px; /* Reduced padding */
-            border-radius: 10px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-            max-width: 500px; /* Reduced max width */
-            margin: auto; /* Center the profile container */
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            margin: auto;
         }
         h2 {
-            margin-bottom: 15px; /* Reduced margin */
-            color: #333;
-            text-align: left; /* Align heading to the left */
+            margin-bottom: 20px;
+            color: #343a40;
+            font-size: 1.8em;
+            position: relative;
+            padding-bottom: 10px;
+        }
+        h2:after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 50px;
+            height: 3px;
+            background-color: #28a745;
         }
         .user-info {
             display: flex;
-            align-items: center; /* Align items vertically */
-            margin-bottom: 15px; /* Reduced space below user info */
+            align-items: center;
+            margin-bottom: 25px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 12px;
         }
         .user-icon {
-            width: 60px; /* Adjusted size */
-            height: 60px;
+            width: 70px;
+            height: 70px;
             border-radius: 50%;
-            background-color: #007bff;
+            background: linear-gradient(135deg,#495057);
             color: white;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 24px; /* Adjusted font size */
-            margin-right: 15px; /* Space between icon and text */
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* Added shadow for depth */
+            font-size: 28px;
+            margin-right: 20px;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
         }
         .form-group {
-            margin-bottom: 15px; /* Reduced margin */
-            display: flex;
-            flex-direction: column;
+            margin-bottom: 20px;
         }
         .form-group label {
-            margin-bottom: 5px;
-            font-weight: bold;
-            color: #555;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #495057;
+            display: block;
         }
         .form-group input {
-            padding: 8px; /* Reduced padding */
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            font-size: 14px; /* Reduced font size */
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 15px;
+            width: 100%;
+            transition: border-color 0.3s;
+        }
+        .form-group input:focus {
+            border-color: #28a745;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
         }
         .btn {
             display: inline-block;
-            padding: 10px 20px; /* Reduced padding */
-            background-color: #28a745; /* Green color for the update button */
+            padding: 12px 25px;
+            background: linear-gradient(135deg, #28a745, #218838);
             color: white;
             text-decoration: none;
-            border-radius: 5px;
-            transition: background-color 0.3s;
-            font-size: 14px; /* Reduced font size */
-            margin-top: 15px; /* Reduced margin */
-            width: 100%; /* Full width button */
+            border-radius: 8px;
+            transition: all 0.3s;
+            font-size: 15px;
+            margin-top: 20px;
+            width: 100%;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
         }
         .btn:hover {
-            background-color: #218838; /* Darker green on hover */
+            background: linear-gradient(135deg, #218838, #1e7e34);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
         }
         .toast {
             margin-bottom: 20px;
             padding: 10px;
             border-radius: 5px;
-            color: black; /* Change text color to black */
+            color: black;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
         .bg-green-500 {
-            background-color: transparent; /* No background color for success messages */
+            background-color: transparent;
         }
         .bg-red-500 {
-            background-color: transparent; /* No background color for error messages */
+            background-color: transparent;
         }
-        @media (max-width: 600px) {
+        @media (max-width: 768px) {
             .sidebar {
                 width: 100%;
                 height: auto;
@@ -136,6 +164,11 @@
             .main-content {
                 margin-left: 0;
                 width: 100%;
+                padding: 20px;
+            }
+            .form-row {
+                flex-direction: column;
+                gap: 0;
             }
         }
         /* Modal Styles */
@@ -154,30 +187,45 @@
 
         .modal-content {
             background: white;
-            padding: 20px;
-            border-radius: 10px;
+            padding: 30px;
+            border-radius: 15px;
             width: 90%;
             max-width: 500px;
             max-height: 90vh;
             overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
         }
 
         .modal-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            color: #343a40;
+            font-size: 1.5em;
         }
 
         .close-modal {
             font-size: 24px;
             cursor: pointer;
-            color: #666;
+            color: #6c757d;
+            transition: color 0.3s;
+        }
+
+        .close-modal:hover {
+            color: #343a40;
         }
 
         .form-row {
             display: flex;
             gap: 15px;
+            margin-bottom: 20px;
         }
 
         .form-group.half {
@@ -187,10 +235,10 @@
         /* Address List Styles */
         .address-container {
             background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-            margin-top: 20px;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+            margin-top: 30px;
         }
 
         .section-header {
@@ -203,18 +251,21 @@
         .btn-add {
             display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 8px 16px;
-            background: #28a745;
+            gap: 10px;
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #28a745, #218838);
             color: white;
             border: none;
-            border-radius: 5px;
+            border-radius: 8px;
             cursor: pointer;
-            transition: background-color 0.3s;
+            transition: all 0.3s;
+            font-weight: 500;
         }
 
         .btn-add:hover {
-            background: #218838;
+            background: linear-gradient(135deg, #218838, #1e7e34);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
         }
 
         .addresses-grid {
@@ -225,25 +276,28 @@
 
         .address-card {
             border: 1px solid #e9ecef;
-            border-radius: 8px;
-            padding: 20px;
+            border-radius: 12px;
+            padding: 25px;
             position: relative;
-            transition: transform 0.3s, box-shadow 0.3s;
+            transition: all 0.3s;
+            background: #f8f9fa;
         }
 
         .address-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            border-color: #28a745;
         }
 
         .address-type {
             position: absolute;
-            top: 10px;
-            right: 10px;
-            padding: 4px 8px;
+            top: 15px;
+            right: 15px;
+            padding: 6px 12px;
             background: #e9ecef;
-            border-radius: 4px;
-            font-size: 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
         }
 
         .default-badge {
@@ -273,14 +327,10 @@
         }
 
         .btn-edit, .btn-delete {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            padding: 6px 12px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background-color 0.3s;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 500;
+            transition: all 0.3s;
         }
 
         .btn-edit {
@@ -311,6 +361,22 @@
         .no-address p {
             margin-bottom: 20px;
             color: #6c757d;
+        }
+
+        .form-group select {
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 15px;
+            width: 100%;
+            background: white;
+            transition: border-color 0.3s;
+        }
+
+        .form-group select:focus {
+            border-color: #28a745;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
         }
     </style>
 </head>

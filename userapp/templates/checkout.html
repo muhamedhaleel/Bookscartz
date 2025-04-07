@@ -311,27 +311,27 @@
         .payment-methods {
             display: flex;
             flex-direction: column;
-            gap: 0.75rem;
-            margin-top: 0.75rem;
+            gap: 1rem;
+            margin-top: 1.5rem;
         }
 
         .payment-method {
             display: flex;
             align-items: center;
-            padding: 0.75rem 1rem;
-            border: 1px solid var(--accent-color);
-            border-radius: 6px;
+            padding: 1.25rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
             cursor: pointer;
             transition: all 0.3s ease;
             background: white;
-            height: 48px;
-            width: 100%;
+            position: relative;
+            overflow: hidden;
         }
 
         .payment-method:hover {
             border-color: var(--secondary-color);
-            transform: translateY(-1px);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
         }
 
         .payment-method.selected {
@@ -340,30 +340,63 @@
         }
 
         .payment-method input[type="radio"] {
-            margin-right: 0.75rem;
-            width: 16px;
-            height: 16px;
+            margin-right: 1rem;
+            width: 20px;
+            height: 20px;
             accent-color: var(--secondary-color);
             flex-shrink: 0;
         }
 
         .payment-method span {
-            font-size: 0.9rem;
+            font-size: 1rem;
             color: var(--text-color);
             display: flex;
             flex-direction: column;
-            gap: 0.1rem;
-            line-height: 1.2;
+            gap: 0.25rem;
+            line-height: 1.4;
         }
 
         .payment-method input[type="radio"]:disabled + span {
-            opacity: 0.5;
+            opacity: 0.6;
             cursor: not-allowed;
         }
 
         .payment-method small {
-            font-size: 0.75rem;
+            font-size: 0.85rem;
             color: #dc2626;
+            margin-top: 0.25rem;
+        }
+
+        .payment-method::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--secondary-color);
+            transform: scaleY(0);
+            transition: transform 0.3s ease;
+        }
+
+        .payment-method:hover::before,
+        .payment-method.selected::before {
+            transform: scaleY(1);
+        }
+
+        .payment-method-section .section-title {
+            font-size: 1.25rem;
+            margin-bottom: 1.5rem;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .payment-method-section .section-title svg {
+            width: 24px;
+            height: 24px;
+            color: var(--secondary-color);
         }
 
         .order-summary {
@@ -703,17 +736,6 @@
         .group:hover {
             background-size: 200% 100%;
             animation: shimmer 1s infinite;
-        }
-
-        /* Update section title for payment method */
-        .payment-method-section .section-title {
-            font-size: 1.1rem;
-            margin-bottom: 0.75rem;
-        }
-
-        .section-title svg {
-            width: 20px;
-            height: 20px;
         }
 
         .summary-details {
@@ -1281,32 +1303,25 @@
                     Payment Method
                 </h2>
                 <div class="payment-methods">
-                    <div class="mb-6">
-                        <h3 class="text-lg font-semibold mb-3">Select Payment Method</h3>
-                        <div class="space-y-3">
-                            <label class="flex items-center space-x-3">
-                                <input type="radio" name="payment_method" value="cod" class="form-radio text-[#A79277]" 
-                                       {% if total_price > 1000 %}disabled{% endif %}>
-                                <span {% if total_price > 1000 %}style="color: #999;"{% endif %}>
-                                    Cash on Delivery
-                                    {% if total_price > 1000 %}
-                                    <small style="display: block; color: #dc2626; font-size: 0.8rem;">
-                                        (Only available for orders up to ₹1,000)
-                                    </small>
-                                    {% endif %}
-                                </span>
-                            </label>
-                            
-                            <label class="flex items-center space-x-3">
-                                <input type="radio" name="payment_method" value="wallet" class="form-radio text-[#A79277]">
-                                <span>Wallet (Balance: ₹{{ wallet.balance|default:"0.00" }})</span>
-                            </label>
+                    <div class="payment-method">
+                        <input type="radio" name="payment_method" value="cod" class="form-radio text-[#A79277]" 
+                               {% if total_price > 1000 %}disabled{% endif %}>
+                        <span>
+                            Cash on Delivery
+                            {% if total_price > 1000 %}
+                            <small>(Only available for orders up to ₹1,000)</small>
+                            {% endif %}
+                        </span>
+                    </div>
+                    
+                    <div class="payment-method">
+                        <input type="radio" name="payment_method" value="wallet" class="form-radio text-[#A79277]">
+                        <span>Wallet (Balance: ₹{{ wallet.balance|default:"0.00" }})</span>
+                    </div>
 
-                            <label class="flex items-center space-x-3">
-                                <input type="radio" name="payment_method" value="razorpay" class="form-radio text-[#A79277]">
-                                <span>Pay Online (Razorpay)</span>
-                    </label>
-                        </div>
+                    <div class="payment-method">
+                        <input type="radio" name="payment_method" value="razorpay" class="form-radio text-[#A79277]">
+                        <span>Pay Online (Razorpay)</span>
                     </div>
                 </div>
             </div>
@@ -1473,8 +1488,8 @@
 
             // Check if COD is selected for orders below or equal to 1000
             const totalPrice = parseFloat('{{ total_price }}');
-            if (selectedPayment.value === 'cod' && totalPrice <= 1000) {
-                alert('Cash on Delivery is only available for orders above ₹1,000. Please choose a different payment method.');
+            if (selectedPayment.value === 'cod' && totalPrice > 1000) {
+                alert('Cash on Delivery is only available for orders up to ₹1,000. Please choose a different payment method.');
                 return;
             }
 
