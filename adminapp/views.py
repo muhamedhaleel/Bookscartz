@@ -1231,6 +1231,8 @@ def generate_sales_report(request):
             report_type = data.get('report_type')
             start_date = data.get('start_date')
             end_date = data.get('end_date')
+            page_number = data.get('page', 1)  # Get page number from request
+            items_per_page = 10  # Number of orders per page
 
             # Set date range based on report type
             today = timezone.now().date()
@@ -1247,61 +1249,61 @@ def generate_sales_report(request):
                 start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
                 end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
 
-            # Query orders within date range
+            # Query orders within date range with related data
             orders = Order.objects.filter(
                 created_at__date__gte=start_date,
                 created_at__date__lte=end_date
-            ).exclude(status='cancelled')
+            ).select_related('user').prefetch_related('items').order_by('-created_at')
 
             # Calculate overall summary
             summary_data = orders.aggregate(
                 total_orders=Count('id'),
                 total_amount=Sum('total_amount'),
-                total_subtotal=Sum('subtotal'),
-                total_coupon_discount=Sum('coupon_discount')
+                total_discounts=Sum('coupon_discount')
             )
 
             summary = {
                 'total_orders': summary_data['total_orders'] or 0,
                 'total_sales': float(summary_data['total_amount'] or 0),
-                'total_discounts': float(summary_data['total_coupon_discount'] or 0)
+                'total_discounts': float(summary_data['total_discounts'] or 0)
             }
 
-            # Get daily breakdown only for days with orders
-            daily_data = []
-            
-            # Get unique dates that have orders
-            order_dates = orders.values('created_at__date').distinct()
-            
-            for date_dict in order_dates:
-                current_date = date_dict['created_at__date']
-                daily_orders = orders.filter(created_at__date=current_date)
-                
-                daily_totals = daily_orders.aggregate(
-                    order_count=Count('id'),
-                    gross_sales=Sum('subtotal'),
-                    coupon_discount=Sum('coupon_discount'),
-                    net_sales=Sum('total_amount')
-                )
+            # Apply pagination
+            paginator = Paginator(orders, items_per_page)
+            try:
+                current_page = paginator.page(page_number)
+            except:
+                current_page = paginator.page(1)
 
-                if daily_totals['order_count'] > 0:  # Only add if there are orders
-                    daily_stats = {
-                        'date': current_date.strftime('%d-%m-%Y'),
-                        'orders': daily_totals['order_count'],
-                        'gross_sales': float(daily_totals['gross_sales'] or 0),
-                        'discounts': 0,  # Since we don't have total_discount field
-                        'coupon_deductions': float(daily_totals['coupon_discount'] or 0),
-                        'net_sales': float(daily_totals['net_sales'] or 0)
-                    }
-                    daily_data.append(daily_stats)
+            # Format order data for current page
+            order_data = []
+            for order in current_page:
+                order_data.append({
+                    'order_id': order.id,
+                    'date': order.created_at.strftime('%Y-%m-%d %H:%M'),
+                    'customer_name': f"{order.user.username}",
+                    'items_count': order.items.count(),
+                    'payment_method': order.payment_method,
+                    'status': order.status,
+                    'gross_amount': float(order.subtotal or 0),
+                    'discounts': float(order.coupon_discount or 0),
+                    'net_amount': float(order.total_amount or 0)
+                })
 
-            # Sort daily data in reverse chronological order
-            daily_data.sort(key=lambda x: datetime.strptime(x['date'], '%d-%m-%Y'), reverse=True)
+            # Add pagination info
+            pagination_info = {
+                'current_page': current_page.number,
+                'total_pages': paginator.num_pages,
+                'has_next': current_page.has_next(),
+                'has_previous': current_page.has_previous(),
+                'total_items': paginator.count
+            }
 
             return JsonResponse({
                 'status': 'success',
                 'summary': summary,
-                'details': daily_data
+                'orders': order_data,
+                'pagination': pagination_info
             })
 
         except Exception as e:
@@ -1339,49 +1341,66 @@ def download_sales_report_pdf(request):
             start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
             end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
 
-        # Query orders
+        # Query orders with related data
         orders = Order.objects.filter(
             created_at__date__gte=start_date,
             created_at__date__lte=end_date
-        ).exclude(status='cancelled')
+        ).select_related('user').prefetch_related('items').order_by('-created_at')
 
         # Create PDF
         buffer = BytesIO()
         doc = SimpleDocTemplate(
             buffer,
             pagesize=A4,
-            rightMargin=30,
-            leftMargin=30,
-            topMargin=30,
-            bottomMargin=30
+            rightMargin=40,
+            leftMargin=40,
+            topMargin=40,
+            bottomMargin=40
         )
 
         # Container for PDF elements
         elements = []
 
-        # Styles
+        # Define theme colors
+        PRIMARY_COLOR = colors.HexColor('#2c3e50')  # Dark blue-grey
+        SECONDARY_COLOR = colors.HexColor('#34495e')  # Lighter blue-grey
+        ACCENT_COLOR = colors.HexColor('#3498db')  # Bright blue
+        TEXT_COLOR = colors.HexColor('#2c3e50')  # Dark text
+        LIGHT_BG = colors.HexColor('#ecf0f1')  # Light background
+        ALT_ROW_COLOR = colors.HexColor('#f9f9f9')  # Alternating row color
+
+        # Custom styles
         styles = getSampleStyleSheet()
         styles.add(ParagraphStyle(
-            name='CustomTitle',
+            name='CompanyHeader',
             parent=styles['Heading1'],
-            fontSize=20,
-            spaceAfter=30,
-            alignment=TA_CENTER
+            fontSize=28,
+            spaceAfter=20,
+            alignment=TA_CENTER,
+            textColor=PRIMARY_COLOR
+        ))
+        
+        styles.add(ParagraphStyle(
+            name='ReportTitle',
+            parent=styles['Heading2'],
+            fontSize=18,
+            spaceBefore=10,
+            spaceAfter=25,
+            alignment=TA_CENTER,
+            textColor=SECONDARY_COLOR
         ))
 
-        # Add company header
-        elements.append(Paragraph("BOOKSCARTZ", styles['CustomTitle']))
-        elements.append(Spacer(1, 10))
+        # Add company header with a line below
+        elements.append(Paragraph("BOOKSCARTZ", styles['CompanyHeader']))
+        elements.append(Table([['']], colWidths=[515], style=TableStyle([
+            ('LINEBELOW', (0, 0), (-1, -1), 2, PRIMARY_COLOR),
+            ('TOPPADDING', (0, 0), (-1, -1), 0),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+        ])))
         
         # Add report title and date range
         title = f"Sales Report ({start_date.strftime('%d-%m-%Y')} to {end_date.strftime('%d-%m-%Y')})"
-        elements.append(Paragraph(title, ParagraphStyle(
-            'SubTitle',
-            parent=styles['Heading2'],
-            fontSize=14,
-            alignment=TA_CENTER,
-            spaceAfter=20
-        )))
+        elements.append(Paragraph(title, styles['ReportTitle']))
 
         # Calculate summary
         summary_data = orders.aggregate(
@@ -1391,13 +1410,13 @@ def download_sales_report_pdf(request):
             total_coupon_discount=Sum('coupon_discount')
         )
 
-        # Add summary table
+        # Add summary table with improved styling
         summary_table_data = [
-            ['Summary', ''],
+            ['SUMMARY', ''],
             ['Total Orders:', str(summary_data['total_orders'] or 0)],
-            ['Gross Sales:', f"{float(summary_data['total_subtotal'] or 0):.2f}"],
-            ['Total Discounts:', f"{float(summary_data['total_coupon_discount'] or 0):.2f}"],
-            ['Net Sales:', f"{float(summary_data['total_amount'] or 0):.2f}"]
+            ['Gross Sales:', f"{float(summary_data['total_subtotal'] or 0):,.2f}"],
+            ['Total Discounts:', f"{float(summary_data['total_coupon_discount'] or 0):,.2f}"],
+            ['Net Sales:', f"{float(summary_data['total_amount'] or 0):,.2f}"]
         ]
         
         summary_table = Table(summary_table_data, colWidths=[200, 200])
@@ -1408,74 +1427,106 @@ def download_sales_report_pdf(request):
             ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('SPAN', (0, 0), (1, 0)),  # Merge first row
-            ('ALIGN', (0, 0), (1, 0), 'CENTER'),  # Center the merged cell
+            ('ALIGN', (0, 0), (1, 0), 'CENTER'),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
-            ('GRID', (0, 1), (-1, -1), 1, colors.black),
-            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('TOPPADDING', (0, 0), (-1, -1), 12),
+            ('BACKGROUND', (0, 0), (-1, 0), PRIMARY_COLOR),
+            ('BACKGROUND', (0, 1), (-1, -1), LIGHT_BG),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#d7d7d7')),
+            ('LINEBELOW', (0, 0), (-1, 0), 2, PRIMARY_COLOR),
         ]))
         elements.append(summary_table)
         elements.append(Spacer(1, 30))
 
-        # Add daily breakdown table
-        daily_data = [['Date', 'Orders', 'Gross Sales', 'Discounts', 'Net Sales']]
-        
-        # Get unique dates that have orders
-        order_dates = orders.values('created_at__date').distinct().order_by('-created_at__date')
-        
-        for date_dict in order_dates:
-            current_date = date_dict['created_at__date']
-            daily_orders = orders.filter(created_at__date=current_date)
-            
-            daily_totals = daily_orders.aggregate(
-                order_count=Count('id'),
-                gross_sales=Sum('subtotal'),
-                coupon_discount=Sum('coupon_discount'),
-                net_sales=Sum('total_amount')
-            )
-
-            if daily_totals['order_count'] > 0:
-                daily_data.append([
-                    current_date.strftime('%d-%m-%Y'),
-                    str(daily_totals['order_count']),
-                    f"₹{float(daily_totals['gross_sales'] or 0):.2f}",
-                    f"₹{float(daily_totals['coupon_discount'] or 0):.2f}",
-                    f"₹{float(daily_totals['net_sales'] or 0):.2f}"
-                ])
-
-        # Add table header
-        elements.append(Paragraph("Daily Sales Breakdown", ParagraphStyle(
-            'TableTitle',
+        # Add order details section title
+        elements.append(Paragraph("ORDER DETAILS", ParagraphStyle(
+            'SectionTitle',
             parent=styles['Heading3'],
-            fontSize=12,
+            fontSize=16,
             alignment=TA_CENTER,
-            spaceAfter=10
+            spaceAfter=15,
+            textColor=PRIMARY_COLOR
         )))
 
-        table = Table(daily_data, colWidths=[100, 80, 100, 100, 100])
-        table.setStyle(TableStyle([
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 0), (-1, -1), 10),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black),
-            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('ALIGN', (2, 1), (-1, -1), 'RIGHT'),  # Right align amounts
-        ]))
-        elements.append(table)
+        # Create order details table with improved styling
+        order_data = [['Order ID', 'Date & Time', 'Customer', 'Items', 'Payment', 'Status', 'Gross Amount', 'Discount', 'Net Amount']]
+        
+        # Add order rows with status color coding
+        for order in orders:
+            status_color = {
+                'pending': colors.orange,
+                'processing': ACCENT_COLOR,
+                'shipped': colors.purple,
+                'delivered': colors.green,
+                'cancelled': colors.red,
+                'returned': colors.grey,
+            }.get(order.status, colors.black)
 
-        # Add footer
-        elements.append(Spacer(1, 20))
+            order_data.append([
+                f"#{order.id}",
+                order.created_at.strftime('%d-%m-%Y %H:%M'),
+                order.user.username,
+                str(order.items.count()),
+                order.payment_method,
+                order.status.title(),
+                f"{float(order.subtotal or 0):,.2f}",
+                f"{float(order.coupon_discount or 0):,.2f}",
+                f"{float(order.total_amount or 0):,.2f}"
+            ])
+
+        # Add totals row
+        order_data.append([
+            'TOTAL',
+            '',
+            '',
+            str(sum(order.items.count() for order in orders)),
+            '',
+            '',
+            f"{float(summary_data['total_subtotal'] or 0):,.2f}",
+            f"{float(summary_data['total_coupon_discount'] or 0):,.2f}",
+            f"{float(summary_data['total_amount'] or 0):,.2f}"
+        ])
+
+        # Create and style the order details table
+        col_widths = [45, 75, 70, 35, 60, 55, 65, 55, 65]
+        order_table = Table(order_data, colWidths=col_widths, repeatRows=1)
+        order_table.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 0), (-1, -1), 8),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('BACKGROUND', (0, 0), (-1, 0), PRIMARY_COLOR),
+            ('BACKGROUND', (0, 1), (-1, -2), colors.white),
+            ('BACKGROUND', (0, -1), (-1, -1), LIGHT_BG),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+            ('ALIGN', (6, 1), (-1, -1), 'RIGHT'),  # Right align amount columns
+            ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#d7d7d7')),
+            ('LINEBELOW', (0, 0), (-1, 0), 2, PRIMARY_COLOR),
+            ('LINEABOVE', (0, -1), (-1, -1), 2, PRIMARY_COLOR),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -2), [colors.white, ALT_ROW_COLOR]),
+        ]))
+        elements.append(order_table)
+
+        # Add footer with generation info
+        elements.append(Spacer(1, 30))
+        elements.append(Table([['']], colWidths=[515], style=TableStyle([
+            ('LINEABOVE', (0, 0), (-1, -1), 1, colors.HexColor('#d7d7d7')),
+            ('TOPPADDING', (0, 0), (-1, -1), 5),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+        ])))
         elements.append(Paragraph(
             f"Generated on: {timezone.now().strftime('%d-%m-%Y %H:%M:%S')}",
             ParagraphStyle(
                 'Footer',
                 parent=styles['Normal'],
                 fontSize=8,
-                textColor=colors.grey,
-                alignment=TA_RIGHT
+                textColor=SECONDARY_COLOR,
+                alignment=TA_RIGHT,
+                spaceBefore=5
             )
         ))
 
@@ -1486,7 +1537,7 @@ def download_sales_report_pdf(request):
 
         # Create response
         response = HttpResponse(content_type='application/pdf')
-        filename = f"Bookscartz_Sales_Report_{start_date.strftime('%Y%m%d')}_{end_date.strftime('%Y%m%d')}.pdf"
+        filename = f"Bookscartz_Sales_Report_{start_date.strftime('%d%m%Y')}_{end_date.strftime('%d%m%Y')}.pdf"
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         response.write(pdf)
 

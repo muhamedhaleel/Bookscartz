@@ -808,7 +808,12 @@ def order_details(request, order_id):
 @login_required(login_url='user_login')
 def user_orders(request):
     status = request.GET.get('status')
-    orders = Order.objects.filter(user=request.user).order_by('-created_at')
+    orders = Order.objects.filter(user=request.user)\
+        .prefetch_related(
+            'items__product',
+            'return_request'
+        )\
+        .order_by('-created_at')
     
     if status:
         orders = orders.filter(status=status)

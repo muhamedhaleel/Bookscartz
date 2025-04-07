@@ -65,17 +65,21 @@
                     <thead class="bg-[#A79277] text-white">
                         <tr>
                             <th class="py-4 px-6 text-left">SL.No</th>
+                            <th class="py-4 px-6 text-left">Transaction ID</th>
+                            <th class="py-4 px-6 text-left">Order ID</th>
                             <th class="py-4 px-6 text-left">User</th>
                             <th class="py-4 px-6 text-left">Type</th>
+                            <th class="py-4 px-6 text-left">Source</th>
                             <th class="py-4 px-6 text-left">Amount</th>
                             <th class="py-4 px-6 text-left">Date</th>
-                            <th class="py-4 px-6 text-left">Order ID</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for transaction in transactions %}
                         <tr class="border-b hover:bg-gray-50">
                             <td class="py-4 px-6">{{ forloop.counter }}</td>
+                            <td class="py-4 px-6">{{ transaction.id|stringformat:"03d" }}</td>
+                            <td class="py-4 px-6">{{ transaction.order_id|default:"-" }}</td>
                             <td class="py-4 px-6">{{ transaction.wallet.user.username }}</td>
                             <td class="py-4 px-6">
                                 <span class="px-2 py-1 rounded-full text-sm
@@ -87,13 +91,29 @@
                                     {{ transaction.type|title }}
                                 </span>
                             </td>
+                            <td class="py-4 px-6">
+                                {% if transaction.order_id %}
+                                    <div class="flex items-center space-x-2">
+                                        <span>Order Refund</span>
+                                        <a href="{% url 'admin_manage_orders' %}?order_id={{ transaction.order_id }}" 
+                                           class="px-2 py-1 text-xs bg-[#A79277] text-white rounded hover:bg-[#8B7355] transition-colors">
+                                            View Order
+                                        </a>
+                                    </div>
+                                {% else %}
+                                    {% if transaction.type == 'credit' %}
+                                        Manual Credit
+                                    {% else %}
+                                        Purchase Debit
+                                    {% endif %}
+                                {% endif %}
+                            </td>
                             <td class="py-4 px-6">₹{{ transaction.amount }}</td>
-                            <td class="py-4 px-6">{{ transaction.date|date:"d M Y, h:i A" }}</td>
-                            <td class="py-4 px-6">{{ transaction.order_id|default:"-" }}</td>
+                            <td class="py-4 px-6">{{ transaction.date|date:"d M Y" }}</td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="6" class="py-8 text-center text-gray-500">
+                            <td colspan="8" class="py-8 text-center text-gray-500">
                                 No transactions found
                             </td>
                         </tr>
@@ -102,35 +122,69 @@
                 </table>
             </div>
 
-            <!-- Pagination -->
-            <div class="mt-6 flex justify-center">
-                {% if transactions.paginator.num_pages > 1 %}
-                <nav class="flex items-center gap-2">
-                    {% if transactions.has_previous %}
-                        <a href="?page={{ transactions.previous_page_number }}" 
-                           class="px-3 py-1 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors">
-                            Previous
-                        </a>
-                    {% endif %}
+            <!-- Pagination and Info -->
+            <div class="mt-6">
+                <!-- Transaction count info -->
+                <div class="text-center mb-4 text-sm text-gray-600">
+                    Showing transactions {{ transactions.start_index }} to {{ transactions.end_index }} of {{ transactions.paginator.count }} total transactions
+                </div>
 
-                    {% for num in transactions.paginator.page_range %}
-                        {% if transactions.number == num %}
-                            <span class="px-3 py-1 bg-[#A79277] text-white rounded-md">{{ num }}</span>
-                        {% elif num > transactions.number|add:'-3' and num < transactions.number|add:'3' %}
-                            <a href="?page={{ num }}" 
+                <!-- Pagination controls -->
+                <div class="flex justify-center">
+                    {% if transactions.paginator.num_pages > 1 %}
+                    <nav class="flex items-center gap-2">
+                        <!-- First page -->
+                        {% if transactions.number != 1 %}
+                            <a href="?page=1" 
                                class="px-3 py-1 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors">
-                                {{ num }}
+                                First
                             </a>
                         {% endif %}
-                    {% endfor %}
 
-                    {% if transactions.has_next %}
-                        <a href="?page={{ transactions.next_page_number }}" 
-                           class="px-3 py-1 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors">
-                            Next
-                        </a>
+                        <!-- Previous -->
+                        {% if transactions.has_previous %}
+                            <a href="?page={{ transactions.previous_page_number }}" 
+                               class="px-3 py-1 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors">
+                                Previous
+                            </a>
+                        {% endif %}
+
+                        <!-- Page numbers -->
+                        {% for num in transactions.paginator.page_range %}
+                            {% if transactions.number == num %}
+                                <span class="px-3 py-1 bg-[#A79277] text-white rounded-md">{{ num }}</span>
+                            {% elif num > transactions.number|add:'-3' and num < transactions.number|add:'3' %}
+                                <a href="?page={{ num }}" 
+                                   class="px-3 py-1 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors">
+                                    {{ num }}
+                                </a>
+                            {% endif %}
+                        {% endfor %}
+
+                        <!-- Next -->
+                        {% if transactions.has_next %}
+                            <a href="?page={{ transactions.next_page_number }}" 
+                               class="px-3 py-1 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors">
+                                Next
+                            </a>
+                        {% endif %}
+
+                        <!-- Last page -->
+                        {% if transactions.number != transactions.paginator.num_pages %}
+                            <a href="?page={{ transactions.paginator.num_pages }}" 
+                               class="px-3 py-1 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors">
+                                Last
+                            </a>
+                        {% endif %}
+                    </nav>
                     {% endif %}
-                </nav>
+                </div>
+
+                <!-- Page info -->
+                {% if transactions.paginator.num_pages > 1 %}
+                <div class="text-center mt-2 text-sm text-gray-600">
+                    Page {{ transactions.number }} of {{ transactions.paginator.num_pages }}
+                </div>
                 {% endif %}
             </div>
         </main>

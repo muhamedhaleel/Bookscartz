@@ -210,20 +210,47 @@
                 <!-- Sales Report Table -->
                 <div class="overflow-x-auto">
                     <table class="w-full border-collapse">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="border p-3 text-left">Date</th>
-                                <th class="border p-3 text-left">Orders</th>
-                                <th class="border p-3 text-left">Gross Sales</th>
-                                <th class="border p-3 text-left">Discounts</th>
-                                <th class="border p-3 text-left">Coupon Deductions</th>
-                                <th class="border p-3 text-left">Net Sales</th>
+                        <thead>
+                            <tr class="bg-gray-100 border-b-2 border-gray-200">
+                                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Order ID</th>
+                                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Date</th>
+                                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Customer</th>
+                                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Items</th>
+                                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Payment Method</th>
+                                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Status</th>
+                                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Gross Amount</th>
+                                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Discounts</th>
+                                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Net Amount</th>
                             </tr>
                         </thead>
                         <tbody id="reportData">
                             <!-- Report data will be populated here -->
                         </tbody>
+                        <tfoot>
+                            <tr class="bg-gray-50 font-semibold border-t-2 border-gray-200">
+                                <td colspan="6" class="px-6 py-4 text-right text-sm text-gray-700">Totals:</td>
+                                <td class="px-6 py-4 text-sm text-gray-700" id="totalGrossAmount">₹0</td>
+                                <td class="px-6 py-4 text-sm text-gray-700" id="totalDiscounts">₹0</td>
+                                <td class="px-6 py-4 text-sm text-gray-700" id="totalNetAmount">₹0</td>
+                            </tr>
+                        </tfoot>
                     </table>
+                </div>
+
+                <!-- After the table, add pagination controls -->
+                <div class="mt-4 flex items-center justify-between">
+                    <div class="text-sm text-gray-700">
+                        Showing <span id="itemsRange" class="font-medium">0-0</span> of <span id="totalItems" class="font-medium">0</span> orders
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button id="prevPage" class="px-3 py-1 border rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                            Previous
+                        </button>
+                        <span id="pageInfo" class="px-3 py-1">Page <span id="currentPage">1</span> of <span id="totalPages">1</span></span>
+                        <button id="nextPage" class="px-3 py-1 border rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                            Next
+                        </button>
+                    </div>
                 </div>
             </div>
         </main>
@@ -632,6 +659,8 @@
             });
         }
 
+        let currentPageNumber = 1;
+
         function generateReport() {
             const reportType = document.getElementById('reportType').value;
             const startDate = document.getElementById('startDate').value;
@@ -641,7 +670,8 @@
             const data = {
                 report_type: reportType,
                 start_date: startDate,
-                end_date: endDate
+                end_date: endDate,
+                page: currentPageNumber
             };
 
             // Make API call
@@ -657,6 +687,7 @@
             .then(data => {
                 if (data.status === 'success') {
                     updateReportDisplay(data);
+                    updatePagination(data.pagination);
                 } else {
                     alert('Error: ' + data.message);
                 }
@@ -677,22 +708,101 @@
             const tbody = document.getElementById('reportData');
             tbody.innerHTML = '';
 
-            data.details.forEach(row => {
-                tbody.innerHTML += `
-                    <tr class="hover:bg-gray-50">
-                        <td class="border p-3">${row.date}</td>
-                        <td class="border p-3">${row.orders}</td>
-                        <td class="border p-3">₹${row.gross_sales.toFixed(2)}</td>
-                        <td class="border p-3">₹${row.discounts.toFixed(2)}</td>
-                        <td class="border p-3">₹${row.coupon_deductions.toFixed(2)}</td>
-                        <td class="border p-3">₹${row.net_sales.toFixed(2)}</td>
-                    </tr>
+            let totalGrossAmount = 0;
+            let totalDiscounts = 0;
+            let totalNetAmount = 0;
+
+            data.orders.forEach((order, index) => {
+                const row = document.createElement('tr');
+                row.className = `${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-100 transition-colors duration-150 ease-in-out`;
+                
+                // Calculate values
+                const grossAmount = parseFloat(order.gross_amount);
+                const discounts = parseFloat(order.discounts);
+                const netAmount = parseFloat(order.net_amount);
+                
+                // Update totals
+                totalGrossAmount += grossAmount;
+                totalDiscounts += discounts;
+                totalNetAmount += netAmount;
+
+                row.innerHTML = `
+                    <td class="px-6 py-4 text-sm text-gray-700 border-b">#${order.order_id}</td>
+                    <td class="px-6 py-4 text-sm text-gray-700 border-b whitespace-nowrap">${order.date}</td>
+                    <td class="px-6 py-4 text-sm text-gray-700 border-b">${order.customer_name}</td>
+                    <td class="px-6 py-4 text-sm text-gray-700 border-b text-center">${order.items_count}</td>
+                    <td class="px-6 py-4 text-sm text-gray-700 border-b">${order.payment_method}</td>
+                    <td class="px-6 py-4 text-sm border-b">
+                        <span class="px-3 py-1 rounded-full text-xs font-medium ${getStatusClass(order.status)}">
+                            ${order.status}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-700 border-b">₹${grossAmount.toFixed(2)}</td>
+                    <td class="px-6 py-4 text-sm text-gray-700 border-b">₹${discounts.toFixed(2)}</td>
+                    <td class="px-6 py-4 text-sm text-gray-700 border-b">₹${netAmount.toFixed(2)}</td>
                 `;
+                tbody.appendChild(row);
             });
+
+            // Update footer totals
+            document.getElementById('totalGrossAmount').textContent = `₹${totalGrossAmount.toFixed(2)}`;
+            document.getElementById('totalDiscounts').textContent = `₹${totalDiscounts.toFixed(2)}`;
+            document.getElementById('totalNetAmount').textContent = `₹${totalNetAmount.toFixed(2)}`;
         }
 
-        // Initialize with daily report
+        function getStatusClass(status) {
+            const statusClasses = {
+                'pending': 'bg-yellow-100 text-yellow-800',
+                'processing': 'bg-blue-100 text-blue-800',
+                'shipped': 'bg-purple-100 text-purple-800',
+                'delivered': 'bg-green-100 text-green-800',
+                'cancelled': 'bg-red-100 text-red-800',
+                'returned': 'bg-gray-100 text-gray-800'
+            };
+            return statusClasses[status.toLowerCase()] || 'bg-gray-100 text-gray-800';
+        }
+
+        function updatePagination(pagination) {
+            const { current_page, total_pages, has_next, has_previous, total_items } = pagination;
+            const itemsPerPage = 10;
+            
+            // Update page info
+            document.getElementById('currentPage').textContent = current_page;
+            document.getElementById('totalPages').textContent = total_pages;
+            
+            // Update items range
+            const start = ((current_page - 1) * itemsPerPage) + 1;
+            const end = Math.min(start + itemsPerPage - 1, total_items);
+            document.getElementById('itemsRange').textContent = `${start}-${end}`;
+            document.getElementById('totalItems').textContent = total_items;
+            
+            // Update button states
+            document.getElementById('prevPage').disabled = !has_previous;
+            document.getElementById('nextPage').disabled = !has_next;
+        }
+
+        // Add event listeners for pagination buttons
+        document.getElementById('prevPage').addEventListener('click', () => {
+            if (currentPageNumber > 1) {
+                currentPageNumber--;
+                generateReport();
+            }
+        });
+
+        document.getElementById('nextPage').addEventListener('click', () => {
+            currentPageNumber++;
+            generateReport();
+        });
+
+        // Update the report type change handler
+        document.getElementById('reportType').addEventListener('change', () => {
+            currentPageNumber = 1; // Reset to first page when changing report type
+            generateReport();
+        });
+
+        // Initialize with daily report on page load
         window.onload = function() {
+            currentPageNumber = 1;
             generateReport();
         };
 
