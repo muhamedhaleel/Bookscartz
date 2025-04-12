@@ -207,7 +207,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 # Site I
-SITE_ID = 4
+SITE_ID = 1
 
 # just for checking
 
