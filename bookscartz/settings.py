@@ -36,7 +36,7 @@ SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SECURE = False
 
 
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ['*','13.201.134.192', 'localhost', '127.0.0.1','bookscartz.shop', 'www.bookscartz.shop']
 CSRF_TRUSTED_ORIGINS = ['https://bookscartz.shop', 'https://www.bookscartz.shop']
