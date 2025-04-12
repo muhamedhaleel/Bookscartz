@@ -104,7 +104,6 @@ DATABASES = {
     }
 }
 
-
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
 
@@ -203,8 +202,8 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-# Site ID
-SITE_ID = 3
+# Site I
+SITE_ID = 1
 
 # just for checking
 
