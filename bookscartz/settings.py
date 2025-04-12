@@ -32,11 +32,15 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
 GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET')
 
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
 
 
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*','13.201.134.192', 'localhost', '127.0.0.1','bookscartz.shop', 'www.bookscartz.shop']
+CSRF_TRUSTED_ORIGINS = ['https://bookscartz.shop', 'https://www.bookscartz.shop']
+
 
 
 # Application definition
@@ -97,8 +101,8 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'bookcarts',
-        'USER': 'root',
-        'PASSWORD': '1234',
+        'USER': 'bookuser',
+        'PASSWORD': 'bookpass123',
         'HOST': 'localhost',
         'PORT': '3306',
     }
@@ -139,7 +143,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = 'static/'
-
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
